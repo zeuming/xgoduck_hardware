@@ -1,6 +1,24 @@
 ~$*
 .cache/
 .build/
+__pycache__/
+/tools/esp32_linkcheck/.pio/
+# Full-device backups can include Wi-Fi credentials and device secrets.
+/output/esp32_linkcheck/backups/
+
+# Per-robot calibration and local build/runtime state.
+/tools/esp32_motion/.pio/
+/tools/x5_policy/calibration.json
+/tools/x5_policy/motion_port.txt
+/output/x5_policy_bundle/calibration.json
 
 # Local source footage
 /a clean somersault - CyberBionic Maker (1080p, h264).mp4
+/output/x5_recovery/backups/
+
+# Local build products, device evidence, credentials and temporary environments.
+/output/
+/tmp/
+**/.pio/
+**/.venv/
+.DS_Store

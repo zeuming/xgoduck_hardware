@@ -1,0 +1,1237 @@
+{
+  "base_commit": "703bfd274071cb545b1ed6f512f3c81cf91e447b",
+  "files": {
+    ".gitignore": {
+      "source": ".gitignore",
+      "sha256": "caed56b7698550df21746c2a039c3373da008d30b8bdd6956bcb955a801a2e31",
+      "published_sha256": "caed56b7698550df21746c2a039c3373da008d30b8bdd6956bcb955a801a2e31"
+    },
+    "README_CN.md": {
+      "source": "README_CN.md",
+      "sha256": "563124f6bb19eb6146ebc3d9b777283981b354b87b1509db0b317883f78af944",
+      "published_sha256": "e06f08cbd33a973d39627775b493718f71a1935ce50a7057a1847678f0607cad"
+    },
+    "tools/esp32_linkcheck/README.md": {
+      "source": "tools/esp32_linkcheck/README.md",
+      "sha256": "97206c8595e855f830a81576583ee52966bbc1e3b8ffd353d65a0fd9c5defc6c",
+      "published_sha256": "97206c8595e855f830a81576583ee52966bbc1e3b8ffd353d65a0fd9c5defc6c"
+    },
+    "tools/esp32_linkcheck/check_links.py": {
+      "source": "tools/esp32_linkcheck/check_links.py",
+      "sha256": "84bf22f368d592e0b87a18ad6f16136efdc1955778beef9caf8713c55d2139f3",
+      "published_sha256": "84bf22f368d592e0b87a18ad6f16136efdc1955778beef9caf8713c55d2139f3"
+    },
+    "tools/esp32_linkcheck/firmware/README.md": {
+      "source": "tools/esp32_linkcheck/firmware/README.md",
+      "sha256": "433675508dab314688f1038689c45ad23ada8e8bc3f1a615ad52899314cb6d29",
+      "published_sha256": "433675508dab314688f1038689c45ad23ada8e8bc3f1a615ad52899314cb6d29"
+    },
+    "tools/esp32_linkcheck/firmware/main.cpp": {
+      "source": "tools/esp32_linkcheck/firmware/main.cpp",
+      "sha256": "9d1dce6da2eff89be0734bacdf02f8568d65b613f0d5e3a3d2aacd6b71583921",
+      "published_sha256": "9d1dce6da2eff89be0734bacdf02f8568d65b613f0d5e3a3d2aacd6b71583921"
+    },
+    "tools/esp32_linkcheck/firmware/servo_readonly.h": {
+      "source": "tools/esp32_linkcheck/firmware/servo_readonly.h",
+      "sha256": "fa518629acd352845267ce548defa157570ff09da399b65dc410f564fb0e9834",
+      "published_sha256": "fa518629acd352845267ce548defa157570ff09da399b65dc410f564fb0e9834"
+    },
+    "tools/esp32_linkcheck/firmware/tests/test_protocol.py": {
+      "source": "tools/esp32_linkcheck/firmware/tests/test_protocol.py",
+      "sha256": "fce824087d4b158c18eb44509046832b03ae4f8a129f84b050c64180caf07bb4",
+      "published_sha256": "fce824087d4b158c18eb44509046832b03ae4f8a129f84b050c64180caf07bb4"
+    },
+    "tools/esp32_linkcheck/firmware/workbench_xfer.h": {
+      "source": "tools/esp32_linkcheck/firmware/workbench_xfer.h",
+      "sha256": "b973a6c1d08d5705fe478c979aafbf4ac32acd978c7e930c91800e776c97d351",
+      "published_sha256": "b973a6c1d08d5705fe478c979aafbf4ac32acd978c7e930c91800e776c97d351"
+    },
+    "tools/esp32_linkcheck/linkcheck_partitions.csv": {
+      "source": "tools/esp32_linkcheck/linkcheck_partitions.csv",
+      "sha256": "ab3041243f7b294709681f02f4d46709a23fba93bf5632a80314b965d22f11cf",
+      "published_sha256": "ab3041243f7b294709681f02f4d46709a23fba93bf5632a80314b965d22f11cf"
+    },
+    "tools/esp32_linkcheck/platformio.ini": {
+      "source": "tools/esp32_linkcheck/platformio.ini",
+      "sha256": "2f9268ad46c5500d8b2b92921a9c4b8aa89abe353e555cbdfecd171ef14fae45",
+      "published_sha256": "2f9268ad46c5500d8b2b92921a9c4b8aa89abe353e555cbdfecd171ef14fae45"
+    },
+    "tools/esp32_linkcheck/verify_backup.py": {
+      "source": "tools/esp32_linkcheck/verify_backup.py",
+      "sha256": "0c390b35caa0acc00debc40b95a7bbed99fae302a1da13f947abd9fb6f530262",
+      "published_sha256": "0c390b35caa0acc00debc40b95a7bbed99fae302a1da13f947abd9fb6f530262"
+    },
+    "tools/esp32_motion/README.md": {
+      "source": "tools/esp32_motion/README.md",
+      "sha256": "3b0c572df395b796b89ff745bcd610803b36adf9eeed3a41e9b4c28b2c514995",
+      "published_sha256": "3b0c572df395b796b89ff745bcd610803b36adf9eeed3a41e9b4c28b2c514995"
+    },
+    "tools/esp32_motion/firmware/main.cpp": {
+      "source": "tools/esp32_motion/firmware/main.cpp",
+      "sha256": "36fe128710d639dbef339c806f985f1b715452a0e164357e1542d2187fd4a4ff",
+      "published_sha256": "36fe128710d639dbef339c806f985f1b715452a0e164357e1542d2187fd4a4ff"
+    },
+    "tools/esp32_motion/firmware/maintenance_impl.h": {
+      "source": "tools/esp32_motion/firmware/maintenance_impl.h",
+      "sha256": "2b98c934de90360779fa08baf06624ead142b8f574eaf0c18c7b0f5175d354fe",
+      "published_sha256": "2b98c934de90360779fa08baf06624ead142b8f574eaf0c18c7b0f5175d354fe"
+    },
+    "tools/esp32_motion/firmware/motion_protocol.h": {
+      "source": "tools/esp32_motion/firmware/motion_protocol.h",
+      "sha256": "17ebf4161b42633bb79fadff8a0516472780cba248e5fc5a8eb4f2abb55fd7b2",
+      "published_sha256": "17ebf4161b42633bb79fadff8a0516472780cba248e5fc5a8eb4f2abb55fd7b2"
+    },
+    "tools/esp32_motion/firmware/off_register_details.h": {
+      "source": "tools/esp32_motion/firmware/off_register_details.h",
+      "sha256": "1b02cedaa669fc9e13889eedae253de6b9fae99396f319bffb160e0acfa3c482",
+      "published_sha256": "1b02cedaa669fc9e13889eedae253de6b9fae99396f319bffb160e0acfa3c482"
+    },
+    "tools/esp32_motion/flash_imu_fix_mac.py": {
+      "source": "tools/esp32_motion/flash_imu_fix_mac.py",
+      "sha256": "ee75c91793acde5c39a6a49dd037d6473826ca506cf5c200808c75554238da5b",
+      "published_sha256": "ee75c91793acde5c39a6a49dd037d6473826ca506cf5c200808c75554238da5b"
+    },
+    "tools/esp32_motion/flash_via_x5.py": {
+      "source": "tools/esp32_motion/flash_via_x5.py",
+      "sha256": "168f631326f975954bcd479408114ff54ada59dac8762df1d929d5c81a3e54c3",
+      "published_sha256": "168f631326f975954bcd479408114ff54ada59dac8762df1d929d5c81a3e54c3"
+    },
+    "tools/esp32_motion/motion_partitions.csv": {
+      "source": "tools/esp32_motion/motion_partitions.csv",
+      "sha256": "ab3041243f7b294709681f02f4d46709a23fba93bf5632a80314b965d22f11cf",
+      "published_sha256": "ab3041243f7b294709681f02f4d46709a23fba93bf5632a80314b965d22f11cf"
+    },
+    "tools/esp32_motion/package_firmware.py": {
+      "source": "tools/esp32_motion/package_firmware.py",
+      "sha256": "ee16b1fac7e2f3c240d31fd1cb92c76034096b4169d0c933c8bd041cecf437b1",
+      "published_sha256": "ee16b1fac7e2f3c240d31fd1cb92c76034096b4169d0c933c8bd041cecf437b1"
+    },
+    "tools/esp32_motion/platformio.ini": {
+      "source": "tools/esp32_motion/platformio.ini",
+      "sha256": "3d023e18cb871f2ca19265a32f58432cebc17a5d75dd55246ccc1463b1885862",
+      "published_sha256": "3d023e18cb871f2ca19265a32f58432cebc17a5d75dd55246ccc1463b1885862"
+    },
+    "tools/esp32_motion/test_flash_via_x5.py": {
+      "source": "tools/esp32_motion/test_flash_via_x5.py",
+      "sha256": "dd0b860d8a5294a5ef74f57767d2d49b8e52044d46094ea961630ca5c28defb3",
+      "published_sha256": "dd0b860d8a5294a5ef74f57767d2d49b8e52044d46094ea961630ca5c28defb3"
+    },
+    "tools/esp32_motion/tests/mocks/Arduino.h": {
+      "source": "tools/esp32_motion/tests/mocks/Arduino.h",
+      "sha256": "ae48ee8647bb3d84fffeddbcf5377d2215f458bfad971394cc9a747ca5f350f2",
+      "published_sha256": "ae48ee8647bb3d84fffeddbcf5377d2215f458bfad971394cc9a747ca5f350f2"
+    },
+    "tools/esp32_motion/tests/mocks/Wire.h": {
+      "source": "tools/esp32_motion/tests/mocks/Wire.h",
+      "sha256": "0b8ee8a09a797358cebbe9342cd9f93004d7f596a6040ce3180f13efe1fa2b20",
+      "published_sha256": "0b8ee8a09a797358cebbe9342cd9f93004d7f596a6040ce3180f13efe1fa2b20"
+    },
+    "tools/esp32_motion/tests/mocks/driver/uart.h": {
+      "source": "tools/esp32_motion/tests/mocks/driver/uart.h",
+      "sha256": "d433f54b53df0ce503c83ccdf58da5b67ea51deaa464c29b1b89840a0bb1b79e",
+      "published_sha256": "d433f54b53df0ce503c83ccdf58da5b67ea51deaa464c29b1b89840a0bb1b79e"
+    },
+    "tools/esp32_motion/tests/mocks/esp_arduino_version.h": {
+      "source": "tools/esp32_motion/tests/mocks/esp_arduino_version.h",
+      "sha256": "eec33b823418f2e5989659d203832b2740e407e9eab39d8c412bd93ebe45ca06",
+      "published_sha256": "eec33b823418f2e5989659d203832b2740e407e9eab39d8c412bd93ebe45ca06"
+    },
+    "tools/esp32_motion/tests/run.sh": {
+      "source": "tools/esp32_motion/tests/run.sh",
+      "sha256": "811241176092860d3fd4a7b296c2757cd46c09d4c6692c5c4986c493c27875a3",
+      "published_sha256": "811241176092860d3fd4a7b296c2757cd46c09d4c6692c5c4986c493c27875a3"
+    },
+    "tools/esp32_motion/tests/test_firmware.cpp": {
+      "source": "tools/esp32_motion/tests/test_firmware.cpp",
+      "sha256": "ce68228f924e2fc41fa54aeb910944377ddcd1d0ce51ab2b877fa567a3292069",
+      "published_sha256": "ce68228f924e2fc41fa54aeb910944377ddcd1d0ce51ab2b877fa567a3292069"
+    },
+    "tools/esp32_motion/tests/test_goal_diagnostics.cpp": {
+      "source": "tools/esp32_motion/tests/test_goal_diagnostics.cpp",
+      "sha256": "92ccd3761357f786b59c78ee811dcdaaba217a1eeaf718c198b54991549c433b",
+      "published_sha256": "92ccd3761357f786b59c78ee811dcdaaba217a1eeaf718c198b54991549c433b"
+    },
+    "tools/esp32_motion/tests/test_maintenance.cpp": {
+      "source": "tools/esp32_motion/tests/test_maintenance.cpp",
+      "sha256": "7e05cc11e833e677bf132c8b1c13dffbcddb8f7c4fc85cc6498cd78355a5df7f",
+      "published_sha256": "7e05cc11e833e677bf132c8b1c13dffbcddb8f7c4fc85cc6498cd78355a5df7f"
+    },
+    "tools/esp32_motion/tests/test_motion.cpp": {
+      "source": "tools/esp32_motion/tests/test_motion.cpp",
+      "sha256": "62895546b083a8821e8abede0e972434ac86d3d4b9485b5e616f1a7ffb3d653d",
+      "published_sha256": "62895546b083a8821e8abede0e972434ac86d3d4b9485b5e616f1a7ffb3d653d"
+    },
+    "tools/esp32_motion/tests/test_off_register_details.cpp": {
+      "source": "tools/esp32_motion/tests/test_off_register_details.cpp",
+      "sha256": "a780ae256b215e58824a3fe8d59f667ecd514f4be6e1f9c21825339e96a67448",
+      "published_sha256": "a780ae256b215e58824a3fe8d59f667ecd514f4be6e1f9c21825339e96a67448"
+    },
+    "tools/esp32_motion/tests/test_stop_diagnostics.cpp": {
+      "source": "tools/esp32_motion/tests/test_stop_diagnostics.cpp",
+      "sha256": "ec527912a63072ed78c7904cf650e45e669e8a1226a444c9c93f9845b1033e4f",
+      "published_sha256": "ec527912a63072ed78c7904cf650e45e669e8a1226a444c9c93f9845b1033e4f"
+    },
+    "tools/esp32_motion/tests/test_timing.cpp": {
+      "source": "tools/esp32_motion/tests/test_timing.cpp",
+      "sha256": "b3d10c6cf6d05db042a799969c76107c6f2b267eef3bf5bad6445fa3446008fb",
+      "published_sha256": "b3d10c6cf6d05db042a799969c76107c6f2b267eef3bf5bad6445fa3446008fb"
+    },
+    "tools/servo_workbench/.gitignore": {
+      "source": "tools/servo_workbench/.gitignore",
+      "sha256": "de3e39d106464b214f28c87cb973fdf0068ce2ab72d7b991f03dc28e0c911fb6",
+      "published_sha256": "de3e39d106464b214f28c87cb973fdf0068ce2ab72d7b991f03dc28e0c911fb6"
+    },
+    "tools/servo_workbench/README.md": {
+      "source": "tools/servo_workbench/README.md",
+      "sha256": "0f76849ccc84b7f628a88c3ea38bd5af07c3d5a21b77605192567a78ea96797d",
+      "published_sha256": "0f76849ccc84b7f628a88c3ea38bd5af07c3d5a21b77605192567a78ea96797d"
+    },
+    "tools/servo_workbench/app.py": {
+      "source": "tools/servo_workbench/app.py",
+      "sha256": "37e74e1bfca8d6437d4287dcfe9721fcedbd909ba4897cfaf78d98e87a3fe81c",
+      "published_sha256": "37e74e1bfca8d6437d4287dcfe9721fcedbd909ba4897cfaf78d98e87a3fe81c"
+    },
+    "tools/servo_workbench/connect_x5.sh": {
+      "source": "tools/servo_workbench/connect_x5.sh",
+      "sha256": "5aadc9994f67639d18e00757d323142e1cec4238fef9914ff1f0b8877fa9ddf1",
+      "published_sha256": "5aadc9994f67639d18e00757d323142e1cec4238fef9914ff1f0b8877fa9ddf1"
+    },
+    "tools/servo_workbench/esp_bridge.py": {
+      "source": "tools/servo_workbench/esp_bridge.py",
+      "sha256": "ea4a4b279f3a9b09a1bc34642b1adc9817cf62bd4b28ed6e717da6645cfee0c4",
+      "published_sha256": "ea4a4b279f3a9b09a1bc34642b1adc9817cf62bd4b28ed6e717da6645cfee0c4"
+    },
+    "tools/servo_workbench/index.html": {
+      "source": "tools/servo_workbench/index.html",
+      "sha256": "92479bfacd0c3d5d7166eb373bd74f7ead20dbd38e92da0ed533b7ebdf89b4ca",
+      "published_sha256": "92479bfacd0c3d5d7166eb373bd74f7ead20dbd38e92da0ed533b7ebdf89b4ca"
+    },
+    "tools/servo_workbench/protocol.py": {
+      "source": "tools/servo_workbench/protocol.py",
+      "sha256": "2c61c22ab606c9d9e166a3fa4077b015e964eb3218b1bc62912568b7e5931802",
+      "published_sha256": "2c61c22ab606c9d9e166a3fa4077b015e964eb3218b1bc62912568b7e5931802"
+    },
+    "tools/servo_workbench/requirements.txt": {
+      "source": "tools/servo_workbench/requirements.txt",
+      "sha256": "0b81718d1cbe8a7696e45a9388c9205272b5e345cd79d0cf1ccfb7a9fd1925e9",
+      "published_sha256": "0b81718d1cbe8a7696e45a9388c9205272b5e345cd79d0cf1ccfb7a9fd1925e9"
+    },
+    "tools/servo_workbench/run.sh": {
+      "source": "tools/servo_workbench/run.sh",
+      "sha256": "64d89d244c8a027e773794cfa35c7e977482bb3466cc79f92af8b650fac21dfb",
+      "published_sha256": "64d89d244c8a027e773794cfa35c7e977482bb3466cc79f92af8b650fac21dfb"
+    },
+    "tools/servo_workbench/start_x5.py": {
+      "source": "tools/servo_workbench/start_x5.py",
+      "sha256": "89224de5387263662d0d4f859b92e397303ef4816d66b6ac2ddcd3f97daeb071",
+      "published_sha256": "89224de5387263662d0d4f859b92e397303ef4816d66b6ac2ddcd3f97daeb071"
+    },
+    "tools/servo_workbench/test_esp_bridge.py": {
+      "source": "tools/servo_workbench/test_esp_bridge.py",
+      "sha256": "7dc918e1a58eec35f80bd6c76bc1c589517f6c2faabe9d45320cf2133c8032fb",
+      "published_sha256": "7dc918e1a58eec35f80bd6c76bc1c589517f6c2faabe9d45320cf2133c8032fb"
+    },
+    "tools/servo_workbench/test_workbench.py": {
+      "source": "tools/servo_workbench/test_workbench.py",
+      "sha256": "c7ca36ffbcac3d2c2845103b0209c425215f212a907b9f57addc644b28eea37c",
+      "published_sha256": "c7ca36ffbcac3d2c2845103b0209c425215f212a907b9f57addc644b28eea37c"
+    },
+    "tools/x5_policy/README.md": {
+      "source": "tools/x5_policy/README.md",
+      "sha256": "9030a54ee75e1582618a27bf0b27c665f0af50034811968e3c86d5d102d41718",
+      "published_sha256": "3fa5d3ddc986046b2324bdf43dbcc3d31d5a148991acd7a2f2ed92e9e510eebf"
+    },
+    "tools/x5_policy/assets/positive-direction.png": {
+      "source": "tools/x5_policy/assets/positive-direction.png",
+      "sha256": "253d06d0306292319688e006af90853b6a513bdc6407db873f1cc205cad3f915",
+      "published_sha256": "253d06d0306292319688e006af90853b6a513bdc6407db873f1cc205cad3f915"
+    },
+    "tools/x5_policy/assets/zero-reference.json": {
+      "source": "tools/x5_policy/assets/zero-reference.json",
+      "sha256": "67d114bfb3db26650913a0e5fd2be97be182123eb9c15656d3f4d0ba294f4e6a",
+      "published_sha256": "67d114bfb3db26650913a0e5fd2be97be182123eb9c15656d3f4d0ba294f4e6a"
+    },
+    "tools/x5_policy/assets/zero-reference.png": {
+      "source": "tools/x5_policy/assets/zero-reference.png",
+      "sha256": "5c0c06ec88010a4d1b77755478a04d78b077928d4ea3cf9f5e09048bd4ab994c",
+      "published_sha256": "5c0c06ec88010a4d1b77755478a04d78b077928d4ea3cf9f5e09048bd4ab994c"
+    },
+    "tools/x5_policy/audit_policy_sim.py": {
+      "source": "tools/x5_policy/audit_policy_sim.py",
+      "sha256": "e28446417a619de67994f08ae681be64e37a562106c9b5722d8f7e1f53c8aa5e",
+      "published_sha256": "e28446417a619de67994f08ae681be64e37a562106c9b5722d8f7e1f53c8aa5e"
+    },
+    "tools/x5_policy/audit_pose.py": {
+      "source": "tools/x5_policy/audit_pose.py",
+      "sha256": "f3425503121708caaaa93074f65a3cfb91cf59a7047dc388474c292612912e8a",
+      "published_sha256": "f3425503121708caaaa93074f65a3cfb91cf59a7047dc388474c292612912e8a"
+    },
+    "tools/x5_policy/audit_runtime_contract.py": {
+      "source": "tools/x5_policy/audit_runtime_contract.py",
+      "sha256": "6cf0bc27589eba4537c642905de45c212520c0449ffa4e59062f4e5c4f058f5b",
+      "published_sha256": "6cf0bc27589eba4537c642905de45c212520c0449ffa4e59062f4e5c4f058f5b"
+    },
+    "tools/x5_policy/audit_trial_trace.py": {
+      "source": "tools/x5_policy/audit_trial_trace.py",
+      "sha256": "2863c804a6a405ea6018c4f0586373785cc082968bdd288dd85c3b92f3be396d",
+      "published_sha256": "2863c804a6a405ea6018c4f0586373785cc082968bdd288dd85c3b92f3be396d"
+    },
+    "tools/x5_policy/bounded_forward.py": {
+      "source": "tools/x5_policy/bounded_forward.py",
+      "sha256": "6b8777fbeb0088cca59b482a7ec2932f6f6548b9fa51cafe32577897a3656481",
+      "published_sha256": "6b8777fbeb0088cca59b482a7ec2932f6f6548b9fa51cafe32577897a3656481"
+    },
+    "tools/x5_policy/connect_x5.sh": {
+      "source": "tools/x5_policy/connect_x5.sh",
+      "sha256": "30ee0ff74fdededf85bee58ff9b3530474b605f65a34e5742c96f36bb0b7c359",
+      "published_sha256": "30ee0ff74fdededf85bee58ff9b3530474b605f65a34e5742c96f36bb0b7c359"
+    },
+    "tools/x5_policy/index.html": {
+      "source": "tools/x5_policy/index.html",
+      "sha256": "ec59c3de9d8c0c7aa64584ee4603b81b50d88e6c6e1f5d9a0a3501f9a98f53bb",
+      "published_sha256": "ec59c3de9d8c0c7aa64584ee4603b81b50d88e6c6e1f5d9a0a3501f9a98f53bb"
+    },
+    "tools/x5_policy/infer.py": {
+      "source": "tools/x5_policy/infer.py",
+      "sha256": "2a024e535a3268823cd3bef1d4212577853883c549b441a9cf6aa8d8a0be7dd9",
+      "published_sha256": "2a024e535a3268823cd3bef1d4212577853883c549b441a9cf6aa8d8a0be7dd9"
+    },
+    "tools/x5_policy/install_native_service.py": {
+      "source": "tools/x5_policy/install_native_service.py",
+      "sha256": "5509948428dbb392388729b0d88ddf664fc99f3cb3a7660012c8083af9618656",
+      "published_sha256": "5509948428dbb392388729b0d88ddf664fc99f3cb3a7660012c8083af9618656"
+    },
+    "tools/x5_policy/motion.py": {
+      "source": "tools/x5_policy/motion.py",
+      "sha256": "405f48ca0bcfea99b34a4afef177a581dafda8fc1637910a214880b12ee230bb",
+      "published_sha256": "405f48ca0bcfea99b34a4afef177a581dafda8fc1637910a214880b12ee230bb"
+    },
+    "tools/x5_policy/native_calibration.py": {
+      "source": "tools/x5_policy/native_calibration.py",
+      "sha256": "f5de68b198022173b29bd37e6698425a2ef8968568e106b18343cbbc3f99993e",
+      "published_sha256": "f5de68b198022173b29bd37e6698425a2ef8968568e106b18343cbbc3f99993e"
+    },
+    "tools/x5_policy/native_calibration_store.py": {
+      "source": "tools/x5_policy/native_calibration_store.py",
+      "sha256": "88b123a4a0f1f34aad20da826e1fd275a935bbb1c5c4155cbb736d0fca46f437",
+      "published_sha256": "88b123a4a0f1f34aad20da826e1fd275a935bbb1c5c4155cbb736d0fca46f437"
+    },
+    "tools/x5_policy/native_process.py": {
+      "source": "tools/x5_policy/native_process.py",
+      "sha256": "561c65b61beaf1108aad0c298ef80ea195527d98955c8cf1d1526d3ea2e8fcf8",
+      "published_sha256": "561c65b61beaf1108aad0c298ef80ea195527d98955c8cf1d1526d3ea2e8fcf8"
+    },
+    "tools/x5_policy/native_runtime.py": {
+      "source": "tools/x5_policy/native_runtime.py",
+      "sha256": "251e14591e3de271f612e7b78e0fe2bb53cb7dd695a515afa80b3bb2cb478044",
+      "published_sha256": "251e14591e3de271f612e7b78e0fe2bb53cb7dd695a515afa80b3bb2cb478044"
+    },
+    "tools/x5_policy/native_service.py": {
+      "source": "tools/x5_policy/native_service.py",
+      "sha256": "2ac8e25d815f4e8d4e831ab8187aa7de32ff8e7e21917c0c478e85b05d137a00",
+      "published_sha256": "2ac8e25d815f4e8d4e831ab8187aa7de32ff8e7e21917c0c478e85b05d137a00"
+    },
+    "tools/x5_policy/native_transports.py": {
+      "source": "tools/x5_policy/native_transports.py",
+      "sha256": "62b3a30caa655c0930147519f036a46bc6bf6365d674a455cb2abbcae20ae096",
+      "published_sha256": "62b3a30caa655c0930147519f036a46bc6bf6365d674a455cb2abbcae20ae096"
+    },
+    "tools/x5_policy/native_workbench.py": {
+      "source": "tools/x5_policy/native_workbench.py",
+      "sha256": "af398f75279b5f23195450547db46d8ed860edc1062f9c343d781a6d156eec14",
+      "published_sha256": "af398f75279b5f23195450547db46d8ed860edc1062f9c343d781a6d156eec14"
+    },
+    "tools/x5_policy/persistent_boot.py": {
+      "source": "tools/x5_policy/persistent_boot.py",
+      "sha256": "b3eccea60b52813cda5df0e5ca1052c309ab9e1582469074344d1b89596129a4",
+      "published_sha256": "b3eccea60b52813cda5df0e5ca1052c309ab9e1582469074344d1b89596129a4"
+    },
+    "tools/x5_policy/prepare_process_upgrade.py": {
+      "source": "tools/x5_policy/prepare_process_upgrade.py",
+      "sha256": "29a57743528916731f45224352b4335d741b40722045747630ff26f0a3d381c1",
+      "published_sha256": "29a57743528916731f45224352b4335d741b40722045747630ff26f0a3d381c1"
+    },
+    "tools/x5_policy/probe_motion.py": {
+      "source": "tools/x5_policy/probe_motion.py",
+      "sha256": "7743991c393c145057ffda4c5c890e6dff5db52a4184f12f4832f83e9221d6c2",
+      "published_sha256": "7743991c393c145057ffda4c5c890e6dff5db52a4184f12f4832f83e9221d6c2"
+    },
+    "tools/x5_policy/render_calibration_reference.py": {
+      "source": "tools/x5_policy/render_calibration_reference.py",
+      "sha256": "a56bda4c17b001dcaee12ed60129ba49ec1264293ca043f7628a281b3e16cf81",
+      "published_sha256": "a56bda4c17b001dcaee12ed60129ba49ec1264293ca043f7628a281b3e16cf81"
+    },
+    "tools/x5_policy/requirements.txt": {
+      "source": "tools/x5_policy/requirements.txt",
+      "sha256": "49b9a1d22508ad588b50601161de1f41c58288aa607ee5c8c2350eb14cc527e2",
+      "published_sha256": "49b9a1d22508ad588b50601161de1f41c58288aa607ee5c8c2350eb14cc527e2"
+    },
+    "tools/x5_policy/restart_native_workbench.py": {
+      "source": "tools/x5_policy/restart_native_workbench.py",
+      "sha256": "4d4ea71bd53e68ead9551354f66d7ed6a58f56fd5749151e7021d517cd073396",
+      "published_sha256": "4d4ea71bd53e68ead9551354f66d7ed6a58f56fd5749151e7021d517cd073396"
+    },
+    "tools/x5_policy/rl_core.py": {
+      "source": "tools/x5_policy/rl_core.py",
+      "sha256": "880b316654373aea8708c475c8fad31609e23d5791dbf3a04e94a9c9b28dfcc0",
+      "published_sha256": "880b316654373aea8708c475c8fad31609e23d5791dbf3a04e94a9c9b28dfcc0"
+    },
+    "tools/x5_policy/screen_gait_transition.py": {
+      "source": "tools/x5_policy/screen_gait_transition.py",
+      "sha256": "b3173cbfad89d06ddd66368abcf7abb9ec19de9a7959279cd109423d3cae43e7",
+      "published_sha256": "b3173cbfad89d06ddd66368abcf7abb9ec19de9a7959279cd109423d3cae43e7"
+    },
+    "tools/x5_policy/servo_goal_diagnostics.py": {
+      "source": "tools/x5_policy/servo_goal_diagnostics.py",
+      "sha256": "fbff73c0720b7cb6eb83555f034dd8c51fb42ad761ac452efde22439d2c51833",
+      "published_sha256": "fbff73c0720b7cb6eb83555f034dd8c51fb42ad761ac452efde22439d2c51833"
+    },
+    "tools/x5_policy/servo_goal_probe.py": {
+      "source": "tools/x5_policy/servo_goal_probe.py",
+      "sha256": "78afbe805b183e1b310f63d52a7a915713054742faec3f6de525525fc0983e18",
+      "published_sha256": "78afbe805b183e1b310f63d52a7a915713054742faec3f6de525525fc0983e18"
+    },
+    "tools/x5_policy/servo_register_diagnostics.py": {
+      "source": "tools/x5_policy/servo_register_diagnostics.py",
+      "sha256": "1f7eb91cbe646affafcf6a203feceab0c82d6c063c8a39de577ef6a75ac208a1",
+      "published_sha256": "1f7eb91cbe646affafcf6a203feceab0c82d6c063c8a39de577ef6a75ac208a1"
+    },
+    "tools/x5_policy/servo_register_probe.py": {
+      "source": "tools/x5_policy/servo_register_probe.py",
+      "sha256": "420e82e1272f90a2814bc9a6e66899703e7e72174c18e61a104da939d621b877",
+      "published_sha256": "420e82e1272f90a2814bc9a6e66899703e7e72174c18e61a104da939d621b877"
+    },
+    "tools/x5_policy/start_web.py": {
+      "source": "tools/x5_policy/start_web.py",
+      "sha256": "c7b00c0c3362cbfa8b92e84fc64de78485674171382fbacc366836596dc07168",
+      "published_sha256": "c7b00c0c3362cbfa8b92e84fc64de78485674171382fbacc366836596dc07168"
+    },
+    "tools/x5_policy/status_snapshot.py": {
+      "source": "tools/x5_policy/status_snapshot.py",
+      "sha256": "1f1e688ccd4b28bc2c576fd9f9c1ba991a28ca371cf7b87c105f3a781ca2ce80",
+      "published_sha256": "1f1e688ccd4b28bc2c576fd9f9c1ba991a28ca371cf7b87c105f3a781ca2ce80"
+    },
+    "tools/x5_policy/test_audit_policy_sim.py": {
+      "source": "tools/x5_policy/test_audit_policy_sim.py",
+      "sha256": "7bc14bc7abb9679fdb4b72e0b18bf55d3c847822ac2799dd43c044505c3a68e3",
+      "published_sha256": "7bc14bc7abb9679fdb4b72e0b18bf55d3c847822ac2799dd43c044505c3a68e3"
+    },
+    "tools/x5_policy/test_audit_pose.py": {
+      "source": "tools/x5_policy/test_audit_pose.py",
+      "sha256": "8cc3abc4bdbca11c88218ff4cbfdf9b39ab698bae804de711b319053dc47154a",
+      "published_sha256": "8cc3abc4bdbca11c88218ff4cbfdf9b39ab698bae804de711b319053dc47154a"
+    },
+    "tools/x5_policy/test_audit_runtime_contract.py": {
+      "source": "tools/x5_policy/test_audit_runtime_contract.py",
+      "sha256": "b2941e0c13ddb554973315740e73d5db846e86506acc76b8d65f55fefe806240",
+      "published_sha256": "b2941e0c13ddb554973315740e73d5db846e86506acc76b8d65f55fefe806240"
+    },
+    "tools/x5_policy/test_audit_trial_trace.py": {
+      "source": "tools/x5_policy/test_audit_trial_trace.py",
+      "sha256": "4bafec503e887d0641203e0d1cb98acce46ad4835571428c47d74b6785c77188",
+      "published_sha256": "4bafec503e887d0641203e0d1cb98acce46ad4835571428c47d74b6785c77188"
+    },
+    "tools/x5_policy/test_bounded_forward.py": {
+      "source": "tools/x5_policy/test_bounded_forward.py",
+      "sha256": "2ee71049c60ef9f2e66f6af14e00988d4e37540674b158ccf6e32d3994dc2b3b",
+      "published_sha256": "2ee71049c60ef9f2e66f6af14e00988d4e37540674b158ccf6e32d3994dc2b3b"
+    },
+    "tools/x5_policy/test_bounded_forward_ui.js": {
+      "source": "tools/x5_policy/test_bounded_forward_ui.js",
+      "sha256": "8b1a82f9be962d034b7c338499c978fef49dcd208b6fd819046259e30684643b",
+      "published_sha256": "8b1a82f9be962d034b7c338499c978fef49dcd208b6fd819046259e30684643b"
+    },
+    "tools/x5_policy/test_motion.py": {
+      "source": "tools/x5_policy/test_motion.py",
+      "sha256": "2f767de4355cc267c63bf6bd86eeb6b2843ba8de454f6367f7c788e78abf9ba3",
+      "published_sha256": "2f767de4355cc267c63bf6bd86eeb6b2843ba8de454f6367f7c788e78abf9ba3"
+    },
+    "tools/x5_policy/test_motion_timing_diagnostics.py": {
+      "source": "tools/x5_policy/test_motion_timing_diagnostics.py",
+      "sha256": "680e6d9e395f72295ccaf07ac8dfb7f359a7fe1c30be53e693816e7475df8c2a",
+      "published_sha256": "680e6d9e395f72295ccaf07ac8dfb7f359a7fe1c30be53e693816e7475df8c2a"
+    },
+    "tools/x5_policy/test_native_calibration.py": {
+      "source": "tools/x5_policy/test_native_calibration.py",
+      "sha256": "cd45f0e8cd4c0104d8ec7fb7cce9b785521fdae4e85a2b191c6234669260964f",
+      "published_sha256": "cd45f0e8cd4c0104d8ec7fb7cce9b785521fdae4e85a2b191c6234669260964f"
+    },
+    "tools/x5_policy/test_native_calibration_store.py": {
+      "source": "tools/x5_policy/test_native_calibration_store.py",
+      "sha256": "9eebb382e93035257a118efb897389ac4fe991536958fcfe30ccb72a4e77e046",
+      "published_sha256": "9eebb382e93035257a118efb897389ac4fe991536958fcfe30ccb72a4e77e046"
+    },
+    "tools/x5_policy/test_native_full_workbench.py": {
+      "source": "tools/x5_policy/test_native_full_workbench.py",
+      "sha256": "95aaade60d9238dd8a4ad0804a72655afea31d998d41671d645741c07121c984",
+      "published_sha256": "95aaade60d9238dd8a4ad0804a72655afea31d998d41671d645741c07121c984"
+    },
+    "tools/x5_policy/test_native_full_workbench_ui.js": {
+      "source": "tools/x5_policy/test_native_full_workbench_ui.js",
+      "sha256": "da16c5f6067f2054b78cb900f0f9ad6ce80fdf47bdd4732ece646f896845daef",
+      "published_sha256": "da16c5f6067f2054b78cb900f0f9ad6ce80fdf47bdd4732ece646f896845daef"
+    },
+    "tools/x5_policy/test_native_logs.py": {
+      "source": "tools/x5_policy/test_native_logs.py",
+      "sha256": "15f2e94be7239cb798b27448b1c785e3f7be7c5e1b00c0b5386f4ef405fd02f1",
+      "published_sha256": "15f2e94be7239cb798b27448b1c785e3f7be7c5e1b00c0b5386f4ef405fd02f1"
+    },
+    "tools/x5_policy/test_native_logs_ui.js": {
+      "source": "tools/x5_policy/test_native_logs_ui.js",
+      "sha256": "cc23aa2f97b1e9b144b0c59dba3fb33cdd3f5681d4f12a6fa3df1fe75bf6f43a",
+      "published_sha256": "cc23aa2f97b1e9b144b0c59dba3fb33cdd3f5681d4f12a6fa3df1fe75bf6f43a"
+    },
+    "tools/x5_policy/test_native_process.py": {
+      "source": "tools/x5_policy/test_native_process.py",
+      "sha256": "3c782a3b370459e024bfea0d4ef59126315d813ac3439ed0420b29404e7d7eda",
+      "published_sha256": "3c782a3b370459e024bfea0d4ef59126315d813ac3439ed0420b29404e7d7eda"
+    },
+    "tools/x5_policy/test_native_runtime.py": {
+      "source": "tools/x5_policy/test_native_runtime.py",
+      "sha256": "66ace65fb3834076f8cfdd61383dcb26be781780e8d85b3046ea4086d5f92e2f",
+      "published_sha256": "66ace65fb3834076f8cfdd61383dcb26be781780e8d85b3046ea4086d5f92e2f"
+    },
+    "tools/x5_policy/test_native_service.py": {
+      "source": "tools/x5_policy/test_native_service.py",
+      "sha256": "5a8033836a2d2865fdf57116ec2e61a85116baf98054584b1357feb31f596d66",
+      "published_sha256": "5a8033836a2d2865fdf57116ec2e61a85116baf98054584b1357feb31f596d66"
+    },
+    "tools/x5_policy/test_native_transports.py": {
+      "source": "tools/x5_policy/test_native_transports.py",
+      "sha256": "d33fc857732235cb4f532c265130e44514b4c2aedd960063dc39b055074155d5",
+      "published_sha256": "d33fc857732235cb4f532c265130e44514b4c2aedd960063dc39b055074155d5"
+    },
+    "tools/x5_policy/test_native_workbench.py": {
+      "source": "tools/x5_policy/test_native_workbench.py",
+      "sha256": "4e538616124a079bf3c0d34a22fc1b188e77d31325021b74ad619d6c7bcd8782",
+      "published_sha256": "4e538616124a079bf3c0d34a22fc1b188e77d31325021b74ad619d6c7bcd8782"
+    },
+    "tools/x5_policy/test_native_workbench_ui.js": {
+      "source": "tools/x5_policy/test_native_workbench_ui.js",
+      "sha256": "eae2b237ffbe4f60c9275251c48d1e1b48a5e7281407ac5b789e488386ede0bc",
+      "published_sha256": "eae2b237ffbe4f60c9275251c48d1e1b48a5e7281407ac5b789e488386ede0bc"
+    },
+    "tools/x5_policy/test_persistent_boot.py": {
+      "source": "tools/x5_policy/test_persistent_boot.py",
+      "sha256": "e99781e6b0bea7435c34cdacb1cce182b9553190c87b7e20fe4e567d6689f9cf",
+      "published_sha256": "e99781e6b0bea7435c34cdacb1cce182b9553190c87b7e20fe4e567d6689f9cf"
+    },
+    "tools/x5_policy/test_policy_profile.py": {
+      "source": "tools/x5_policy/test_policy_profile.py",
+      "sha256": "df7c0d8c0f702137d76b42e6ab85b762a248f2891fd0400595a0791e38dbdfa2",
+      "published_sha256": "df7c0d8c0f702137d76b42e6ab85b762a248f2891fd0400595a0791e38dbdfa2"
+    },
+    "tools/x5_policy/test_prepare_process_upgrade.py": {
+      "source": "tools/x5_policy/test_prepare_process_upgrade.py",
+      "sha256": "f6131c12e79a12917092aab98768124021d4d034f06e9d1534456dda4aec33f1",
+      "published_sha256": "f6131c12e79a12917092aab98768124021d4d034f06e9d1534456dda4aec33f1"
+    },
+    "tools/x5_policy/test_probe_motion.py": {
+      "source": "tools/x5_policy/test_probe_motion.py",
+      "sha256": "46c48ddb852a05c4a1924d752d40b361a9a934690b684665d23ef0cbba139017",
+      "published_sha256": "46c48ddb852a05c4a1924d752d40b361a9a934690b684665d23ef0cbba139017"
+    },
+    "tools/x5_policy/test_servo_goal_diagnostics.py": {
+      "source": "tools/x5_policy/test_servo_goal_diagnostics.py",
+      "sha256": "203c6a518b798ad8b3e95f8f96d15b55b57fb9e9920e76968502930dce44c8f9",
+      "published_sha256": "203c6a518b798ad8b3e95f8f96d15b55b57fb9e9920e76968502930dce44c8f9"
+    },
+    "tools/x5_policy/test_servo_goal_probe.py": {
+      "source": "tools/x5_policy/test_servo_goal_probe.py",
+      "sha256": "663cec9c27de419e64a172fc7d7adaf969ce23069af75202ab68858bcba8a3a8",
+      "published_sha256": "663cec9c27de419e64a172fc7d7adaf969ce23069af75202ab68858bcba8a3a8"
+    },
+    "tools/x5_policy/test_servo_register_diagnostics.py": {
+      "source": "tools/x5_policy/test_servo_register_diagnostics.py",
+      "sha256": "208c0f53a041911b3b977ef9b74413f942d901757467df5793ecda89aea89433",
+      "published_sha256": "208c0f53a041911b3b977ef9b74413f942d901757467df5793ecda89aea89433"
+    },
+    "tools/x5_policy/test_servo_register_probe.py": {
+      "source": "tools/x5_policy/test_servo_register_probe.py",
+      "sha256": "5e25b8acb48cc0c963b7b13975c1b6ceea4fc17215ca6e2ee3de0ceec7e2e9f8",
+      "published_sha256": "5e25b8acb48cc0c963b7b13975c1b6ceea4fc17215ca6e2ee3de0ceec7e2e9f8"
+    },
+    "tools/x5_policy/test_ui.js": {
+      "source": "tools/x5_policy/test_ui.js",
+      "sha256": "dafa4621d61c35c6369191126ff8356fc5daed22192c34a1d53bae9f69e76e74",
+      "published_sha256": "dafa4621d61c35c6369191126ff8356fc5daed22192c34a1d53bae9f69e76e74"
+    },
+    "tools/x5_policy/test_voltage_telemetry.py": {
+      "source": "tools/x5_policy/test_voltage_telemetry.py",
+      "sha256": "19b4fdf09ef1fde8660c2e6a63524eb622c9983e8ee1a2a6d934e43d02d2d1af",
+      "published_sha256": "19b4fdf09ef1fde8660c2e6a63524eb622c9983e8ee1a2a6d934e43d02d2d1af"
+    },
+    "tools/x5_policy/test_web.py": {
+      "source": "tools/x5_policy/test_web.py",
+      "sha256": "d1abf89c581746f4bbab583078e7ef8ccfa98565459469723df806811ab65ae8",
+      "published_sha256": "d1abf89c581746f4bbab583078e7ef8ccfa98565459469723df806811ab65ae8"
+    },
+    "tools/x5_policy/test_web_app.py": {
+      "source": "tools/x5_policy/test_web_app.py",
+      "sha256": "21b9c7c0345043b2c11430cd5af9bb54fdec4c1cf44e825e6670b1a3cab6b4c8",
+      "published_sha256": "21b9c7c0345043b2c11430cd5af9bb54fdec4c1cf44e825e6670b1a3cab6b4c8"
+    },
+    "tools/x5_policy/tracking_probe.py": {
+      "source": "tools/x5_policy/tracking_probe.py",
+      "sha256": "f48a3484777d450052b81aaa50245f1141bc0a1d33a0b690fa4018c77b27874b",
+      "published_sha256": "f48a3484777d450052b81aaa50245f1141bc0a1d33a0b690fa4018c77b27874b"
+    },
+    "tools/x5_policy/web_app.py": {
+      "source": "tools/x5_policy/web_app.py",
+      "sha256": "03731e02985ce7b2e0524fc0a8c8b5274dbc30b89c4505c8101e0be72bc7a29c",
+      "published_sha256": "03731e02985ce7b2e0524fc0a8c8b5274dbc30b89c4505c8101e0be72bc7a29c"
+    },
+    "tools/x5_recovery/calibration_restore.py": {
+      "source": "tools/x5_recovery/calibration_restore.py",
+      "sha256": "8bf743a3a6c600992331fc2a810650cfa7858a9780e8230ebf038de5a25154e0",
+      "published_sha256": "8bf743a3a6c600992331fc2a810650cfa7858a9780e8230ebf038de5a25154e0"
+    },
+    "tools/x5_recovery/deploy_native_workbench.py": {
+      "source": "tools/x5_recovery/deploy_native_workbench.py",
+      "sha256": "3e8db5f277429217b1a373de41eed305d869103c66fb0702e2761af5c6091772",
+      "published_sha256": "3e8db5f277429217b1a373de41eed305d869103c66fb0702e2761af5c6091772"
+    },
+    "tools/x5_recovery/esp32_ram_upgrade.py": {
+      "source": "tools/x5_recovery/esp32_ram_upgrade.py",
+      "sha256": "80d214210c4312a11fc0e86be27e59a407c0850ed7708fc5542941278464155f",
+      "published_sha256": "80d214210c4312a11fc0e86be27e59a407c0850ed7708fc5542941278464155f"
+    },
+    "tools/x5_recovery/feedback_calibration.html": {
+      "source": "tools/x5_recovery/feedback_calibration.html",
+      "sha256": "3a462ba74c99c03b0a4c9a39812e594a55c1b7d1a13b8eb87e235a6a002a6677",
+      "published_sha256": "3a462ba74c99c03b0a4c9a39812e594a55c1b7d1a13b8eb87e235a6a002a6677"
+    },
+    "tools/x5_recovery/feedback_calibration_server.py": {
+      "source": "tools/x5_recovery/feedback_calibration_server.py",
+      "sha256": "955e763887de81b4d2ef469579e4782a72e43487bc36d4dc3686370eee8d166b",
+      "published_sha256": "955e763887de81b4d2ef469579e4782a72e43487bc36d4dc3686370eee8d166b"
+    },
+    "tools/x5_recovery/feedback_connection_check.py": {
+      "source": "tools/x5_recovery/feedback_connection_check.py",
+      "sha256": "a90fb7016c1f0529d33275159d09d7045c28c7e299c4dc92b4506b8a6e83ca29",
+      "published_sha256": "a90fb7016c1f0529d33275159d09d7045c28c7e299c4dc92b4506b8a6e83ca29"
+    },
+    "tools/x5_recovery/feedback_fault_probe.py": {
+      "source": "tools/x5_recovery/feedback_fault_probe.py",
+      "sha256": "882a6b90726736c86c5ce0a40e883fe79b4e9e46e23ddaaea779d8f38969a71d",
+      "published_sha256": "882a6b90726736c86c5ce0a40e883fe79b4e9e46e23ddaaea779d8f38969a71d"
+    },
+    "tools/x5_recovery/feedback_stream.py": {
+      "source": "tools/x5_recovery/feedback_stream.py",
+      "sha256": "ea2356aa9f0fac36de400bf1e83b98edcab1b460b0eac7f95ebd2ebff58b5ce9",
+      "published_sha256": "ea2356aa9f0fac36de400bf1e83b98edcab1b460b0eac7f95ebd2ebff58b5ce9"
+    },
+    "tools/x5_recovery/flash-config.command": {
+      "source": "tools/x5_recovery/flash-config.command",
+      "sha256": "a5a628292a440a3881e423c565cbca7d66a68bd4cd73461491d25034be94ee91",
+      "published_sha256": "a5a628292a440a3881e423c565cbca7d66a68bd4cd73461491d25034be94ee91"
+    },
+    "tools/x5_recovery/flash_card.py": {
+      "source": "tools/x5_recovery/flash_card.py",
+      "sha256": "20fbd536650f8e5f9e0fd833664d482bacf49a86287c3bfe40229540cbf03424",
+      "published_sha256": "20fbd536650f8e5f9e0fd833664d482bacf49a86287c3bfe40229540cbf03424"
+    },
+    "tools/x5_recovery/imu_wizard.py": {
+      "source": "tools/x5_recovery/imu_wizard.py",
+      "sha256": "9c133bfe9dd4a6c7d09aef03db521578f9608ca25ee254ec31b838a91185d8c7",
+      "published_sha256": "9c133bfe9dd4a6c7d09aef03db521578f9608ca25ee254ec31b838a91185d8c7"
+    },
+    "tools/x5_recovery/imu_wizard_ui.py": {
+      "source": "tools/x5_recovery/imu_wizard_ui.py",
+      "sha256": "fd30d4335595ef6d2d7ac5f90ac7f18bda11dfb0baa558ef93354c91a6658daa",
+      "published_sha256": "fd30d4335595ef6d2d7ac5f90ac7f18bda11dfb0baa558ef93354c91a6658daa"
+    },
+    "tools/x5_recovery/joint_calibration.py": {
+      "source": "tools/x5_recovery/joint_calibration.py",
+      "sha256": "04dd8e0352cebc8f8abfa7313c069c095fa219e2dd4579ee3786214553895989",
+      "published_sha256": "04dd8e0352cebc8f8abfa7313c069c095fa219e2dd4579ee3786214553895989"
+    },
+    "tools/x5_recovery/mac_feedback_fault_probe.py": {
+      "source": "tools/x5_recovery/mac_feedback_fault_probe.py",
+      "sha256": "95124a5b9176fbb470ef29e332a6b9bd57267365c4cd930d1003c730f21f4ad7",
+      "published_sha256": "95124a5b9176fbb470ef29e332a6b9bd57267365c4cd930d1003c730f21f4ad7"
+    },
+    "tools/x5_recovery/maintenance_diagnostics.py": {
+      "source": "tools/x5_recovery/maintenance_diagnostics.py",
+      "sha256": "79c0b30263abd6341258931f762551abfb08718cc91256537d77cb0779ad41c3",
+      "published_sha256": "79c0b30263abd6341258931f762551abfb08718cc91256537d77cb0779ad41c3"
+    },
+    "tools/x5_recovery/maintenance_transport.py": {
+      "source": "tools/x5_recovery/maintenance_transport.py",
+      "sha256": "eea67d119ac20d1a0f63a86a56bba6086917a344d7abf2fc23b3d6fd188dd7ad",
+      "published_sha256": "eea67d119ac20d1a0f63a86a56bba6086917a344d7abf2fc23b3d6fd188dd7ad"
+    },
+    "tools/x5_recovery/motion_workbench.py": {
+      "source": "tools/x5_recovery/motion_workbench.py",
+      "sha256": "9f44aef358b9b11dcd50782e9e099adacb5d237edcd6c678139eac4ff5b98553",
+      "published_sha256": "9f44aef358b9b11dcd50782e9e099adacb5d237edcd6c678139eac4ff5b98553"
+    },
+    "tools/x5_recovery/prepare_feedback_reconnect_review.py": {
+      "source": "tools/x5_recovery/prepare_feedback_reconnect_review.py",
+      "sha256": "9e2e9c4cf3abb5e9ad020e201309f7de67e1c0417dc5d4ae58afea1f2cca7666",
+      "published_sha256": "9e2e9c4cf3abb5e9ad020e201309f7de67e1c0417dc5d4ae58afea1f2cca7666"
+    },
+    "tools/x5_recovery/run_feedback_fault_details.py": {
+      "source": "tools/x5_recovery/run_feedback_fault_details.py",
+      "sha256": "00df3b02985e6d7fb663b00f9ec3b8bf294e3017c9c8aafddbc261648fe0f0fb",
+      "published_sha256": "00df3b02985e6d7fb663b00f9ec3b8bf294e3017c9c8aafddbc261648fe0f0fb"
+    },
+    "tools/x5_recovery/run_mac_model_web.py": {
+      "source": "tools/x5_recovery/run_mac_model_web.py",
+      "sha256": "185661df85647fe7433b6345a3d72e85f2c1a0a6283fa760df4e2601a670ff17",
+      "published_sha256": "185661df85647fe7433b6345a3d72e85f2c1a0a6283fa760df4e2601a670ff17"
+    },
+    "tools/x5_recovery/run_ram_model_web.py": {
+      "source": "tools/x5_recovery/run_ram_model_web.py",
+      "sha256": "5a57a9151e2d397f98aba440969a021ed7a03d60fb5dfdb72173f3ccf2304903",
+      "published_sha256": "5a57a9151e2d397f98aba440969a021ed7a03d60fb5dfdb72173f3ccf2304903"
+    },
+    "tools/x5_recovery/run_ram_motion_web.py": {
+      "source": "tools/x5_recovery/run_ram_motion_web.py",
+      "sha256": "d1e43739a10ccc8688ef01ed488742b8ea65e0f69798f53c4c620820d08e063a",
+      "published_sha256": "d1e43739a10ccc8688ef01ed488742b8ea65e0f69798f53c4c620820d08e063a"
+    },
+    "tools/x5_recovery/serve_offline_calibration_page.py": {
+      "source": "tools/x5_recovery/serve_offline_calibration_page.py",
+      "sha256": "bac39063f961e1345726e0a4ba8e53ef3524beea49cf82a97557cd3c02c78e95",
+      "published_sha256": "bac39063f961e1345726e0a4ba8e53ef3524beea49cf82a97557cd3c02c78e95"
+    },
+    "tools/x5_recovery/servo_maintenance.py": {
+      "source": "tools/x5_recovery/servo_maintenance.py",
+      "sha256": "e6c40e0806b850602640d61b7736cbd1cf3c9d7a81cb85fdf422cb6a3c18b230",
+      "published_sha256": "e6c40e0806b850602640d61b7736cbd1cf3c9d7a81cb85fdf422cb6a3c18b230"
+    },
+    "tools/x5_recovery/storage_guard.py": {
+      "source": "tools/x5_recovery/storage_guard.py",
+      "sha256": "519d1113776f9726736fb503438cd7e2e04e538aed119be88550a52a0632cfc3",
+      "published_sha256": "519d1113776f9726736fb503438cd7e2e04e538aed119be88550a52a0632cfc3"
+    },
+    "tools/x5_recovery/test_calibration_restore.py": {
+      "source": "tools/x5_recovery/test_calibration_restore.py",
+      "sha256": "0bde8efad0e6117db81ee4306507dc5ed58ebb8675f6adfbcf77e9afa9e25548",
+      "published_sha256": "0bde8efad0e6117db81ee4306507dc5ed58ebb8675f6adfbcf77e9afa9e25548"
+    },
+    "tools/x5_recovery/test_connection_reconciliation.py": {
+      "source": "tools/x5_recovery/test_connection_reconciliation.py",
+      "sha256": "9a1be0411c5909e7b06d41bd2415c5b38fd51859626bd4c93099100472261310",
+      "published_sha256": "9a1be0411c5909e7b06d41bd2415c5b38fd51859626bd4c93099100472261310"
+    },
+    "tools/x5_recovery/test_deploy_native_workbench.py": {
+      "source": "tools/x5_recovery/test_deploy_native_workbench.py",
+      "sha256": "e4c871298721b00fb84faf58848fc3bdc9db1363e3928433987f9345f914aa46",
+      "published_sha256": "e4c871298721b00fb84faf58848fc3bdc9db1363e3928433987f9345f914aa46"
+    },
+    "tools/x5_recovery/test_feedback_calibration_server.py": {
+      "source": "tools/x5_recovery/test_feedback_calibration_server.py",
+      "sha256": "1fdff703288188e55534bbbbcca2bb08059eac1e2b5e7a25831933e13a29fb7b",
+      "published_sha256": "1fdff703288188e55534bbbbcca2bb08059eac1e2b5e7a25831933e13a29fb7b"
+    },
+    "tools/x5_recovery/test_feedback_calibration_ui.js": {
+      "source": "tools/x5_recovery/test_feedback_calibration_ui.js",
+      "sha256": "7436a9818084de96c3923acc408c5bd16377a836d8e9c85623ab924f35cdccdb",
+      "published_sha256": "7436a9818084de96c3923acc408c5bd16377a836d8e9c85623ab924f35cdccdb"
+    },
+    "tools/x5_recovery/test_feedback_connection_check.py": {
+      "source": "tools/x5_recovery/test_feedback_connection_check.py",
+      "sha256": "7518e8c2d9df8916f3f9ce190b5b7bfd858a0518577834fedc7b6f0502dab386",
+      "published_sha256": "7518e8c2d9df8916f3f9ce190b5b7bfd858a0518577834fedc7b6f0502dab386"
+    },
+    "tools/x5_recovery/test_feedback_fault_probe.py": {
+      "source": "tools/x5_recovery/test_feedback_fault_probe.py",
+      "sha256": "ef4302c1916cba9a1c2f2fdf6847dc2fabed92bb58c5c1ca194891f35f2a147e",
+      "published_sha256": "ef4302c1916cba9a1c2f2fdf6847dc2fabed92bb58c5c1ca194891f35f2a147e"
+    },
+    "tools/x5_recovery/test_feedback_imu_recovery_reboot_review.py": {
+      "source": "tools/x5_recovery/test_feedback_imu_recovery_reboot_review.py",
+      "sha256": "1e67e332ddacd859e4b414a391ce116e2264451c725b2de1030283eebe961de6",
+      "published_sha256": "1e67e332ddacd859e4b414a391ce116e2264451c725b2de1030283eebe961de6"
+    },
+    "tools/x5_recovery/test_feedback_imu_recovery_usb_return_review.py": {
+      "source": "tools/x5_recovery/test_feedback_imu_recovery_usb_return_review.py",
+      "sha256": "157bdd2e876a6d89577567aafc23793e595ee43a0acab7011bc71ec397b7c18d",
+      "published_sha256": "157bdd2e876a6d89577567aafc23793e595ee43a0acab7011bc71ec397b7c18d"
+    },
+    "tools/x5_recovery/test_feedback_intentional_powercycle_review.py": {
+      "source": "tools/x5_recovery/test_feedback_intentional_powercycle_review.py",
+      "sha256": "a90037aa7326cb67ef7826967e4bdfc386c30f930cf3cb33a7beeb6242c28a50",
+      "published_sha256": "a90037aa7326cb67ef7826967e4bdfc386c30f930cf3cb33a7beeb6242c28a50"
+    },
+    "tools/x5_recovery/test_feedback_native_second_usb_return_review.py": {
+      "source": "tools/x5_recovery/test_feedback_native_second_usb_return_review.py",
+      "sha256": "7d3166cdc85d7953f37b490f127ee16f75d78724cf592ada89dc956506fea345",
+      "published_sha256": "7d3166cdc85d7953f37b490f127ee16f75d78724cf592ada89dc956506fea345"
+    },
+    "tools/x5_recovery/test_feedback_native_third_usb_return_review.py": {
+      "source": "tools/x5_recovery/test_feedback_native_third_usb_return_review.py",
+      "sha256": "154aa384a046ddc0c08c130ef112c8dc1e84ea2f05cec43992602425275bf521",
+      "published_sha256": "154aa384a046ddc0c08c130ef112c8dc1e84ea2f05cec43992602425275bf521"
+    },
+    "tools/x5_recovery/test_feedback_native_usb_return_review.py": {
+      "source": "tools/x5_recovery/test_feedback_native_usb_return_review.py",
+      "sha256": "15094286679fad8283a54157506feeddd0a3cb6c7178fbdd3bd83f725ceffcd6",
+      "published_sha256": "15094286679fad8283a54157506feeddd0a3cb6c7178fbdd3bd83f725ceffcd6"
+    },
+    "tools/x5_recovery/test_feedback_recheck.py": {
+      "source": "tools/x5_recovery/test_feedback_recheck.py",
+      "sha256": "367c5e4828df0bf7ccd8cc1a62e6adff385e0136809299fa7015c749d07f30d2",
+      "published_sha256": "367c5e4828df0bf7ccd8cc1a62e6adff385e0136809299fa7015c749d07f30d2"
+    },
+    "tools/x5_recovery/test_feedback_recheck_transport_contract.py": {
+      "source": "tools/x5_recovery/test_feedback_recheck_transport_contract.py",
+      "sha256": "4890a12fd580821f55dbedaeab89a4ab610561218b11f5c2c807c327fb5c702a",
+      "published_sha256": "4890a12fd580821f55dbedaeab89a4ab610561218b11f5c2c807c327fb5c702a"
+    },
+    "tools/x5_recovery/test_feedback_stream.py": {
+      "source": "tools/x5_recovery/test_feedback_stream.py",
+      "sha256": "6a9b453bfd032b3614bd1561426c61b0898aaa55f957936559677f91b0a717d5",
+      "published_sha256": "6a9b453bfd032b3614bd1561426c61b0898aaa55f957936559677f91b0a717d5"
+    },
+    "tools/x5_recovery/test_feedback_wifi_reboot_review.py": {
+      "source": "tools/x5_recovery/test_feedback_wifi_reboot_review.py",
+      "sha256": "25f2c48ec7b37a02154aadec942c86caffbc41b3478ced31a54b0074192a0e09",
+      "published_sha256": "25f2c48ec7b37a02154aadec942c86caffbc41b3478ced31a54b0074192a0e09"
+    },
+    "tools/x5_recovery/test_imu_wizard.py": {
+      "source": "tools/x5_recovery/test_imu_wizard.py",
+      "sha256": "29085a49ed76ad49d5bdea127873284a7193893d2805b3565e67e364c74ecf7a",
+      "published_sha256": "29085a49ed76ad49d5bdea127873284a7193893d2805b3565e67e364c74ecf7a"
+    },
+    "tools/x5_recovery/test_joint_calibration.py": {
+      "source": "tools/x5_recovery/test_joint_calibration.py",
+      "sha256": "f16f0a3bf047ba3fd7e737fe50620b86add8ddcaebe15c4240855ac274f6b844",
+      "published_sha256": "f16f0a3bf047ba3fd7e737fe50620b86add8ddcaebe15c4240855ac274f6b844"
+    },
+    "tools/x5_recovery/test_joint_zero_recapture.py": {
+      "source": "tools/x5_recovery/test_joint_zero_recapture.py",
+      "sha256": "cd6458cfd5871afd4f72d9e1e86d3475d68647b1fb04d69cf4b8443297799d3e",
+      "published_sha256": "cd6458cfd5871afd4f72d9e1e86d3475d68647b1fb04d69cf4b8443297799d3e"
+    },
+    "tools/x5_recovery/test_joint_zero_resume_review.py": {
+      "source": "tools/x5_recovery/test_joint_zero_resume_review.py",
+      "sha256": "18d0aa84e50bf9e9674f8d97e6026cd3ab18eff51e221f676fcf165d0db4413d",
+      "published_sha256": "18d0aa84e50bf9e9674f8d97e6026cd3ab18eff51e221f676fcf165d0db4413d"
+    },
+    "tools/x5_recovery/test_mac_feedback_fault_probe.py": {
+      "source": "tools/x5_recovery/test_mac_feedback_fault_probe.py",
+      "sha256": "0f6104211f6ce0030497f54136514318d483c0081e66a0a5856d63d02d773fc5",
+      "published_sha256": "0f6104211f6ce0030497f54136514318d483c0081e66a0a5856d63d02d773fc5"
+    },
+    "tools/x5_recovery/test_maintenance_diagnostics.py": {
+      "source": "tools/x5_recovery/test_maintenance_diagnostics.py",
+      "sha256": "91a0670705e8615c114a5ed364e81bf73b3be168ec0f3c3491684a67177198b8",
+      "published_sha256": "91a0670705e8615c114a5ed364e81bf73b3be168ec0f3c3491684a67177198b8"
+    },
+    "tools/x5_recovery/test_maintenance_transport.py": {
+      "source": "tools/x5_recovery/test_maintenance_transport.py",
+      "sha256": "a201bf954be2e9e2ea64c687daab0721f85e9f66e9f5767d5ada6c02113e5646",
+      "published_sha256": "a201bf954be2e9e2ea64c687daab0721f85e9f66e9f5767d5ada6c02113e5646"
+    },
+    "tools/x5_recovery/test_motion_workbench.py": {
+      "source": "tools/x5_recovery/test_motion_workbench.py",
+      "sha256": "1f76915ee3ccabb01649c85d0d45ae34bfaf40f31f8a0d8e3a828961d332e51a",
+      "published_sha256": "1f76915ee3ccabb01649c85d0d45ae34bfaf40f31f8a0d8e3a828961d332e51a"
+    },
+    "tools/x5_recovery/test_prepare_feedback_reconnect_review.py": {
+      "source": "tools/x5_recovery/test_prepare_feedback_reconnect_review.py",
+      "sha256": "69a8bdb4a01474007a3aeb6935c7d4a33560d6b221232ac47b6dc52ec15e0c45",
+      "published_sha256": "69a8bdb4a01474007a3aeb6935c7d4a33560d6b221232ac47b6dc52ec15e0c45"
+    },
+    "tools/x5_recovery/test_reader_source_failure.py": {
+      "source": "tools/x5_recovery/test_reader_source_failure.py",
+      "sha256": "162347f836ed5d29f8fbb3c89d004d28e6c6b203fcc6c31c2ee2c523b144d06e",
+      "published_sha256": "162347f836ed5d29f8fbb3c89d004d28e6c6b203fcc6c31c2ee2c523b144d06e"
+    },
+    "tools/x5_recovery/test_run_feedback_fault_details.py": {
+      "source": "tools/x5_recovery/test_run_feedback_fault_details.py",
+      "sha256": "dc2932d242b8bf6cc7c3215f7115023874df90fd773d561d10324f54f314e54c",
+      "published_sha256": "dc2932d242b8bf6cc7c3215f7115023874df90fd773d561d10324f54f314e54c"
+    },
+    "tools/x5_recovery/test_serial_discovery.py": {
+      "source": "tools/x5_recovery/test_serial_discovery.py",
+      "sha256": "c00b5b70873e10877bdb7448f4b13b1d73316f9a9fa9bc20443c74dffdf0a6d1",
+      "published_sha256": "c00b5b70873e10877bdb7448f4b13b1d73316f9a9fa9bc20443c74dffdf0a6d1"
+    },
+    "tools/x5_recovery/test_serve_offline_calibration_page.py": {
+      "source": "tools/x5_recovery/test_serve_offline_calibration_page.py",
+      "sha256": "f246e9ba1cbddd027368e8fcac1a62c3ed59299d99c1c909df82e005e1a6a75a",
+      "published_sha256": "f246e9ba1cbddd027368e8fcac1a62c3ed59299d99c1c909df82e005e1a6a75a"
+    },
+    "tools/x5_recovery/test_server_wifi_transport.py": {
+      "source": "tools/x5_recovery/test_server_wifi_transport.py",
+      "sha256": "ccc3ead25a69e6384f4ce4353ad9f7c5edca6ea0c743b3dda9684235ebb8cac5",
+      "published_sha256": "ccc3ead25a69e6384f4ce4353ad9f7c5edca6ea0c743b3dda9684235ebb8cac5"
+    },
+    "tools/x5_recovery/test_servo_maintenance.py": {
+      "source": "tools/x5_recovery/test_servo_maintenance.py",
+      "sha256": "fa17c889d317962193779b87b971c384bf36cd047ea94c3f5d02f7b4b5e06b5a",
+      "published_sha256": "fa17c889d317962193779b87b971c384bf36cd047ea94c3f5d02f7b4b5e06b5a"
+    },
+    "tools/x5_recovery/test_transport_config.py": {
+      "source": "tools/x5_recovery/test_transport_config.py",
+      "sha256": "5a82ac679df14919989708835539981d6a5e8feeb8a97184d1bfb166ce514281",
+      "published_sha256": "5a82ac679df14919989708835539981d6a5e8feeb8a97184d1bfb166ce514281"
+    },
+    "tools/x5_recovery/test_update_ram_page.py": {
+      "source": "tools/x5_recovery/test_update_ram_page.py",
+      "sha256": "b04b73bdbf009c8dca18957340a347359f57f512f50321d7afacb1a82276d748",
+      "published_sha256": "b04b73bdbf009c8dca18957340a347359f57f512f50321d7afacb1a82276d748"
+    },
+    "tools/x5_recovery/test_urt_usb_readonly_once.py": {
+      "source": "tools/x5_recovery/test_urt_usb_readonly_once.py",
+      "sha256": "9200abdb310f2b40ff144eb3441f87988dc4b0ff1d1b4b1e3ddab6fa03dda0d0",
+      "published_sha256": "9200abdb310f2b40ff144eb3441f87988dc4b0ff1d1b4b1e3ddab6fa03dda0d0"
+    },
+    "tools/x5_recovery/test_usb_drop_recovery.py": {
+      "source": "tools/x5_recovery/test_usb_drop_recovery.py",
+      "sha256": "46f2bc0616449269f0632ab6c0be3890bc8e5a6bfb822e612c61880ecd96a9dc",
+      "published_sha256": "46f2bc0616449269f0632ab6c0be3890bc8e5a6bfb822e612c61880ecd96a9dc"
+    },
+    "tools/x5_recovery/transport_config.py": {
+      "source": "tools/x5_recovery/transport_config.py",
+      "sha256": "cb12ceb018def3f86cfab5e24c4c838f60eced8062cec0fd4a61cb58c3405570",
+      "published_sha256": "cb12ceb018def3f86cfab5e24c4c838f60eced8062cec0fd4a61cb58c3405570"
+    },
+    "tools/x5_recovery/update_ram_page.py": {
+      "source": "tools/x5_recovery/update_ram_page.py",
+      "sha256": "5e121b1aaec84fba703825122dda350b38185cdad593a0df0f049e6087b2e9fc",
+      "published_sha256": "5e121b1aaec84fba703825122dda350b38185cdad593a0df0f049e6087b2e9fc"
+    },
+    "tools/x5_recovery/urt_usb_readonly_once.py": {
+      "source": "tools/x5_recovery/urt_usb_readonly_once.py",
+      "sha256": "e26e5138d2f7b65f2fb55ba61fb015788153bb225d27671a7c8a7797c26d982b",
+      "published_sha256": "e26e5138d2f7b65f2fb55ba61fb015788153bb225d27671a7c8a7797c26d982b"
+    },
+    "tools/x5_policy/runtime_v8/source/policy/bounded_forward.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/policy/bounded_forward.py",
+      "sha256": "8e42dc10b259de0bc2a800c5209e0a3d3889f10b5faeb980206ec16e0a2ce22d",
+      "published_sha256": "8e42dc10b259de0bc2a800c5209e0a3d3889f10b5faeb980206ec16e0a2ce22d"
+    },
+    "tools/x5_policy/runtime_v8/source/policy/candidate_controller.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/policy/candidate_controller.py",
+      "sha256": "be76e94bd99cdf8da74e1417fe4f4a422377d0b468cc374ba5efc18f40492a95",
+      "published_sha256": "be76e94bd99cdf8da74e1417fe4f4a422377d0b468cc374ba5efc18f40492a95"
+    },
+    "tools/x5_policy/runtime_v8/source/policy/candidate_math.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/policy/candidate_math.py",
+      "sha256": "b1f4209b5daad8bbc61ce98f4c7a0bbe11db99913f6cf23ac54ccd7162a48058",
+      "published_sha256": "b1f4209b5daad8bbc61ce98f4c7a0bbe11db99913f6cf23ac54ccd7162a48058"
+    },
+    "tools/x5_policy/runtime_v8/source/policy/infer.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/policy/infer.py",
+      "sha256": "2a024e535a3268823cd3bef1d4212577853883c549b441a9cf6aa8d8a0be7dd9",
+      "published_sha256": "2a024e535a3268823cd3bef1d4212577853883c549b441a9cf6aa8d8a0be7dd9"
+    },
+    "tools/x5_policy/runtime_v8/source/policy/motion.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/policy/motion.py",
+      "sha256": "53ae2949b233568f1bab26be197b2ad95a48d22eff31c3d959279e6be4e2727d",
+      "published_sha256": "6f0be703e99929d7405cf8c9a33529b6dcdb191540552dd0571207458dc5ce98"
+    },
+    "tools/x5_policy/runtime_v8/source/policy/production_motion.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/policy/production_motion.py",
+      "sha256": "b0f563aa98ace779b67f442f5cc70b3ffb331b8a90520c3fa6809b8f63cbbf1b",
+      "published_sha256": "b0f563aa98ace779b67f442f5cc70b3ffb331b8a90520c3fa6809b8f63cbbf1b"
+    },
+    "tools/x5_policy/runtime_v8/source/policy/rl_core.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/policy/rl_core.py",
+      "sha256": "880b316654373aea8708c475c8fad31609e23d5791dbf3a04e94a9c9b28dfcc0",
+      "published_sha256": "880b316654373aea8708c475c8fad31609e23d5791dbf3a04e94a9c9b28dfcc0"
+    },
+    "tools/x5_policy/runtime_v8/source/policy/status_snapshot.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/policy/status_snapshot.py",
+      "sha256": "1969adfcee73a9dd8897d9cb5dc7b6a9a7c25829125f4bd1ca767e86102643ca",
+      "published_sha256": "1969adfcee73a9dd8897d9cb5dc7b6a9a7c25829125f4bd1ca767e86102643ca"
+    },
+    "tools/x5_policy/runtime_v8/source/policy/takeover_math.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/policy/takeover_math.py",
+      "sha256": "3d068e5c4dc7d7fef2509d6cca9bb06e6387404c588f45917534e870cfa3c3c7",
+      "published_sha256": "3d068e5c4dc7d7fef2509d6cca9bb06e6387404c588f45917534e870cfa3c3c7"
+    },
+    "tools/x5_policy/runtime_v8/source/policy/tracking_probe.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/policy/tracking_probe.py",
+      "sha256": "d85e6de11c21121840b42701d3ce0e22c919e9c5ac4bdf346a6a57e0e19dca6f",
+      "published_sha256": "d85e6de11c21121840b42701d3ce0e22c919e9c5ac4bdf346a6a57e0e19dca6f"
+    },
+    "tools/x5_policy/runtime_v8/source/service/bootstrap.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/bootstrap.py",
+      "sha256": "6309803831fec13271d30305377950dcbe725b0a01d39e1d511c21ac26421da2",
+      "published_sha256": "6309803831fec13271d30305377950dcbe725b0a01d39e1d511c21ac26421da2"
+    },
+    "tools/x5_policy/runtime_v8/source/service/calibration_restore.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/calibration_restore.py",
+      "sha256": "8bf743a3a6c600992331fc2a810650cfa7858a9780e8230ebf038de5a25154e0",
+      "published_sha256": "8bf743a3a6c600992331fc2a810650cfa7858a9780e8230ebf038de5a25154e0"
+    },
+    "tools/x5_policy/runtime_v8/source/service/feedback_calibration_server.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/feedback_calibration_server.py",
+      "sha256": "955e763887de81b4d2ef469579e4782a72e43487bc36d4dc3686370eee8d166b",
+      "published_sha256": "955e763887de81b4d2ef469579e4782a72e43487bc36d4dc3686370eee8d166b"
+    },
+    "tools/x5_policy/runtime_v8/source/service/feedback_connection_check.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/feedback_connection_check.py",
+      "sha256": "a90fb7016c1f0529d33275159d09d7045c28c7e299c4dc92b4506b8a6e83ca29",
+      "published_sha256": "a90fb7016c1f0529d33275159d09d7045c28c7e299c4dc92b4506b8a6e83ca29"
+    },
+    "tools/x5_policy/runtime_v8/source/service/feedback_fault_probe.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/feedback_fault_probe.py",
+      "sha256": "882a6b90726736c86c5ce0a40e883fe79b4e9e46e23ddaaea779d8f38969a71d",
+      "published_sha256": "882a6b90726736c86c5ce0a40e883fe79b4e9e46e23ddaaea779d8f38969a71d"
+    },
+    "tools/x5_policy/runtime_v8/source/service/feedback_stream.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/feedback_stream.py",
+      "sha256": "ea2356aa9f0fac36de400bf1e83b98edcab1b460b0eac7f95ebd2ebff58b5ce9",
+      "published_sha256": "ea2356aa9f0fac36de400bf1e83b98edcab1b460b0eac7f95ebd2ebff58b5ce9"
+    },
+    "tools/x5_policy/runtime_v8/source/service/guard-runtime.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/guard-runtime.py",
+      "sha256": "a0bda0d3601e4d3f57de3c7c353a5955fc667b5b67ef870118306fdab9b74f74",
+      "published_sha256": "a0bda0d3601e4d3f57de3c7c353a5955fc667b5b67ef870118306fdab9b74f74"
+    },
+    "tools/x5_policy/runtime_v8/source/service/imu_wizard.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/imu_wizard.py",
+      "sha256": "9c133bfe9dd4a6c7d09aef03db521578f9608ca25ee254ec31b838a91185d8c7",
+      "published_sha256": "9c133bfe9dd4a6c7d09aef03db521578f9608ca25ee254ec31b838a91185d8c7"
+    },
+    "tools/x5_policy/runtime_v8/source/service/joint_calibration.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/joint_calibration.py",
+      "sha256": "04dd8e0352cebc8f8abfa7313c069c095fa219e2dd4579ee3786214553895989",
+      "published_sha256": "04dd8e0352cebc8f8abfa7313c069c095fa219e2dd4579ee3786214553895989"
+    },
+    "tools/x5_policy/runtime_v8/source/service/maintenance_diagnostics.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/maintenance_diagnostics.py",
+      "sha256": "79c0b30263abd6341258931f762551abfb08718cc91256537d77cb0779ad41c3",
+      "published_sha256": "79c0b30263abd6341258931f762551abfb08718cc91256537d77cb0779ad41c3"
+    },
+    "tools/x5_policy/runtime_v8/source/service/maintenance_transport.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/maintenance_transport.py",
+      "sha256": "eea67d119ac20d1a0f63a86a56bba6086917a344d7abf2fc23b3d6fd188dd7ad",
+      "published_sha256": "eea67d119ac20d1a0f63a86a56bba6086917a344d7abf2fc23b3d6fd188dd7ad"
+    },
+    "tools/x5_policy/runtime_v8/source/service/native_calibration.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/native_calibration.py",
+      "sha256": "f5de68b198022173b29bd37e6698425a2ef8968568e106b18343cbbc3f99993e",
+      "published_sha256": "f5de68b198022173b29bd37e6698425a2ef8968568e106b18343cbbc3f99993e"
+    },
+    "tools/x5_policy/runtime_v8/source/service/native_calibration_store.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/native_calibration_store.py",
+      "sha256": "88b123a4a0f1f34aad20da826e1fd275a935bbb1c5c4155cbb736d0fca46f437",
+      "published_sha256": "88b123a4a0f1f34aad20da826e1fd275a935bbb1c5c4155cbb736d0fca46f437"
+    },
+    "tools/x5_policy/runtime_v8/source/service/native_process.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/native_process.py",
+      "sha256": "561c65b61beaf1108aad0c298ef80ea195527d98955c8cf1d1526d3ea2e8fcf8",
+      "published_sha256": "561c65b61beaf1108aad0c298ef80ea195527d98955c8cf1d1526d3ea2e8fcf8"
+    },
+    "tools/x5_policy/runtime_v8/source/service/native_runtime.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/native_runtime.py",
+      "sha256": "8ab1715d00752036d833e2eabba375370267b07529031d98fe92a16c74815b0e",
+      "published_sha256": "8ab1715d00752036d833e2eabba375370267b07529031d98fe92a16c74815b0e"
+    },
+    "tools/x5_policy/runtime_v8/source/service/native_transports.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/native_transports.py",
+      "sha256": "62b3a30caa655c0930147519f036a46bc6bf6365d674a455cb2abbcae20ae096",
+      "published_sha256": "62b3a30caa655c0930147519f036a46bc6bf6365d674a455cb2abbcae20ae096"
+    },
+    "tools/x5_policy/runtime_v8/source/service/native_workbench.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/native_workbench.py",
+      "sha256": "b7bdff1c7c7672d3bebc0e79a6791d224c9708cf9c7d7b125bde154a00135339",
+      "published_sha256": "b7bdff1c7c7672d3bebc0e79a6791d224c9708cf9c7d7b125bde154a00135339"
+    },
+    "tools/x5_policy/runtime_v8/source/service/run_feedback_fault_details.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/run_feedback_fault_details.py",
+      "sha256": "00df3b02985e6d7fb663b00f9ec3b8bf294e3017c9c8aafddbc261648fe0f0fb",
+      "published_sha256": "00df3b02985e6d7fb663b00f9ec3b8bf294e3017c9c8aafddbc261648fe0f0fb"
+    },
+    "tools/x5_policy/runtime_v8/source/service/servo_maintenance.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/servo_maintenance.py",
+      "sha256": "e6c40e0806b850602640d61b7736cbd1cf3c9d7a81cb85fdf422cb6a3c18b230",
+      "published_sha256": "e6c40e0806b850602640d61b7736cbd1cf3c9d7a81cb85fdf422cb6a3c18b230"
+    },
+    "tools/x5_policy/runtime_v8/source/service/transport_config.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/transport_config.py",
+      "sha256": "cb12ceb018def3f86cfab5e24c4c838f60eced8062cec0fd4a61cb58c3405570",
+      "published_sha256": "cb12ceb018def3f86cfab5e24c4c838f60eced8062cec0fd4a61cb58c3405570"
+    },
+    "tools/x5_policy/runtime_v8/source/service/worker-classes.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/service/worker-classes.py",
+      "sha256": "a1ed11c2a7f203794ca60379e99afed14837b31e8dc362fa53fdfee0fa106f22",
+      "published_sha256": "a1ed11c2a7f203794ca60379e99afed14837b31e8dc362fa53fdfee0fa106f22"
+    },
+    "tools/x5_policy/runtime_v8/source/web/assets/positive-direction.png": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/web/assets/positive-direction.png",
+      "sha256": "253d06d0306292319688e006af90853b6a513bdc6407db873f1cc205cad3f915",
+      "published_sha256": "253d06d0306292319688e006af90853b6a513bdc6407db873f1cc205cad3f915"
+    },
+    "tools/x5_policy/runtime_v8/source/web/assets/zero-reference.png": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/web/assets/zero-reference.png",
+      "sha256": "5c0c06ec88010a4d1b77755478a04d78b077928d4ea3cf9f5e09048bd4ab994c",
+      "published_sha256": "5c0c06ec88010a4d1b77755478a04d78b077928d4ea3cf9f5e09048bd4ab994c"
+    },
+    "tools/x5_policy/runtime_v8/source/web/index.html": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/web/index.html",
+      "sha256": "6d97d856065ef6d068e6968f753a51fe565309efa9c2f42b8849253b99809942",
+      "published_sha256": "6d97d856065ef6d068e6968f753a51fe565309efa9c2f42b8849253b99809942"
+    },
+    "tools/x5_policy/runtime_v8/source/policy/models/manifest.json": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/source/policy/models/manifest.json",
+      "sha256": "7878612f84d2ffdc84df038444bd3d6ce10996c7f111c4d0b12de45808d1c8b2",
+      "published_sha256": "7878612f84d2ffdc84df038444bd3d6ce10996c7f111c4d0b12de45808d1c8b2"
+    },
+    "tools/x5_policy/runtime_v8/test_tracking_probe.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/test_tracking_probe.py",
+      "sha256": "c74319d54a3c6302afe4451db9e85d55b113f4516fb179a2e962a19aa42b29e5",
+      "published_sha256": "c74319d54a3c6302afe4451db9e85d55b113f4516fb179a2e962a19aa42b29e5"
+    },
+    "tools/x5_policy/runtime_v8/test_status_snapshot.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/test_status_snapshot.py",
+      "sha256": "58c0d04eb9f8bb832b69cab2c0520efbd98ee85fa95981ce8917f9d373ee504e",
+      "published_sha256": "58c0d04eb9f8bb832b69cab2c0520efbd98ee85fa95981ce8917f9d373ee504e"
+    },
+    "tools/x5_policy/runtime_v8/test_forward_trial.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/test_forward_trial.py",
+      "sha256": "f051510a52cebdf27593bbf1a1bc07f45d8c25d1db5e438ccc17db983c04f85f",
+      "published_sha256": "f051510a52cebdf27593bbf1a1bc07f45d8c25d1db5e438ccc17db983c04f85f"
+    },
+    "tools/x5_policy/runtime_v8/test_phase_timings.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/test_phase_timings.py",
+      "sha256": "4cc63a27c8e4a6631c45cf0792a40d837d368792310a22c57f015d1e46dbf189",
+      "published_sha256": "4cc63a27c8e4a6631c45cf0792a40d837d368792310a22c57f015d1e46dbf189"
+    },
+    "tools/x5_policy/runtime_v8/test_forward_boundary.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/test_forward_boundary.py",
+      "sha256": "f6928c59c4920e76a8df6be4e83a06b07402384188b1179289879061e66d4e07",
+      "published_sha256": "f6928c59c4920e76a8df6be4e83a06b07402384188b1179289879061e66d4e07"
+    },
+    "tools/x5_policy/runtime_v8/test_forward_tilt.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/test_forward_tilt.py",
+      "sha256": "32d5e200ea703be3c5aa7314c4803d913133be687a2518f4c1b3565dedcd97d5",
+      "published_sha256": "32d5e200ea703be3c5aa7314c4803d913133be687a2518f4c1b3565dedcd97d5"
+    },
+    "tools/x5_policy/runtime_v8/test_cached_position_probe.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/test_cached_position_probe.py",
+      "sha256": "1a775f177092068b14129a56f9c30d338e7f338986aad965afe43410a537bbeb",
+      "published_sha256": "1a775f177092068b14129a56f9c30d338e7f338986aad965afe43410a537bbeb"
+    },
+    "tools/x5_policy/runtime_v8/test_native_zero_adapter.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/test_native_zero_adapter.py",
+      "sha256": "ceb43ceca4f628466a62c17c974a4043d4bc2db064a1c31fc212b193b083369d",
+      "published_sha256": "ccc659dc30fd090a73f9557202302206917e8c849d7e6c359e34c55ea0722a28"
+    },
+    "tools/x5_policy/runtime_v8/test_takeover.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/test_takeover.py",
+      "sha256": "6510fd9b22771005c295b590876b3e4d2da2048189073d37b21da6f1b7cb6c36",
+      "published_sha256": "ccf335b6d6ac70c00516cc206f0fcb394a04870176661f607a1e1b793ee96ebb"
+    },
+    "tools/x5_policy/runtime_v8/test_tracking_ownership.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/test_tracking_ownership.py",
+      "sha256": "ede2cebe8f43943b3e55cf1c4be979ba317eae5fc6d8745a9d5ddedf41221004",
+      "published_sha256": "ede2cebe8f43943b3e55cf1c4be979ba317eae5fc6d8745a9d5ddedf41221004"
+    },
+    "tools/x5_policy/runtime_v8/run_tests.py": {
+      "source": "output/x5_gait_trial/20261009/loaded-tracking-v8/run_tests.py",
+      "sha256": "1c852004e90f40686f8f3abe2990ee59a60fae15e23b9efe45cb1f4732a00fe3",
+      "published_sha256": "6025ec2007a6b5d446e88666e8b33beccf7aaf3b7a686ef78185b3e8cc46169a"
+    },
+    "tools/esp32_motion/diagnostic_baseline/package_firmware.py": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/package_firmware.py",
+      "sha256": "a05bfdcb2f2fc14f5ce254963dd0c235041efdf91a3e64c4de1305a9659ddd6c",
+      "published_sha256": "a05bfdcb2f2fc14f5ce254963dd0c235041efdf91a3e64c4de1305a9659ddd6c"
+    },
+    "tools/esp32_motion/diagnostic_baseline/motion_partitions.csv": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/motion_partitions.csv",
+      "sha256": "ab3041243f7b294709681f02f4d46709a23fba93bf5632a80314b965d22f11cf",
+      "published_sha256": "ab3041243f7b294709681f02f4d46709a23fba93bf5632a80314b965d22f11cf"
+    },
+    "tools/esp32_motion/diagnostic_baseline/platformio.ini": {
+      "source": "output/x5_gait_trial/20261009/left-ankle-kp10-comparison/firmware-source/platformio.ini",
+      "sha256": "96d1d5146b2cf33f515dbf3ad5150ee7a5efcf0752897d7873205561d08ac91b",
+      "published_sha256": "96d1d5146b2cf33f515dbf3ad5150ee7a5efcf0752897d7873205561d08ac91b"
+    },
+    "tools/esp32_motion/diagnostic_baseline/firmware/maintenance_impl.h": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/firmware/maintenance_impl.h",
+      "sha256": "2b98c934de90360779fa08baf06624ead142b8f574eaf0c18c7b0f5175d354fe",
+      "published_sha256": "2b98c934de90360779fa08baf06624ead142b8f574eaf0c18c7b0f5175d354fe"
+    },
+    "tools/esp32_motion/diagnostic_baseline/firmware/motion_protocol.h": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/firmware/motion_protocol.h",
+      "sha256": "08cc5add283ef338910b46e4df70d25285a8bb7a9db99740664c96fbc620de28",
+      "published_sha256": "08cc5add283ef338910b46e4df70d25285a8bb7a9db99740664c96fbc620de28"
+    },
+    "tools/esp32_motion/diagnostic_baseline/firmware/off_register_details.h": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/firmware/off_register_details.h",
+      "sha256": "1b02cedaa669fc9e13889eedae253de6b9fae99396f319bffb160e0acfa3c482",
+      "published_sha256": "1b02cedaa669fc9e13889eedae253de6b9fae99396f319bffb160e0acfa3c482"
+    },
+    "tools/esp32_motion/diagnostic_baseline/firmware/main.cpp": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/firmware/main.cpp",
+      "sha256": "ec708cd1fbebbac7c0d5be1efa4d8b20968c0e89a1ad3dac65df8125f3d4f7f3",
+      "published_sha256": "ec708cd1fbebbac7c0d5be1efa4d8b20968c0e89a1ad3dac65df8125f3d4f7f3"
+    },
+    "tools/esp32_motion/diagnostic_baseline/tests/test_maintenance.cpp": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/tests/test_maintenance.cpp",
+      "sha256": "7e05cc11e833e677bf132c8b1c13dffbcddb8f7c4fc85cc6498cd78355a5df7f",
+      "published_sha256": "7e05cc11e833e677bf132c8b1c13dffbcddb8f7c4fc85cc6498cd78355a5df7f"
+    },
+    "tools/esp32_motion/diagnostic_baseline/tests/test_motion_evidence.cpp": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/tests/test_motion_evidence.cpp",
+      "sha256": "ea261aed7ca06bf29efc7a1729822cc6be9c65076ed010feb002aeec097b60b2",
+      "published_sha256": "ea261aed7ca06bf29efc7a1729822cc6be9c65076ed010feb002aeec097b60b2"
+    },
+    "tools/esp32_motion/diagnostic_baseline/tests/test_motion.cpp": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/tests/test_motion.cpp",
+      "sha256": "62895546b083a8821e8abede0e972434ac86d3d4b9485b5e616f1a7ffb3d653d",
+      "published_sha256": "62895546b083a8821e8abede0e972434ac86d3d4b9485b5e616f1a7ffb3d653d"
+    },
+    "tools/esp32_motion/diagnostic_baseline/tests/test_goal_diagnostics.cpp": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/tests/test_goal_diagnostics.cpp",
+      "sha256": "92ccd3761357f786b59c78ee811dcdaaba217a1eeaf718c198b54991549c433b",
+      "published_sha256": "92ccd3761357f786b59c78ee811dcdaaba217a1eeaf718c198b54991549c433b"
+    },
+    "tools/esp32_motion/diagnostic_baseline/tests/test_stop_diagnostics.cpp": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/tests/test_stop_diagnostics.cpp",
+      "sha256": "ec527912a63072ed78c7904cf650e45e669e8a1226a444c9c93f9845b1033e4f",
+      "published_sha256": "ec527912a63072ed78c7904cf650e45e669e8a1226a444c9c93f9845b1033e4f"
+    },
+    "tools/esp32_motion/diagnostic_baseline/tests/run.sh": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/tests/run.sh",
+      "sha256": "4214d6d1cc07ca48b1fc955c25ba6c09918f142f60b576264eedea79e33431e5",
+      "published_sha256": "61b9c45117c52dd2d2bede61b189622f211cca129d58fb67290b3e1cb337d59f"
+    },
+    "tools/esp32_motion/diagnostic_baseline/tests/test_firmware.cpp": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/tests/test_firmware.cpp",
+      "sha256": "8a5c467af411bd3b81fbf5a0fba390cca2b921a6ea28f8cf121143364ca4b3bd",
+      "published_sha256": "8a5c467af411bd3b81fbf5a0fba390cca2b921a6ea28f8cf121143364ca4b3bd"
+    },
+    "tools/esp32_motion/diagnostic_baseline/tests/test_timing.cpp": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/tests/test_timing.cpp",
+      "sha256": "b3d10c6cf6d05db042a799969c76107c6f2b267eef3bf5bad6445fa3446008fb",
+      "published_sha256": "b3d10c6cf6d05db042a799969c76107c6f2b267eef3bf5bad6445fa3446008fb"
+    },
+    "tools/esp32_motion/diagnostic_baseline/tests/test_off_register_details.cpp": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/tests/test_off_register_details.cpp",
+      "sha256": "a780ae256b215e58824a3fe8d59f667ecd514f4be6e1f9c21825339e96a67448",
+      "published_sha256": "a780ae256b215e58824a3fe8d59f667ecd514f4be6e1f9c21825339e96a67448"
+    },
+    "tools/esp32_motion/diagnostic_baseline/tests/mocks/Wire.h": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/tests/mocks/Wire.h",
+      "sha256": "0b8ee8a09a797358cebbe9342cd9f93004d7f596a6040ce3180f13efe1fa2b20",
+      "published_sha256": "0b8ee8a09a797358cebbe9342cd9f93004d7f596a6040ce3180f13efe1fa2b20"
+    },
+    "tools/esp32_motion/diagnostic_baseline/tests/mocks/esp_arduino_version.h": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/tests/mocks/esp_arduino_version.h",
+      "sha256": "eec33b823418f2e5989659d203832b2740e407e9eab39d8c412bd93ebe45ca06",
+      "published_sha256": "eec33b823418f2e5989659d203832b2740e407e9eab39d8c412bd93ebe45ca06"
+    },
+    "tools/esp32_motion/diagnostic_baseline/tests/mocks/Arduino.h": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/tests/mocks/Arduino.h",
+      "sha256": "ae48ee8647bb3d84fffeddbcf5377d2215f458bfad971394cc9a747ca5f350f2",
+      "published_sha256": "ae48ee8647bb3d84fffeddbcf5377d2215f458bfad971394cc9a747ca5f350f2"
+    },
+    "tools/esp32_motion/diagnostic_baseline/tests/mocks/driver/uart.h": {
+      "source": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source/tests/mocks/driver/uart.h",
+      "sha256": "d433f54b53df0ce503c83ccdf58da5b67ea51deaa464c29b1b89840a0bb1b79e",
+      "published_sha256": "d433f54b53df0ce503c83ccdf58da5b67ea51deaa464c29b1b89840a0bb1b79e"
+    }
+  },
+  "hardware_walking_qualified": false,
+  "private_device_configuration_included": false
+}

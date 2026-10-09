@@ -124,6 +124,18 @@ flowchart TD
 
 运行时包含**行走、起身和抓取策略**，以及独立的嘴部控制。实际表现取决于装配、校准和测试条件。使用附带策略无需重新训练模型。
 
+当前 RDK X5 测试页面的 IMU 校准使用看图向导，无需填写 XYZ。先将 IMU 牢固固定在躯干上，推荐平贴、板边沿机身前后方向摆正；用垫块或支架承重。依次点击“采集水平姿态”“采集前端抬高”“验证左侧抬高”“完成静止校准”，每步摆稳后静止约两秒。左侧指鸭子自身左侧，页面有正面示意图。最后一步成功才保存朝向与静止校准，已保存的舵机零点会保留。IMU 重新安装后需重新校准；反馈中断会停止采集。此向导期间舵机不执行动作。
+
+## USB 舵机工作台
+
+组装前可使用 [HD1910 本地网页工作台](tools/servo_workbench/README.md)，通过 URT-2 检测舵机、读取位置和 ID、回中（默认 2047，可修改）以及逐只设置 ID。
+
+```sh
+./tools/servo_workbench/run.sh
+```
+
+启动后打开 <http://127.0.0.1:8765>。页面自动检测只读取状态；回中和修改 ID 需要点击对应按钮。此工具不代替整机零点校准。
+
 ## 硬件文件
 
 | 路径 | 内容 |
@@ -155,3 +167,8 @@ XGO-Duck 基于 **Pollen Robotics** 的 [Microduck](https://github.com/pollen-ro
 欢迎提交制作报告、经过测试的打印参数、更清晰的装配照片和可复现的修复。请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)，或[提交 Issue](https://github.com/LuwuDynamics/xgoduck_hardware/issues)。
 
 复用条款请参阅 [LICENSING.md](LICENSING.md) 和对应文件中的声明。联系邮箱：**hello@xgorobot.com**。
+
+
+## RDK X5 + ESP32 适配
+
+本仓库另外保留了 RDK X5 + ESP32 + HD-1910 的自定义适配源码与离线测试，见 [适配说明](docs/rdk-x5-esp32.md)。这一路线仍在排查承重跟随和行走问题，不能视为已经验证的行走方案。构建产物、设备校准、日志、访问密钥与临时环境不纳入 Git。

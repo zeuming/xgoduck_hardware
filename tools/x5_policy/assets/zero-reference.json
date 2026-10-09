@@ -1,0 +1,100 @@
+{
+  "source": "https://github.com/LuwuDynamics/xgoduck_rl",
+  "model_file": "/Users/lo/Documents/project/xgoduck_hardware/output/xgoduck_rl_reference/src/mjlab_microduck/robot/xgoduck/robot_walk.xml",
+  "model_sha256": "da21739d9b19332ee5c010dcf015fae04a18f94eb90bab6a8bf2309d8c7ef15d",
+  "policy_file": "/Users/lo/Documents/project/xgoduck_hardware/output/x5_policy_bundle/models/xgoduck_walk.onnx",
+  "policy_sha256": "5727b909d5ea1a0f9ff63bf4cea9707339dea6a522374c7a120da633605b923f",
+  "zero_angles": "all 14 hinge joints zero",
+  "default_angles_deg": {
+    "left_hip_yaw": 0.0,
+    "left_hip_roll": -4.984732817638162,
+    "left_hip_pitch": -19.99622705006573,
+    "left_knee": -0.2864788975654116,
+    "left_ankle": 19.99622705006573,
+    "neck_pitch": 19.99622705006573,
+    "head_pitch": 19.99622705006573,
+    "head_yaw": 0.0,
+    "head_roll": 0.0,
+    "right_hip_yaw": 0.0,
+    "right_hip_roll": 4.984732817638162,
+    "right_hip_pitch": 19.99622705006573,
+    "right_knee": 0.2864788975654116,
+    "right_ankle": -19.99622705006573
+  },
+  "method": "MuJoCo visual mesh transforms cross-checked with independent rigid FK; painter-depth orthographic projection",
+  "camera_bases": {
+    "front": {
+      "horizontal": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "vertical": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "camera_side": [
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    "side": {
+      "horizontal": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "vertical": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "camera_side": [
+        0.0,
+        -1.0,
+        0.0
+      ]
+    },
+    "top": {
+      "horizontal": [
+        0.0,
+        -1.0,
+        0.0
+      ],
+      "vertical": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "camera_side": [
+        -0.0,
+        0.0,
+        1.0
+      ]
+    }
+  },
+  "front_view": "camera on CAD +X, anatomical left (+Y) on image right",
+  "positive_roll_checks": [
+    {
+      "id": 11,
+      "front_image_foot_delta_px": [
+        14.446310486223638,
+        -3.4978459376204114
+      ]
+    },
+    {
+      "id": 21,
+      "front_image_foot_delta_px": [
+        14.601089840182397,
+        0.9215337671682846
+      ]
+    }
+  ],
+  "corrected_error": "Previous images labelled front used h=-Y, v=+Z, depth=-X with ascending depth paint: an actual rear view was mislabelled as front.",
+  "generator": "/Users/lo/Documents/project/xgoduck_hardware/tools/x5_policy/render_calibration_reference.py",
+  "not_verified_against_physical_assembly": true,
+  "hardware_connections": 0,
+  "motor_commands": 0
+}

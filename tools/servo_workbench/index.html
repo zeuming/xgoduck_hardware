@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="workbench-token" content="__TOKEN__">
+<title>舵机工作台 · XGO Duck</title>
+<style>
+:root{color-scheme:light;--bg:#f3f5f1;--paper:#fff;--ink:#172d29;--muted:#687873;--line:#dfe6df;--green:#236d52;--mint:#e8f5ea;--orange:#f2ac4e;--red:#b5453c;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}button,input,select{font:inherit}button{cursor:pointer;transition:background .15s,transform .15s}button:active:not(:disabled){transform:translateY(1px)}button:disabled{opacity:.43;cursor:not-allowed}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #78b69b;outline-offset:3px}header{height:74px;border-bottom:1px solid var(--line);background:#fafcf9;display:flex;align-items:center;justify-content:space-between;padding:0 max(28px,calc((100vw - 1120px)/2));gap:16px}.brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:.6px}.logo{width:34px;height:34px;border-radius:10px;background:var(--ink);display:grid;place-items:center;color:#eff8ea}.tag{font:11px var(--mono);letter-spacing:1px;color:var(--muted)}.local{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}.dot{width:7px;height:7px;display:inline-block;border-radius:50%;background:#99a8a1}.dot.on{background:#3b956b;box-shadow:0 0 0 4px #e6f0e8}.dot.warn{background:#bf852c}.dot.off{background:#c85449}main{max-width:1176px;margin:auto;padding:38px 28px 30px}.heading{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:25px;gap:20px}.eyebrow{font:11px var(--mono);letter-spacing:2px;color:var(--green);margin-bottom:7px}h1{font-size:32px;letter-spacing:-1px;line-height:1.3;margin:0 0 8px}p{margin:0}.subtitle{color:var(--muted);font-size:14px}.device-tag{padding:7px 12px;border:1px solid var(--line);border-radius:7px;font:12px var(--mono);white-space:nowrap;background:#f9fbf8}.connection{border:1px solid var(--line);border-radius:14px;background:var(--paper);margin-bottom:22px;overflow:hidden}.connection-main{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}.connection-status{display:flex;align-items:center;gap:12px}.connection-icon{background:var(--bg);border-radius:10px;padding:10px;line-height:0}.status-title{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:650}.status-sub{font-size:12px;color:var(--muted);margin-top:2px;word-break:break-all}.actions{display:flex;gap:9px;flex-wrap:wrap}.button{padding:9px 14px;border-radius:8px;background:#fff;border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap}.button:hover:not(:disabled){background:#eef4ed}.button.primary{background:var(--green);border-color:var(--green);color:#fff}.button.primary:hover:not(:disabled){background:#19553e}.button.danger{border-color:#e5c8c5;background:#fff9f8;color:var(--red)}details{border-top:1px solid var(--line)}summary{cursor:pointer;font-size:12px;color:var(--muted);padding:10px 22px;list-style-position:inside}.settings{padding:6px 22px 18px;display:grid;grid-template-columns:2fr 1fr 1fr auto;align-items:end;gap:14px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}input[type=number],select{width:100%;border:1px solid #d5ded5;border-radius:8px;background:#fff;padding:10px 12px;min-width:0;color:var(--ink)}input[type=number]{font-family:var(--mono)}.found{padding:0 22px 14px;font-size:12px;color:var(--muted);display:none}.found button{border:1px solid #bed8c6;background:var(--mint);color:var(--green);border-radius:5px;margin-left:6px;padding:2px 9px;font:12px var(--mono)}.grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px}.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden}.card-head{padding:23px 24px 0;display:flex;align-items:center;justify-content:space-between}.card-title{font-size:16px;font-weight:650;display:flex;align-items:center;gap:9px}.step{font:11px var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:2px 5px}.pill{font-size:11px;padding:4px 9px;background:var(--bg);color:var(--muted);border-radius:6px}.position{padding:21px 24px 24px;display:grid;grid-template-columns:1fr 128px;align-items:center;gap:15px}.caption{font-size:12px;color:var(--muted)}.position-number{font:600 64px/1.2 var(--mono);letter-spacing:-4px;margin:5px 0 6px;font-variant-numeric:tabular-nums}.unit{font:12px var(--mono);color:var(--muted)}.ring{position:relative;width:122px;height:122px}.ring svg{transform:rotate(-90deg)}.ring-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;color:var(--muted);font:10px var(--mono);gap:4px}.ring-center strong{font-size:17px;font-weight:500;color:var(--ink)}#positionArc{transition:stroke-dashoffset .5s}.controls{background:#fafcf9;border-top:1px solid var(--line);padding:20px 24px 23px}.target-row{display:flex;align-items:end;gap:10px}.target-row .field{flex:1}.target-row input{font-size:21px;line-height:1.25;padding:10px 12px}.target-row button{height:48px}.reset{border:0;background:transparent;color:var(--green);padding:0;font-size:12px}.target-label{display:flex;justify-content:space-between;margin-bottom:7px}.target-label label{font-size:12px;color:var(--muted)}.scale{height:5px;background:#e2e9e1;border-radius:5px;position:relative;margin:20px 4px 7px}.scale i{position:absolute;top:-4px;width:3px;height:13px;border-radius:2px;background:var(--green);left:50%;transition:left .4s}.scale .goal-marker{background:var(--orange);height:11px;top:-3px;transition:none}.ticks{display:flex;justify-content:space-between;font:10px var(--mono);color:var(--muted)}.helper{font-size:12px;color:var(--muted);line-height:1.8;margin-top:16px}.legend{display:inline-block;width:6px;height:6px;border-radius:2px;background:var(--green);margin-right:4px}.legend.target{background:var(--orange);margin-left:12px}.id-body{padding:24px}.id-current{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:19px;margin-bottom:20px}.id-number{font:500 40px/1 var(--mono);letter-spacing:-2px}.id-input{display:flex;align-items:center;gap:12px}.id-input input{font-size:21px;padding:10px 12px}.arrow{color:var(--muted);font-size:19px}.check{display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--muted);margin:17px 0}.check input{accent-color:var(--green);width:15px;height:15px;margin:3px 0 0;flex:none}.id-body>.button{width:100%;padding:12px}.note{padding:11px 13px;background:#f4f7f1;border-radius:8px;color:#617058;font-size:12px;line-height:1.8;margin-top:18px}.operation{margin-top:22px;border:1px solid var(--line);border-radius:12px;padding:16px 20px;background:var(--paper)}.operation-row{display:flex;align-items:center;justify-content:space-between;gap:14px}.operation-message{display:flex;align-items:center;gap:10px;font-size:13px;min-width:0}.operation-message span:last-child{overflow-wrap:anywhere}.operation.error{border-color:#e7c5bf;background:#fffaf9}.operation.error .operation-message{color:var(--red)}.progress{height:3px;background:#e7ede5;border-radius:4px;overflow:hidden;margin-top:12px;display:none}.progress div{height:100%;width:0;background:var(--green);transition:width .3s}.log-card{margin-top:22px;padding:19px 22px 8px}.log-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px}.log-title{font-size:13px;font-weight:650}.log-live{font:10px var(--mono);color:var(--muted);letter-spacing:1px}.log-list{max-height:180px;overflow:auto}.log-item{display:flex;gap:16px;border-top:1px solid #edf1eb;padding:10px 0;font-size:12px}.log-item time{color:var(--muted);font-family:var(--mono);flex:none}.log-item.error{color:var(--red)}.log-item.success{color:var(--green)}.empty-log{font-size:12px;color:var(--muted);padding:5px 0 14px}footer{display:flex;justify-content:space-between;gap:15px;color:#85918b;font-size:11px;margin-top:22px}.offline-banner{display:none;padding:10px 16px;background:#fff2ef;color:var(--red);border-radius:8px;font-size:13px;margin-bottom:18px}.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}@media(max-width:800px){header{padding:0 20px}main{padding:27px 18px}.grid{grid-template-columns:1fr}.settings{grid-template-columns:1fr 1fr}.settings>.field:first-child{grid-column:1/-1}.heading{align-items:flex-start}.device-tag{display:none}.connection-main{align-items:flex-start;flex-direction:column}.connection-main>.actions{width:100%}.connection-main>.actions button{flex:1}.position-number{font-size:58px}footer{flex-direction:column;gap:3px}}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}@media(max-width:380px){.target-row{flex-wrap:wrap}.target-row .field{flex-basis:100%}.target-row button{width:100%}.tag{display:none}.position{grid-template-columns:1fr 100px}.ring{width:100px;height:100px}.ring svg{width:100px;height:100px}}
+
+.quick-scan{margin-bottom:22px;background:#eef6ee;border:1px solid #d1e3d2;border-radius:12px;padding:17px 20px}.scan-summary{font-size:13px;color:var(--green)}.scan-table-wrap{overflow-x:auto;margin-top:12px}.scan-table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}.scan-table th{font-weight:500;color:var(--muted);font-size:11px;padding:8px 10px;border-bottom:1px solid #d8e5d7;white-space:nowrap}.scan-table td{padding:10px;border-bottom:1px solid #dce8dc}.scan-table td:nth-child(-n+3){font-family:var(--mono)}.scan-table td:last-child{text-align:right}.scan-table .button{padding:5px 10px;font-size:12px}.scan-table td.scan-error{font-family:inherit;color:var(--red)}.scan-note{font-size:11px;color:var(--muted);margin-top:10px}.heading>.button{padding:12px 17px}.heading{flex-wrap:wrap}
+.roster{padding:18px 20px;margin-bottom:22px}.roster-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:14px;font-weight:650}.roster-grid{display:flex;gap:10px;flex-wrap:wrap;margin-top:13px}.servo-chip{text-align:left;min-width:115px;white-space:normal}.servo-chip strong{display:block;font:600 17px var(--mono);margin-bottom:5px}.servo-chip small{display:block;font-size:11px;font-weight:400;margin-top:5px;color:var(--muted)}.servo-chip.online{border-color:#a7cdb4;background:#edf7ef}.servo-chip.offline{background:#f3f4f2;color:#78827c}.servo-chip.fault{background:#fff3e8;border-color:#e6ba7b;color:#975a13}.servo-chip.selected{box-shadow:inset 0 0 0 2px var(--green)}
+.bridge-info{padding:0 22px 16px;font-size:12px;color:var(--muted)}.bridge-info strong{display:block;color:var(--green);font-weight:600;margin-bottom:3px}
+</style>
+</head>
+<body>
+<header><div class="brand"><div class="logo"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13c0 4 3 6 7 6s7-2 7-6h-4V8a4 4 0 0 0-8 0v5H5Z" stroke="currentColor" stroke-width="1.6"/><path d="m7 8-4 2 4 1" stroke="#f2ac4e" stroke-width="1.6"/><circle cx="10.5" cy="7.5" r="1" fill="currentColor"/></svg></div>XGO DUCK <span class="tag">/ HARDWARE LAB</span></div><div class="local"><i id="serviceDot" class="dot"></i><span id="serviceLabel">连接本地服务</span></div></header>
+<main>
+<div class="heading"><div><div class="eyebrow">SERVO WORKBENCH</div><h1>舵机工作台</h1><p class="subtitle">连接、回中、设置编号。一步一步，把小鸭子组装起来。</p></div><button class="button primary" id="scanButton">一键扫描 ID 和位置</button></div>
+<div id="offlineBanner" class="offline-banner" role="alert">本地服务已断开。请运行启动脚本，页面会自动重连。</div>
+<section class="quick-scan" aria-label="ID 与位置扫描结果">
+<div class="scan-summary" id="scanSummary" role="status" aria-live="polite">点击上方「一键扫描」，同时读取舵机 ID 和当前位置。</div>
+<div id="scanTableWrap" class="scan-table-wrap" hidden><table class="scan-table"><thead><tr><th scope="col">舵机 ID</th><th scope="col">扫描时的位置</th><th scope="col">编码器角度</th><th scope="col">选择舵机</th></tr></thead><tbody id="scanRows"></tbody></table></div>
+<div class="scan-note">扫描当前串口与波特率下的 ID 0–253，仅读取，不会转动舵机。同 ID 的多只舵机无法单独区分。</div>
+</section>
+<section class="card roster" aria-label="已记录舵机在线状态"><div class="roster-head"><span>已记录舵机</span><span class="caption" id="rosterSummary">等待检测</span></div><div id="rosterRows" class="roster-grid"></div><p class="scan-note" id="rosterHelp">扫描、读取或修改 ID 后自动记录，保存在本机。点击编号可选择舵机。</p></section>
+<section class="connection" aria-label="连接设置">
+<div class="connection-main"><div class="connection-status"><div class="connection-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="7" width="14" height="11" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M9 3v4m6-4v4m-3 11v4M9 12h6" stroke="currentColor" stroke-width="1.5"/></svg></div><div><div class="status-title"><i id="deviceDot" class="dot"></i><span id="connectionTitle">正在检测连接…</span></div><div class="status-sub" id="connectionSub">等待本地串口服务</div></div></div><div class="actions"><button class="button" id="readButton">检测连接 / 读取 ID</button></div></div>
+<div id="bridgeInfo" class="bridge-info" hidden><strong id="bridgeRoute"></strong><span>扫描、读取、回中和编号设置均通过 ESP32 转发；下方波特率仅指舵机总线。</span></div>
+<details id="settingsDetails"><summary>连接设置 · 串口 / 波特率 / 查询 ID</summary><div class="settings"><div class="field"><label for="portSelect">串口</label><select id="portSelect"><option value="">自动选择 URT-2</option></select></div><div class="field"><label id="baudLabel" for="baudSelect">波特率</label><select id="baudSelect"><option value="1000000">1,000,000</option><option value="500000">500,000</option><option value="250000">250,000</option><option value="128000">128,000</option><option value="115200">115,200</option><option value="76800">76,800</option><option value="57600">57,600</option><option value="38400">38,400</option></select></div><div class="field"><label for="queryId">查询 ID</label><input id="queryId" type="number" min="0" max="253" step="1" value="1"></div><button id="applyButton" class="button primary">应用并检测</button></div></details>
+<div id="found" class="found"></div>
+</section>
+<div class="grid">
+<section class="card"><div class="card-head"><div class="card-title"><span class="step">01</span>位置与回中</div><span class="pill" id="torqueLabel">等待连接</span></div><div class="position"><div><div class="caption" id="positionCaption">当前实际位置</div><div class="position-number" id="positionValue">—</div><div class="unit">POSITION / 0–4095</div><div style="margin-top:14px"><button class="button" id="readPositionButton">读取当前位置</button><div class="caption" id="positionReadTime" style="margin-top:6px">连接后自动刷新，也可手动读取</div></div></div><div class="ring" aria-hidden="true"><svg width="122" height="122" viewBox="0 0 122 122"><circle cx="61" cy="61" r="51" fill="none" stroke="#eef2ec" stroke-width="7"/><circle id="positionArc" cx="61" cy="61" r="51" fill="none" stroke="#73a88b" stroke-width="7" stroke-linecap="round" stroke-dasharray="320.44" stroke-dashoffset="320.44"/></svg><div class="ring-center"><strong id="positionDegrees">—</strong><span>ENCODER</span></div></div></div>
+<div class="controls"><div class="target-label"><label for="targetInput">回中目标位置</label><button id="resetTarget" class="reset">恢复默认 2047</button></div><div class="target-row"><div class="field"><input id="targetInput" type="number" value="2047" min="0" max="4095" step="1" aria-describedby="moveHelp"></div><button class="button primary" id="moveButton">回中到 2047 <span aria-hidden="true">↗</span></button></div><div class="scale"><i id="actualMarker" style="left:0"></i><i id="targetMarker" class="goal-marker"></i></div><div class="ticks"><span>0</span><span>2047</span><span>4095</span></div><div class="helper" id="moveHelp"><span class="legend"></span>实际位置<span class="legend target"></span>目标位置<br>请让输出盘自由转动。回中会缓慢移动并验证位置，不会修改零点校准。</div></div></section>
+<section class="card"><div class="card-head"><div class="card-title"><span class="step">02</span>舵机 ID</div><span class="pill">0–253</span></div><div class="id-body"><div class="id-current"><div><div class="caption">当前选中的 ID</div><div class="subtitle" style="font-size:12px;margin-top:4px">用于区分总线上的每一只舵机</div></div><div class="id-number" id="currentId">—</div></div><div class="field"><label for="newId">新的 ID</label><div class="id-input"><span class="arrow" aria-hidden="true">→</span><input id="newId" type="number" min="0" max="253" step="1" placeholder="例如 10" aria-describedby="idHelp"></div></div><button id="changeIdButton" class="button primary" style="margin-top:18px">写入新 ID</button><div class="note" id="idHelp">可连接多只不同 ID 的舵机，只修改当前选中的 ID；新 ID 已被占用时会阻止写入。修改时会释放所选舵机的扭矩。若多只舵机使用同一 ID，必须分开连接设置。断电保存需断电重连后扫描确认。</div></div></section>
+</div>
+<section id="operation" class="operation" aria-label="操作状态"><div class="operation-row"><div class="operation-message" role="status" aria-live="polite"><i id="operationDot" class="dot"></i><span id="operationText">正在准备工作台…</span></div><button class="button danger" id="stopButton">停止并释放</button></div><div class="progress" id="progressTrack"><div id="progressBar"></div></div></section>
+<section class="card log-card"><div class="log-head"><span class="log-title">操作记录</span><span class="log-live">LIVE FEEDBACK</span></div><div id="logs" class="log-list"><div class="empty-log">读取和操作结果将显示在这里。</div></div></section>
+<footer><span id="runtimeFooter">仅在本机运行 · 自动检测只读取状态，不会自动转动舵机或修改 ID</span><span id="powerFooter">USB 空载调试 · 多舵机与带载运行请使用合适的独立电源</span></footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const token=document.querySelector('meta[name="workbench-token"]').content;
+let state=null, online=false, pending=false, localError='', lastPorts='', lastLogs='', lastSid=null, lastScan='', lastRoster='', bridgeTimeOffset=0;
+const number=(id,min,max)=>{const text=$(id).value.trim();const n=Number(text);return text!==''&&Number.isInteger(n)&&n>=min&&n<=max?n:null};
+const displayTime=timestamp=>new Date((timestamp+(state?.transport==='esp32'?bridgeTimeOffset:0))*1000).toLocaleTimeString('zh-CN',{hour12:false});
+function controls(){
+ const busy=pending||!!state?.busy, connected=online&&!!state?.connected;
+ const target=number('targetInput',0,4095), next=number('newId',0,253);
+ $('readButton').disabled=!online||busy;
+ $('readPositionButton').disabled=!online||busy||!state?.adapter;
+ $('readPositionButton').textContent=state?.action==='position'?'正在读取…':`读取 ID ${state?.sid??'—'} 当前位置`;
+ $('scanButton').disabled=!online||busy||!state?.adapter;
+ $('scanButton').textContent=state?.action==='scan'?`正在扫描… ${state.progress}%`:'一键扫描 ID 和位置';
+ $('applyButton').disabled=!online||busy;
+ for(const id of ['portSelect','baudSelect','queryId'])$(id).disabled=busy||!online;
+ $('moveButton').disabled=!connected||busy||target===null;
+ $('moveButton').textContent=state?.action==='move'?'正在回中…':`回中到 ${target===null?'…':target} ↗`;
+ $('changeIdButton').disabled=!connected||busy||next===null||next===state?.sid;
+ $('changeIdButton').textContent=next===null?'写入新 ID':`将 ID ${state?.servo?.id??'—'} 改为 ${next}`;
+ $('newId').disabled=busy;
+ $('targetInput').disabled=busy; $('resetTarget').disabled=busy;
+ $('stopButton').disabled=!online||pending||(state?.busy?!['move','scan'].includes(state.action):!connected);
+ $('stopButton').textContent=state?.action==='scan'?'停止扫描':'停止并释放';
+ $('targetMarker').style.left=`${(target??2047)/4095*100}%`;
+ const text=localError||state?.message||'正在准备工作台…';
+ $('operationText').textContent=text;
+ $('operation').className='operation'+(localError||state?.severity==='error'?' error':'');
+ $('operationDot').className='dot'+(localError||state?.severity==='error'?' off':state?.severity==='success'?' on':'');
+}
+function renderRoster(s){
+ const rows=s?.known_servos||[];
+ const unavailable=!online||!s?.adapter;
+ const counts={online:0,offline:0,fault:0,unknown:0};
+ for(const r of rows)counts[unavailable?'unknown':r.status]++;
+ $('rosterSummary').textContent=`${counts.online} 在线 · ${counts.fault} 在线报故障 · ${counts.offline} 离线 · ${counts.unknown} 待检测`;
+ $('rosterHelp').textContent=!online?'本地服务离线，无法检测。':!s?.adapter?(s?.transport==='esp32'?'ESP32 桥接串口未连接，无法检测在线状态。':'URT-2 未连接，无法检测在线状态。'):s.busy?'操作进行中，自动检测暂时暂停；以下为最近检测结果。':'自动轮询已记录的编号，仅发送读取指令。编号保存在本机；点击可选择。新接入的未知编号请点击一键扫描。';
+ const signature=JSON.stringify([rows,unavailable,s?.busy,s?.sid,s?.transport]);
+ if(signature===lastRoster)return;
+ lastRoster=signature;$('rosterRows').replaceChildren();
+ if(!rows.length){$('rosterRows').textContent='暂无记录，点击「一键扫描 ID 和位置」添加。';return}
+ for(const row of rows){
+  const status=unavailable?'unknown':row.status;
+  const button=document.createElement('button');button.className=`button servo-chip ${status}${row.id===s.sid?' selected':''}`;
+  button.disabled=unavailable||s.busy;button.setAttribute('aria-pressed',String(row.id===s.sid));
+  const label=document.createElement('strong');label.textContent=`ID ${row.id}`;
+  const detail=document.createElement('span');detail.textContent={online:'● 在线',offline:'○ 离线',fault:'● 在线 · 报故障',unknown:'○ 待检测'}[status];
+  const stamp=document.createElement('small');stamp.textContent=!unavailable&&row.checked_at?`检测 ${displayTime(row.checked_at)}`:'等待检测';
+  button.append(label,detail,stamp);
+  if(status==='fault'){const err=document.createElement('small');err.textContent=row.error;button.append(err)}
+  button.title=row.error||`选择 ID ${row.id}`;
+  button.onclick=()=>post('config',{sid:row.id,baud:state.baud,port:state.selected_port});
+  $('rosterRows').append(button);
+ }
+}
+function render(s){
+ const bridge=s.transport==='esp32';
+ bridgeTimeOffset=bridge&&Number.isFinite(s.server_now)?Date.now()/1000-s.server_now:0;
+ state=s;online=true;renderRoster(s);
+ $('serviceDot').className='dot on';$('serviceLabel').textContent=bridge?'X5 服务在线':'本地服务在线';$('offlineBanner').style.display='none';
+ $('offlineBanner').textContent=bridge?'X5 工作台服务已断开。请检查服务与 SSH 隧道，页面会自动重连。':'本地服务已断开。请运行启动脚本，页面会自动重连。';
+ $('deviceDot').className='dot '+(s.connected?'on':s.adapter?'warn':'off');
+ $('connectionTitle').textContent=bridge?(s.connected?'ESP32 桥接与舵机已连接':s.adapter?`ESP32 串口已连接 · ID ${s.sid} 暂无响应`:'未检测到 ESP32 桥接串口'):(s.connected?'URT-2 与舵机已连接':s.adapter?`URT-2 已连接 · ID ${s.sid} 暂无响应`:'未检测到 URT-2');
+ $('connectionSub').textContent=bridge?`${s.port||s.selected_port||'等待 ESP32 串口'} · 主机串口（COM）${(s.host_baud??115200).toLocaleString()} bps · 舵机总线 ${(s.servo_baud??1000000).toLocaleString()} bps`:(s.adapter?`${s.port} · ${s.baud.toLocaleString()} bps`:'将 URT-2 通过 USB 连接电脑，页面会自动检测');
+ $('bridgeInfo').hidden=!bridge;
+ $('bridgeRoute').textContent=bridge?s.connection_label||'X5 → ESP32 → URT-2':'';
+ $('baudLabel').textContent=bridge?'舵机波特率（固定）':'波特率';
+ for(const option of $('baudSelect').options)option.disabled=bridge&&option.value!=='1000000';
+ if(bridge)$('baudSelect').value='1000000';
+ $('runtimeFooter').textContent=bridge?'X5 本地服务 · 自动检测只读取状态，不会自动转动舵机或修改 ID':'仅在本机运行 · 自动检测只读取状态，不会自动转动舵机或修改 ID';
+ $('powerFooter').textContent=bridge?'ESP32 通过 USB 连接 X5 · 舵机使用 URT-2 的独立电源':'USB 空载调试 · 多舵机与带载运行请使用合适的独立电源';
+ const p=s.connected?s.servo?.position:null;
+ $('positionReadTime').textContent=s.connected&&s.last_seen?`最近更新 ${displayTime(s.last_seen)} · 自动刷新中`:'尚未读到位置';
+ $('positionCaption').textContent=`ID ${s.sid} · 当前实际位置`;
+ $('positionValue').textContent=p??'—';$('currentId').textContent=s.connected?s.servo?.id:'—';
+ $('positionDegrees').textContent=p===null?'—':`${(p/4096*360).toFixed(1)}°`;
+ $('positionArc').style.strokeDashoffset=320.44*(1-(p??0)/4095);
+ $('actualMarker').style.left=`${(p??0)/4095*100}%`; $('actualMarker').style.visibility=p===null?'hidden':'visible';
+ $('torqueLabel').textContent=!s.connected?'等待连接':s.servo?.torque===1?'通电保持中':s.servo?.torque===0?'扭矩已释放':'特殊扭矩模式';
+ if(lastSid!==s.sid){$('queryId').value=s.sid;lastSid=s.sid;}
+ const ports=JSON.stringify([s.transport,s.ports]);
+ if(lastPorts!==ports){
+  const prior=$('portSelect').value;
+  const options=s.ports.map(p=>new Option(`${p.label} · ${p.device}`,p.device));
+  if(!bridge)options.unshift(new Option('自动选择 URT-2',''));
+  $('portSelect').replaceChildren(...options);
+  $('portSelect').value=[...$('portSelect').options].some(o=>o.value===prior)?prior:s.selected_port;lastPorts=ports;
+ }
+ const found=$('found');found.style.display=s.found.length?'block':'none';found.replaceChildren();
+ if(s.found.length){found.append(document.createTextNode('发现的 ID：'));for(const id of s.found){const b=document.createElement('button');b.textContent=id;b.disabled=s.busy;b.onclick=()=>{$('queryId').value=id;apply()};found.append(b)}}
+ const scanRows=s.scan_results||[], scanStatus=s.scan_status||'idle';
+ let scanMessage='点击上方「一键扫描」，同时读取舵机 ID 和当前位置。';
+ if(scanStatus==='running')scanMessage=`正在扫描 ID 0–253 · ${s.progress}% · 已发现 ${scanRows.length} 个 ID`;
+ if(scanStatus==='complete')scanMessage=scanRows.length?`扫描完成 · 发现 ${scanRows.length} 个 ID · ${displayTime(s.scan_finished)}`:'扫描完成，未发现舵机。请检查接线、供电和波特率。';
+ if(scanStatus==='stopped')scanMessage=`扫描已停止，以下为已读取的 ${scanRows.length} 个 ID，结果不完整。`;
+ if(scanStatus==='error')scanMessage='扫描未完成，请查看下方操作记录；已读取的结果保留如下。';
+ $('scanSummary').textContent=scanMessage;
+ $('scanTableWrap').hidden=!scanRows.length;
+ const scanSignature=JSON.stringify([scanRows,s.busy,s.sid]);
+ if(scanSignature!==lastScan){
+  $('scanRows').replaceChildren();
+  for(const item of scanRows){
+   const row=document.createElement('tr');
+   for(const value of [item.id,item.position??'读取失败',item.position==null?'—':`${(item.position/4096*360).toFixed(2)}°`]){const td=document.createElement('td');td.textContent=value;row.append(td)}
+   if(item.error){row.children[1].className='scan-error';row.children[1].title=item.error;}
+   const cell=document.createElement('td'), button=document.createElement('button');button.className='button';button.textContent=item.id===s.sid?'已选中':'选择';button.disabled=s.busy||item.id===s.sid;button.onclick=()=>post('config',{sid:item.id,baud:state.baud,port:state.selected_port});cell.append(button);row.append(cell);$('scanRows').append(row);
+  }
+  lastScan=scanSignature;
+ }
+ $('progressTrack').style.display=s.busy?'block':'none';$('progressBar').style.width=`${s.progress}%`;
+ const logs=JSON.stringify([s.transport,s.logs]);
+ if(logs!==lastLogs){
+  $('logs').replaceChildren();
+  for(const item of s.logs){const row=document.createElement('div');row.className='log-item '+item.level;const t=document.createElement('time');t.textContent=bridge&&Number.isFinite(item.at)?displayTime(item.at):item.time;const text=document.createElement('span');text.textContent=item.text;row.append(t,text);$('logs').append(row)}
+  if(!s.logs.length){const e=document.createElement('div');e.className='empty-log';e.textContent='读取和操作结果将显示在这里。';$('logs').append(e)}lastLogs=logs;
+ }
+ controls();
+}
+async function refresh(){try{const r=await fetch('/api/status',{cache:'no-store',signal:AbortSignal.timeout(2500)});if(!r.ok)throw Error('服务无响应');render(await r.json())}catch(e){online=false;renderRoster(state);$('serviceDot').className='dot off';$('serviceLabel').textContent='本地服务离线';$('offlineBanner').style.display='block';$('connectionTitle').textContent='连接状态未知';$('deviceDot').className='dot off';$('positionValue').textContent='—';$('currentId').textContent='—';controls()}}
+async function post(action,data={}){if(pending)return;pending=true;localError='';controls();try{const r=await fetch(`/api/${action}`,{method:'POST',headers:{'Content-Type':'application/json','X-Workbench-Token':token},body:JSON.stringify(data),signal:AbortSignal.timeout(5000)});const out=await r.json();if(!r.ok)throw Error(out.error||'操作失败')}catch(e){localError=e.message}finally{pending=false;await refresh();controls()}}
+function apply(){const sid=number('queryId',0,253);if(sid===null){localError='查询 ID 必须是 0–253 的整数';controls();return}post('config',{sid,baud:Number($('baudSelect').value),port:$('portSelect').value})}
+$('applyButton').onclick=apply;
+$('readPositionButton').onclick=()=>post('position');
+$('readButton').onclick=()=>post('read');$('scanButton').onclick=()=>post('scan');
+$('moveButton').onclick=()=>post('move',{sid:state.sid,target:number('targetInput',0,4095)});
+$('stopButton').onclick=()=>post('stop');
+$('changeIdButton').onclick=()=>post('id',{sid:state.sid,new_id:number('newId',0,253)});
+$('resetTarget').onclick=()=>{$('targetInput').value=2047;controls()};
+for(const id of ['targetInput','newId'])$(id).addEventListener('input',controls);
+controls();
+(async function poll(){await refresh();setTimeout(poll,650)})();
+</script>
+</body>
+</html>
