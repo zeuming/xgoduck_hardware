@@ -111,7 +111,7 @@ def runtime_source(base_source=None):
     source = reader.runtime_source() if base_source is None else base_source
     wanted = {
         'ProbeError', 'ReaderStopped', '_signal_stop', '_check_deadline',
-        '_holders', 'bounded_read', 'bounded_dmesg', 'validate_kernel', 'persistent_kernel',
+        '_holders', 'bounded_read', 'bounded_dmesg', 'validate_kernel', 'persistent_kernel', 'restore_kernel_history',
         'serial_proof', 'bind_serial', 'serial_identity', 'serial_path', '_usb_serial_identity',
         'validate_os', 'health_snapshot', 'classify_log',
         'additional_feedback_fault', 'classify_feedback_log', 'emit',

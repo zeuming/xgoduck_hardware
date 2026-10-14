@@ -10,6 +10,7 @@ import ast
 from collections import deque
 import copy
 import fcntl
+import gc
 import hashlib
 import importlib
 import json
@@ -27,13 +28,13 @@ MODEL_NAMES = ('walk', 'getup', 'pick', 'roulade')
 ACTION_EVIDENCE_LIMIT = 32
 # Display publication only; controller sampling, safety gates, evidence drain
 # and health monitoring retain their independent existing periods.
-DISPLAY_PUBLISH_SECONDS = .2
+DISPLAY_PUBLISH_SECONDS = .1
 # The live projection deliberately excludes complete historical STOP packets.
 # Full status and on-disk evidence keep the original objects unchanged.
 LIVE_HARDWARE_FIELDS = frozenset('''connected port protocol mode generation calibrated
 mechanical_reference_confirmed hold_ready motor_output armed configured online_ids
 fault_ids torque_ids age_ms imu_age_ms rawdata joints imu voltage_supported
-motor_voltages voltage_range_v voltage_scale_hardware_verified command forward_trial last_action
+motor_voltages voltage_range_v voltage_scale_hardware_verified command joint_follow forward_trial last_action
 inference_ms last_policy_target_deg last_policy_target_rejections last_executed_target_deg
 target_rejection active_model behavior_protocol target_validation_protocol
 policy_metadata_protocol stand_target_deg model_stand_target_deg hold_hip_pitch_bias_deg head_clearance_protocol
@@ -41,7 +42,7 @@ head_clearance_required fixed_head_walk_protocol fixed_head_walk_allowed
 fixed_head_walk_ready fixed_head_walk_adapted fixed_head_walk_zero_velocity_only
 hold_head_deg walk_preview_head_protocol walk_preview_head_command_rad policy_profiles
 behavior_result behavior_seconds_remaining error pending_stop firmware_error sample_us
-imu_us state_request_sequence timing rates background_hold hold_control_protocol
+imu_us state_request_sequence timing policy_deadline rates background_hold hold_control_protocol
 page_heartbeat_required heartbeat_remaining_ms start_blocked_reason model_start_blocked_reasons
 release_confirmed imu_ok request_counts'''.split())
 CONTROL_SUMMARY_FIELDS = frozenset('''connected mode generation release_confirmed armed
@@ -49,6 +50,56 @@ pending_stop online_ids fault_ids torque_ids age_ms imu_age_ms sample_us imu_us
 hold_ready hold_head_deg serial_closed no_uart_opened reason error'''.split())
 GUARD_NAMES = ('EXPECTED', 'ram_health', 'serial_proof', 'serial_path', '_holders', 'ProbeError',
                'connection_guard_factory')
+
+
+class ConnectionGCWindow:
+    """Keep the loaded, long-lived heap out of cyclic scans while UART is owned.
+
+    Preparation may collect and must precede opening UART. Automatic collection
+    of new objects remains enabled according to the caller's existing policy.
+    Unfreeze only after both the transport and control thread are proved closed;
+    reconnects then collect obsolete namespaces before freezing the new heap.
+    CPython's permanent generation is process-wide, so ownership is exclusive.
+    """
+    _lock = threading.Lock()
+    _owner = None
+
+    def __init__(self):
+        self.active = False
+        self.frozen_objects = 0
+        self.preparation_ms = None
+
+    def prepare(self):
+        cls = type(self)
+        with cls._lock:
+            if self.active:
+                return
+            if cls._owner is not None or gc.get_freeze_count():
+                raise ValueError('运控 GC 准备失败：已有其他永久代所有者；未打开串口')
+            began = time.monotonic()
+            gc.collect()
+            gc.freeze()
+            self.frozen_objects = gc.get_freeze_count()
+            self.preparation_ms = (time.monotonic() - began) * 1000
+            self.active, cls._owner = True, self
+
+    def finish(self, *, serial_closed):
+        if serial_closed is not True:
+            return False
+        cls = type(self)
+        with cls._lock:
+            if self.active:
+                if cls._owner is not self:
+                    raise RuntimeError('Motion GC ownership changed')
+                gc.unfreeze()
+                self.active, cls._owner = False, None
+        return True
+
+    def snapshot(self):
+        return dict(protocol=1, active=self.active,
+            frozen_objects=self.frozen_objects, preparation_ms=self.preparation_ms,
+            automatic_gc_enabled=gc.isenabled(),
+            scope='freeze_loaded_heap_before_UART_unfreeze_after_verified_close')
 
 
 def controller_classes(source):
@@ -165,7 +216,7 @@ def _release_unconfirmed_reason(state, motor_ids, fresh_ms):
 
 class NativeRuntime:
     def __init__(self, guard_namespace, ram_directory, deployment, calibration, classes_source,
-                 *, startup_fault=None, require_head_clearance=True, allow_fixed_head_walk=False,
+                 *, startup_fault=None, require_head_clearance=False, allow_fixed_head_walk=False,
                  hold_hip_pitch_bias_deg=0):
         if (type(hold_hip_pitch_bias_deg) not in (int, float)
                 or not -3 <= hold_hip_pitch_bias_deg <= 3
@@ -203,6 +254,7 @@ class NativeRuntime:
         self.classes_sha256 = hashlib.sha256(classes_source.encode()).hexdigest()
         self.lock = threading.RLock()
         self._lifecycle = threading.RLock()
+        self._gc_window = ConnectionGCWindow()
         self._controller = None
         self._namespace = None
         self._monitor = None
@@ -438,6 +490,7 @@ class NativeRuntime:
                 exit_reconciled=bool(proof and proof.get('serial_closed')),
                 transport_exit=None, models_loaded=list(self.sessions),
                 hardware_publication_version=version, snapshot_compact=compact)
+            value['gc_policy'] = self._gc_window.snapshot()
         released = time.perf_counter()
         hardware, last_hardware, sample_age = None, None, None
         if raw is not None and publication_sequence == sequence and raw.get('generation', -1) >= generation_floor:
@@ -493,6 +546,40 @@ class NativeRuntime:
         value['runtime_timing'] = self._timing_snapshot()
         return value
 
+    def range_feedback_snapshot(self):
+        """Read current measured feedback for a calibration save, without UART IO.
+
+        Display publications can be 250 ms old while the sensor loop is healthy.
+        Use the controller's actual sample age, retaining its physical gate and
+        rejecting a concurrent connection or generation transition.
+        """
+        with self._lifecycle:
+            with self.lock:
+                controller, namespace = self._controller, self._namespace
+                sequence = self._connection_sequence
+                if (self.phase != 'ready' or controller is None or namespace is None
+                        or namespace['health_error'] or not self._owns_locked()):
+                    raise ValueError('请先连接并载入模型，停止运动并确认扭矩全关后再保存边界')
+            captured = time.monotonic()
+            hardware = controller.status()
+            elapsed_ms = max(0., time.monotonic() - captured) * 1000
+            for key in ('age_ms', 'imu_age_ms'):
+                if type(hardware.get(key)) in (int, float):
+                    hardware[key] += elapsed_ms
+            with self.lock:
+                if (controller is not self._controller or namespace is not self._namespace
+                        or sequence != self._connection_sequence or self.phase != 'ready'
+                        or namespace['health_error'] or not self._owns_locked()
+                        or hardware.get('generation', -1) < self._hardware_generation_floor):
+                    raise ValueError('运控连接已变化，请刷新后重新保存边界')
+            # Saving measured joint limits does not consume IMU data. Motion
+            # starts continue to enforce their independent joint and IMU gates.
+            age = hardware.get('age_ms')
+            feedback_age = (age if type(age) in (int, float) and math.isfinite(age)
+                            and age >= 0 else None)
+            return dict(phase='ready', owns_connection=True, hardware=hardware,
+                        connection_sequence=sequence, feedback_age_ms=feedback_age)
+
     def control_context(self):
         """Ownership context for page leases, never a sensor freshness proof."""
         began, cpu = time.perf_counter(), time.thread_time()
@@ -510,12 +597,14 @@ class NativeRuntime:
                 controller_wait = time.perf_counter() - waiting
                 state = controller._state or {}
                 released = bool(controller._connected and state and
-                    state.get('online_mask') == self.motion.ALL_MASK and not state.get('fault_mask') and
+                    state.get('torque_known_mask', state.get('online_mask')) == self.motion.ALL_MASK
+                    and controller._age_locked() < self.motion.FRESH_SECONDS and not state.get('fault_mask') and
                     not state.get('armed') and not state.get('torque_mask') and
                     not state.get('cookie') and not controller._pending_stop)
                 hardware = dict(connected=controller._connected, generation=controller._generation,
                                 mode=controller._mode, release_confirmed=released,
-                                hold_control_protocol=2)
+                                hold_control_protocol=1 if getattr(controller, '_joint_follow', None) and controller._joint_follow['active'] else 2,
+                                joint_follow=dict(active=bool(getattr(controller, '_joint_follow', None) and controller._joint_follow['active'])))
         waiting = time.perf_counter()
         with self.lock:
             validated = time.perf_counter()
@@ -575,10 +664,24 @@ class NativeRuntime:
                          opened_transports=[], health_error=None, exit_event=threading.Event(),
                          native_compact_stop_diagnostic=_compact_diagnostic)
         exec(self._classes, namespace)
+        from joint_follow import controller_class
+        namespace['OneShotController'] = controller_class(namespace['OneShotController'],
+            self.motion.MotionError, self.motion.MOTOR_IDS, self.motion.ALL_MASK, self.motion.TARGET)
         return namespace
 
     def connect(self):
+        # Loading permits measured positions outside saved limits. Position
+        # range and complete-position/IMU checks belong to explicit START,
+        # never to this stopped connection used for calibration.
         with self._lifecycle:
+            with self.lock:
+                reuse = (not self._closed and self.phase == 'ready'
+                         and self._controller is not None
+                         and self._controller._connected is True and self._owns_locked())
+            if reuse:
+                # A repeated explicit CONNECT observes the existing connection.
+                # It never opens another UART, resets the mode or starts motors.
+                return self.snapshot(compact=True)
             with self.lock:
                 if self._closed:
                     raise ValueError('Native service has closed')
@@ -627,14 +730,23 @@ class NativeRuntime:
                     self._controller, self._namespace = controller, namespace
                 if not controller._calibrated_locked():
                     raise ValueError('Saved calibration is incomplete')
+                if not self._serial_closed(controller, namespace):
+                    raise ValueError('GC preparation requires an unopened UART and stopped control thread')
+                self._gc_window.prepare()
                 controller.start()
                 deadline = time.monotonic() + 5
                 while True:
                     state = controller.status()
-                    if state['connected']:
+                    if state['connected'] and state.get('release_confirmed') is True:
                         break
                     if not controller._thread.is_alive() or time.monotonic() >= deadline:
+                        if state['connected']:
+                            raise ValueError(_release_unconfirmed_reason(
+                                state, self.motion.MOTOR_IDS, self.motion.FRESH_SECONDS * 1000))
                         raise ValueError(state.get('error') or 'Motion connection deadline exceeded')
+                    # Keep reading within the existing connection deadline:
+                    # the first connected packet may lack one servo position.
+                    # This waits for measured torque-off readiness, never ARM.
                     time.sleep(.02)
                 if state.get('release_confirmed') is not True:
                     raise ValueError(_release_unconfirmed_reason(
@@ -694,12 +806,14 @@ class NativeRuntime:
             except BaseException as error:
                 stop_error = stop_error or str(error) or type(error).__name__
             after = _own_controller_status(controller.status())
-            if self._serial_closed(controller, namespace):
+            serial_closed = self._serial_closed(controller, namespace)
+            self._gc_window.finish(serial_closed=serial_closed)
+            if serial_closed:
                 # The transport and control thread are now closed: preserve
                 # full evidence once, without competing with active control.
                 after['last_stop_diagnostic'] = copy.deepcopy(
                     getattr(controller, '_last_stop_diagnostic', None))
-            proof = dict(serial_closed=self._serial_closed(controller, namespace),
+            proof = dict(serial_closed=serial_closed,
                 release_confirmed=release, serial_open_attempts=namespace['serial_open_attempts'],
                 request_counts=dict(namespace['request_counts']), before=before, after=after,
                 reason=reason, stop_error=stop_error, no_uart_opened=namespace['serial_open_attempts'] == 0)
@@ -822,7 +936,7 @@ class NativeRuntime:
             return self.connect()
         if action == 'disconnect':
             return self.disconnect()
-        if action not in ('start', 'heartbeat', 'command', 'stop', 'capture-head-clearance', 'forward-trial'):
+        if action not in ('start', 'heartbeat', 'command', 'joint-target', 'stop', 'capture-head-clearance', 'forward-trial'):
             raise ValueError('未知运控操作')
         with self.lock:
             controller, namespace = self._controller, self._namespace
@@ -830,6 +944,10 @@ class NativeRuntime:
                 raise ValueError('请先连接并载入模型')
             if action != 'stop' and (self.phase != 'ready' or namespace['health_error']):
                 raise ValueError(self.error or namespace['health_error'] or '运控连接未就绪')
+        if action == 'joint-target':
+            return controller.joint_target(expected_generation=body.get('generation'),
+                joint_id=body.get('joint_id'), angle_deg=body.get('angle_deg'), sequence=body.get('sequence'),
+                speed_deg_s=body.get('speed_deg_s'))
         if action == 'heartbeat':
             if type(body.get('generation')) is not int:
                 raise ValueError('Motion state changed; refresh before starting')
@@ -862,10 +980,13 @@ class NativeRuntime:
                 result = controller.forward_trial(expected_generation=body['generation'],
                     support_confirmed=body.get('support_confirmed') is True)
             elif action == 'start':
-                result = controller.start_mode(body.get('mode'),
+                result = (controller.start_joint_follow(expected_generation=body['generation'],
+                    support_confirmed=body.get('support_confirmed') is True,
+                    clearance_confirmed=body.get('clearance_confirmed') is True)
+                    if body.get('joint_follow') is True else controller.start_mode(body.get('mode'),
                     support_confirmed=body.get('support_confirmed') is True,
                     expected_generation=body['generation'], preview_model=body.get('preview_model', 'walk'),
-                    behavior_confirmed=body.get('behavior_confirmed') is True)
+                    behavior_confirmed=body.get('behavior_confirmed') is True))
             else:
                 result = controller.command(body.get('forward'), body.get('side'), body.get('yaw'))
         try:
@@ -918,11 +1039,14 @@ class NativeRuntime:
             if action == 'start':
                 # start_mode checks this generation atomically, so a duplicate
                 # pre-action full status cannot improve its safety proof.
-                result = controller.start_mode(body.get('mode'),
+                result = (controller.start_joint_follow(expected_generation=body['generation'],
+                    support_confirmed=body.get('support_confirmed') is True,
+                    clearance_confirmed=body.get('clearance_confirmed') is True)
+                    if body.get('joint_follow') is True else controller.start_mode(body.get('mode'),
                     support_confirmed=body.get('support_confirmed') is True,
                     expected_generation=body['generation'],
                     preview_model=body.get('preview_model', 'walk'),
-                    behavior_confirmed=body.get('behavior_confirmed') is True)
+                    behavior_confirmed=body.get('behavior_confirmed') is True))
             elif action == 'forward-trial':
                 forward = getattr(controller, 'forward_trial', None)
                 if not callable(forward): raise ValueError('当前模型版本不支持受限试步')

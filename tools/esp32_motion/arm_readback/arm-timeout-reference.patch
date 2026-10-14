@@ -1,0 +1,107 @@
+--- a/firmware/main.cpp
++++ b/firmware/main.cpp
+@@ -20,6 +20,10 @@
+ motion::Interlock lock;
+ motion::Feedback feedback;
+ constexpr uint32_t kServoDeadlineUs = 1500;
++// Upstream sketch/duck_config.h SERVO_REPLY_US is 6000 after TX flush.
++// Apply that receive budget to explicit ARM torque verification; regular
++// control-cycle polling is kept separate for its 50Hz scheduling audit.
++constexpr uint32_t kArmTorqueReplyUs = 6000;
+ constexpr uint32_t kTorqueFreshUs = 500000;
+ constexpr uint32_t kSamplePeriodUs = 10000;
+ constexpr uint32_t kTorquePeriodUs = 250000;
+@@ -197,7 +201,7 @@
+   uint8_t drained[16] = {}, received[48] = {};
+   uint16_t drainedCount = 0, receivedCount = 0;
+   uint32_t elapsedUs = 0, errorsBefore = 0, errorsAfter = 0;
+-  uint32_t startedUs = 0, writtenUs = 0, firstRxUs = 0, lastRxUs = 0;
++  uint32_t startedUs = 0, writtenUs = 0, firstRxUs = 0, lastRxUs = 0, transmittedUs = 0;
+   uint16_t pendingCount = 0;
+   bool requestWritten = false;
+   ServoReply reply;
+@@ -219,8 +223,7 @@
+   if (armFailedReadSeen) return;
+   armFailedReadTrace = lastServoReadTrace; armFailedReadSeen = true;
+ }
+-void encodeArmReadTrace(uint8_t* data) {
+-  const ServoReadTrace& trace = armFailedReadTrace;
++void encodeArmReadTrace(uint8_t* data, const ServoReadTrace& trace = armFailedReadTrace) {
+   data[22] = (trace.reply.invalidReplySeen ? 1 : 0) |
+     (trace.drainedCount > 16 ? 2 : 0) | (trace.receivedCount > 48 ? 4 : 0) |
+     (trace.requestWritten ? 8 : 0) | (trace.receivedCount ? 16 : 0);
+@@ -252,6 +255,10 @@
+   safetyDiagnostic.readElapsed = lastServoReadTrace.elapsedUs;
+ }
+ 
++// Passive ARM stage9 transaction history; fixed RAM, no new servo traffic.
++struct ArmBusEntry { ServoReadTrace trace; uint32_t disabledUs = 0; bool armed = false; };
++ArmBusEntry armBusEntries[32];
++uint8_t armBusCount = 0;
+ struct FinishServoReadTrace {
+   ServoReply& reply;
+   uint32_t start;
+@@ -262,6 +269,10 @@
+     const int pending = Serial1.available();
+     lastServoReadTrace.pendingCount = pending > 65535 ? 65535 : pending > 0 ? uint16_t(pending) : 0;
+     lastServoReadTrace.errorsAfter = servoErrors.load();
++    if (preparingArm && armDiagnostic.stage == 9 && armBusCount < 32) {
++      ArmBusEntry& entry = armBusEntries[armBusCount++];
++      entry.trace = lastServoReadTrace; entry.disabledUs = lastDisableUs; entry.armed = lock.armed;
++    }
+   }
+ };
+ 
+@@ -408,8 +419,17 @@
+     reply.outcome = motion::ShortUartWrite; return reply;
+   }
+   lastServoReadTrace.requestWritten = true; lastServoReadTrace.writtenUs = micros();
++  const bool armTorqueRead = preparingArm && (armDiagnostic.stage == 4 || armDiagnostic.stage == 9) && address == 40 && size == 1;
++  uint32_t replyStart = start;
++  if (armTorqueRead) {
++    // Enqueue is not wire completion. Own one request and validate its reply;
++    // never resend enable/ARM/read and never renew stale sample timestamps.
++    if (!txComplete()) { reply.outcome = motion::NoValidReplyByDeadline; return reply; }
++    replyStart = micros(); lastServoReadTrace.transmittedUs = replyStart;
++  }
++  const uint32_t replyBudget = armTorqueRead ? kArmTorqueReplyUs : kServoDeadlineUs;
+   uint8_t received[16] = {}; size_t used = 0;
+-  while (uint32_t(micros() - start) < kServoDeadlineUs) {
++  while (uint32_t(micros() - replyStart) < replyBudget) {
+     checkSafety();
+     if (servoErrors.load() != beforeErrors) { reply.outcome = motion::HardwareUartError; return reply; }
+     if (!Serial1.available()) { delayMicroseconds(10); continue; }
+@@ -855,10 +875,21 @@
+ void command(const motion::Frame& frame) {
+   // A diagnostic refusal must not flush a pending servo write or overwrite a
+   // safety error. Accepted reads retain readServo's existing safety checks.
++  if (frame.type == motion::ArmBusDetails) {
++    if (frame.length != 1 || frame.payload[0] >= armBusCount) { ack(frame, motion::BadPacket); return; }
++    const uint8_t index = frame.payload[0]; const ArmBusEntry& entry = armBusEntries[index];
++    const ServoReadTrace& trace = entry.trace;
++    uint8_t data[148] = {4, 0, 2, 9, trace.id, trace.address, trace.reply.found,
++      trace.reply.error, trace.reply.size, uint8_t(trace.reply.outcome)};
++    encodeArmReadTrace(data, trace);
++    data[134] = 2; data[135] = armBusCount; data[136] = index; data[137] = entry.armed;
++    motion::put32(data + 138, entry.disabledUs); motion::put32(data + 142, trace.transmittedUs);
++    respond(0x9c, frame.sequence, data, sizeof(data)); return;
++  }
+   if (frame.type == motion::GoalReadDetails) { goalReadDetails(frame); return; }
+   if (frame.type == motion::OffRegisterDetails) { offRegisterDetails(frame); return; }
+   if (frame.type == motion::Arm) {
+-    armDiagnostic = ArmDiagnostic{}; armFailedReadSeen = false;
++    armDiagnostic = ArmDiagnostic{}; armFailedReadSeen = false; armBusCount = 0;
+     armFailedReadTrace = ServoReadTrace{}; armEnableCompletedUs = 0;
+     armReadSequence = frame.sequence; armReadCookie = frame.length == 4 ? motion::u32(frame.payload) : 0;
+   }
+--- a/firmware/motion_protocol.h
++++ b/firmware/motion_protocol.h
+@@ -45,7 +45,7 @@
+   MaintenanceRelease = 14, MaintenanceExit = 15, MaintenanceCenterCheck = 16,
+   MaintenanceVoltageCaps = 17, MaintenanceVoltageRead = 18,
+   VoltageState = 19, TelemetryCaps = 20, PositionReadDetails = 21, GoalReadDetails = 22,
+-  OffRegisterDetails = 23, PolicyPositionCaps = 24, MotionEvidenceCaps = 25, PositionRetryDetails = 26, OfficialRuntimeCaps = 27
++  OffRegisterDetails = 23, PolicyPositionCaps = 24, MotionEvidenceCaps = 25, PositionRetryDetails = 26, OfficialRuntimeCaps = 27, ArmBusDetails = 28
+ };
+ enum Error : uint8_t {
+   Ok = 0, BadPacket = 1, BadState = 2, BadConfig = 3, Stale = 4, Range = 5,

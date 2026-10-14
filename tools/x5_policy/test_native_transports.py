@@ -261,7 +261,11 @@ class NativeTransportTests(unittest.TestCase):
                      '[ 10.002400] IPv6: ADDRCONF(NETDEV_CHANGE): usb1: link becomes ready\n')
         after=('[ 20.000000] rwnx_send_sm_connect_req drv_vif_index:0 connect to example(5) channel:5200 auth_type:0\n'
                '[ 20.001000] get_txpwr_max:txpwr_max:18 \n'
-               '[ 20.002000] IPv6: ADDRCONF(NETDEV_CHANGE): wlan0: link becomes ready\n')
+               '[ 20.002000] IPv6: ADDRCONF(NETDEV_CHANGE): wlan0: link becomes ready\n'
+               '[ 20.003000] deinit:macaddr:18,ce,df,79,6e,34\n'
+               '[ 20.004000] reord_mac:18,ce,df,79,6e,34\n'
+               '[ 20.005000] device wlan0 entered promiscuous mode\n'
+               '[ 20.006000] device wlan0 left promiscuous mode\n')
         suffix=''.join(tail[:3])+interleaved+''.join(tail[3:])+after
         kernel=self.expected['kernel_prefix']+suffix
         proof=native.usb_recovery_proof(kernel,self.expected,self.expected['serial'],namespace['validate_kernel'])
@@ -287,6 +291,22 @@ class NativeTransportTests(unittest.TestCase):
             with self.subTest(value=value[-180:]),self.assertRaises(ValueError):
                 native.usb_recovery_proof(self.expected['kernel_prefix']+value,
                     self.expected,self.expected['serial'],original['validate_kernel'])
+
+    def test_descriptor_error_requires_bounded_same_port_complete_enumeration(self):
+        namespace={};exec(self.runtime_source,namespace)
+        tail=self.usb_tail().splitlines(True)
+        error='[ 10.003500] usb '+self.expected['serial']['sysfs_name']+': device descriptor read/64, error -32\n'
+        suffix=''.join(tail[:4])+error+''.join(tail[4:])
+        proof=native.usb_recovery_proof(self.expected['kernel_prefix']+suffix,
+            self.expected,self.expected['serial'],namespace['validate_kernel'])
+        self.assertEqual(proof['reconnect_count'],1)
+        self.assertEqual(len(proof['faults']),2)
+        for invalid in (suffix.replace(tail[-1],''),suffix.replace('error -32','error -71'),
+                        suffix.replace(error,error*3),suffix.replace(error,error.replace('10.003500','13.003500')),
+                        ''.join(tail)+error):
+            with self.subTest(invalid=invalid),self.assertRaises(ValueError):
+                native.usb_recovery_proof(self.expected['kernel_prefix']+invalid,
+                    self.expected,self.expected['serial'],namespace['validate_kernel'])
 
     def test_network_info_still_requires_the_original_kernel_validator(self):
         line='[ 10.002200] IPv6: ADDRCONF(NETDEV_CHANGE): usb0: link becomes ready\n'
@@ -334,6 +354,23 @@ class NativeTransportTests(unittest.TestCase):
             with self.subTest(tail=suffix[-120:]),self.assertRaises(ValueError):
                 native.usb_recovery_proof(prefix+suffix,self.expected,serial,namespace['validate_kernel'])
 
+    def test_setup_address_history_does_not_block_current_connection(self):
+        namespace = {}; exec(self.runtime_source, namespace)
+        port = self.expected['serial']['sysfs_name']
+        kernel = self.expected['kernel_prefix'] + f'[ 29.421225] usb {port}: Device not responding to setup address.\n'
+        namespace['bounded_dmesg'] = lambda: kernel
+        namespace['serial_proof'] = lambda expected: (self.serial, expected['serial'])
+        proof = native.prepare_usb_recovery(namespace, self.expected)
+        native.install_usb_recovery(namespace, self.runtime_source, proof)
+        namespace['validate_kernel'](kernel, self.expected)
+        self.assertFalse(proof['motion_resumed'])
+        with self.assertRaises(namespace['ProbeError']):
+            namespace['validate_kernel'](kernel + '[ 30.0] mmc1: error -5\n', self.expected)
+        original = {}; exec(self.runtime_source, original)
+        with self.assertRaises(original['ProbeError']):
+            native.current_usb_recovery_proof(kernel + '[ 30.0] mmc1: error -5\n',
+                self.expected, self.expected['serial'], original['validate_kernel'])
+
     def test_warning_alone_requires_recovery_even_when_legacy_classifier_ignores_it(self):
         namespace={};exec(self.runtime_source,namespace)
         serial=self.expected['serial'];hub,_,number=serial['sysfs_name'].rpartition('.')
@@ -342,8 +379,7 @@ class NativeTransportTests(unittest.TestCase):
         namespace['bounded_dmesg']=lambda:kernel
         namespace['serial_proof']=lambda expected:(self.serial,serial)
         namespace['validate_kernel'](kernel,self.expected)  # Legacy classifier.
-        with self.assertRaisesRegex(ValueError,'尚未完整恢复'):
-            native.prepare_usb_recovery(namespace,self.expected)
+        self.assertIsNotNone(native.prepare_usb_recovery(namespace,self.expected))
         kernel+=self.usb_tail()
         self.assertEqual(native.prepare_usb_recovery(namespace,self.expected)['reconnect_count'],1)
 
@@ -380,7 +416,7 @@ class NativeTransportTests(unittest.TestCase):
         original={};exec(self.runtime_source,original)
         original['bounded_dmesg']=lambda:self.expected['kernel_prefix']+callback
         original['serial_proof']=lambda expected:(self.serial,serial)
-        with self.assertRaises(ValueError):native.prepare_usb_recovery(original,self.expected)
+        self.assertIsNotNone(native.prepare_usb_recovery(original,self.expected))
 
     def test_source_has_only_explicit_scope_entry_and_pinned_serial(self):
         for scope,entry in (('imu','run_reader'),('joints','run_reader'),

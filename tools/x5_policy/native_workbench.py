@@ -21,9 +21,9 @@ import stat
 import threading
 import time
 
-HOST = '192.168.1.11'
+HOST = '0.0.0.0'
 PORT = 8767
-ORIGIN = 'http://192.168.1.11:8767'
+ORIGIN = 'http://192.168.128.10:8767'
 COOKIE = 'duck_native_session'
 READ_ONLY = 'X5 原生工作台仅提供运控；已保存校准可查看和导出，采集与舵机维护暂不可用。'
 MODEL_NAMES = ('walk', 'getup', 'pick', 'roulade')
@@ -112,13 +112,16 @@ WALK_MODEL_TEST_PANEL = r'''
         <p class="note">模型：xgoduck_walk.onnx · X5 CPU · <span id="walkModelLoadState">等待模型状态</span></p>
         <p class="note">零速平衡使用这个行走模型，前进、侧移和转向速度均为 0。模型会实际调整关节，也可能小幅踏步。</p>
         <p class="note" id="walkModelTestGuide" role="status" aria-live="polite">先连接并载入模型，再确认防跌准备和头颈间隙。</p>
+        <p class="note" id="walkModelRunStatus" role="status" aria-live="polite">零速试跑尚未启动。</p>
+        <p class="note" id="motionStopPolicy" role="status">停止规则：固定站姿、零速、前进和回零使用相同的15°临时实验边界；该角度尚未验证为防摔阈值。到达边界会立即请求释放扭矩，请托稳机身。</p>
         <div class="settings-actions" id="walkModelTestActions">
           <button class="button" id="walkModelPreview" type="button" disabled>查看行走模型输出 · 不动作</button>
-          <button class="button" id="walkModelForwardLocked" type="button" disabled aria-describedby="walkModelForwardReason" title="先连续零速5秒，再明确触发一次限时前进指令。">前进指令试步 · 1.2秒</button>
+          <button class="button" id="walkModelForwardLocked" type="button" disabled aria-describedby="walkModelForwardReason" title="先连续零速5秒，再明确触发一次限时前进指令。">前进指令试步 · 2秒</button>
         </div>
         <p class="note" id="walkModelForwardResult" role="status" aria-live="polite">尚未触发本轮前进指令。</p>
-        <p class="note" id="walkModelForwardReason">先连续零速5秒，再触发一次前进指令；1.2秒后自动回零。本试验不代表已具备可靠行走能力，请全程在旁防跌。</p>
-        <p class="note">零速试跑最长 30 秒；首次建议 2–3 秒后点击下方「停止运动 · 释放扭矩」。停止时请托住机身。</p>
+        <p class="note" id="walkModelForwardReason">先连续零速5秒，再触发一次前进指令；2秒后自动回零。本试验不代表已具备可靠行走能力，请全程在旁防跌。</p>
+        <p class="note">零速试跑最长30秒，到期缓慢恢复固定站姿并保持扭矩。需要释放扭矩时先托稳机身，再点击「停止运动 · 释放扭矩」。</p>
+        <details id="nativeMotionDetails"><summary>查看连接与停止的具体记录</summary><pre id="nativeMotionTechnicalDetails" class="note" style="overflow-wrap:anywhere;white-space:pre-wrap"></pre></details>
       </div>
 '''
 
@@ -180,24 +183,61 @@ motionKnownWalkBlockedReason=function(h){
     +'°，目标 '+worst.target.toFixed(1)+'°，偏差 '+Math.abs(worst.actual-worst.target).toFixed(2)
     +'°；要求小于 2°。当前仍在保持固定站姿，请托稳后停止检查。';
 };
+function nativeTrialStopDescription(h){
+  const record=h?.candidate_profile?.last_trial_stop;
+  if(h?.mode!=='off'||!record)return '';
+  const label=record.outcome==='completed'?'正常到期'
+    :record.outcome==='aborted'?'异常中止':'停止请求';
+  return label+'：'+(record.reason||'已请求停止')
+    +(Number.isFinite(record.tilt_deg)?'；停止时总倾角 '+record.tilt_deg.toFixed(2)+'°':'');
+}
+function nativeRenderTrialStopPolicy(h){
+  const p=h?.candidate_profile?.trial_stop_policy;
+  if(p?.protocol!==1)return;
+  el('motionStopPolicy').textContent='停止规则：固定站姿、零速、前进和回零均使用 '
+    +p.tilt_limit_deg+'° 临时实验边界，点击前进不会改变阈值。该角度尚未验证为防摔阈值；达到边界立即请求释放扭矩。前进2秒后仅回零速；本轮30秒到期会缓慢恢复固定站姿并保持扭矩。页面心跳中断时，仅在反馈、姿态和关节跟随检查均通过后取消行走、缓慢回站姿；否则仍停止。紧急停止仍会卸力，请在旁防跌。';
+}
 let nativeForwardPending=false;
 function nativeForwardResultText(){
   const h=nativeHoldRequestHardware(),f=h?.forward_trial,e=f?.execution;
-  if(motionReceiptContextCurrent()&&motionReceipt.action==='forward-trial')return '前进请求已接收，等待 X5 发布实际发送结果；这不表示机器人已经迈步。';
+  const stopped=h?.mode==='off'||h?.connected===false||['fault','closed'].includes(snapshot?.motion?.phase);
+  if(!stopped&&motionReceiptContextCurrent()&&motionReceipt.action==='forward-trial')return '前进请求已接收，等待 X5 发布实际发送结果；这不表示机器人已经迈步。';
   if(!f?.used)return '尚未触发本轮前进指令。';
   const count=Number.isInteger(e?.successful_nonzero_TARGETs)?e.successful_nonzero_TARGETs:null;
   const sent=count===null?'本轮请求已接收':count>0?'已发送 '+count+' 帧带前进指令的目标':'请求已接收，尚未确认发送非零目标';
-  const phase=f.phase==='running'?'；指令执行中':e?.successful_zero_TARGETs_after_forward>0?'；随后已恢复零速指令':f.phase==='cancelled'?'；本轮已停止或取消':'；等待零速目标确认';
-  const stopped=h?.mode==='off'&&f.phase==='cancelled'?'，当前已停止':'';
-  return sent+phase+stopped+'。是否抬脚和前移需要现场观察，发送成功不代表行走成功。';
+  const phase=stopped?'；当前已停止发送运动目标':f.phase==='cancelled'?'；前进指令已取消':f.phase==='running'?'；指令执行中':'；前进窗口已结束';
+  const zero=e?.successful_zero_TARGETs_after_forward>0?'；随后已恢复零速指令':stopped?'；未确认成功发送回零目标':f.phase==='running'?'':'；等待零速目标确认';
+  let detail='';
+  if(stopped){
+    const m=snapshot?.motion,d=h?.last_stop_diagnostic,op=m?.last_operation,p=m?.closed_proof;
+    const diagnosticCurrent=Number.isInteger(d?.before?.generation)&&h.generation===d.before.generation+1&&d.before.mode!=='off';
+    const source={button:'点击了停止运动','page-hidden':'运控页面被隐藏',pagehide:'离开或关闭了运控页面','workspace-leave':'切换了工作台功能'};
+    const operationCurrent=op?.action==='stop'&&op.after?.generation===h.generation;
+    const reason=motionTerminalReason(m)||h?.error||(diagnosticCurrent?d.reason:'')||(operationCurrent?source[op.stop_source]||op.error:'');
+    detail+='；停止原因：'+(nativeTrialStopDescription(h)||(reason?feedbackErrorText(reason):'记录中未提供具体原因'));
+    if(Array.isArray(h?.online_ids)&&h.online_ids.length>0&&h.online_ids.length<motorIds.length){
+      const missing=motorIds.filter(id=>!h.online_ids.includes(id));
+      if(missing.length)detail+='；最近反馈未在线的舵机 ID：'+missing.join('、');
+    }
+    // Native close clears live release_confirmed. Its detached close proof
+    // can retain the successful pre-close readback for this generation only.
+    const closedRelease=m?.owns_connection===false&&['closed','fault'].includes(m.phase)
+      &&h?.connected===false&&h.mode==='off'&&Number.isInteger(h.generation)
+      &&p?.serial_closed===true&&p.release_confirmed===true
+      &&Number.isInteger(p.before?.generation)&&p.before.generation<h.generation
+      &&p.before.connected===true&&p.after?.generation===h.generation
+      &&p.after.connected===false&&p.after.mode==='off'
+      &&(p.connection_sequence===undefined||p.connection_sequence===m.connection_sequence);
+    detail+=h?.release_confirmed===true||closedRelease?'；最近回读已确认 15 个舵机扭矩关闭':'；全部舵机扭矩关闭尚未确认，请继续托稳机身';
+  }
+  return sent+phase+zero+detail+'。是否抬脚和前移需要现场观察，发送成功不代表行走成功。';
 }
 function nativeForwardBlockedReason(){
   const h=nativeHoldRequestHardware(),f=h?.forward_trial,elapsed=receivedAt===null?Infinity:performance.now()-receivedAt;
   if(!motionConnectionEstablished())return '先连接运控、恢复站姿，再启动零速试跑。';
-  if(!el('motionSupportConfirmed').checked)return '请确认本轮防跌准备。';
   if(nativeForwardPending||motionBusy||requestBusy||motionReceiptContextCurrent())return '上一项操作尚未完成，请等待新状态。';
   if(!f||f.protocol!==1)return '当前版本未开放受限试步。';
-  if(f.phase==='running')return '正在试验，X5将在1.2秒时回到零速；本轮不能重复触发。';
+  if(f.phase==='running')return '正在试验，X5将在2秒时回到零速；本轮不能重复触发。';
   if(f.used)return h.mode==='walk'?'本轮试步已使用；结果见下方。托住机身后可点击停止结束。':'本轮试步已结束；结果见下方。';
   if(!f.allowed)return f.blocked_reason||'本轮零速和保护条件尚未通过。';
   if(h.mode!=='walk'||h.generation!==f.mode_generation||h.armed!==true||h.pending_stop||h.error||h.firmware_error)return '当前运行状态不满足试步条件。';
@@ -208,7 +248,7 @@ function nativeForwardBlockedReason(){
 el('walkModelForwardLocked').onclick=async()=>{
   if(nativeForwardBlockedReason())return;
   nativeForwardPending=true;
-  try{await runMotion('forward-trial',{support_confirmed:el('motionSupportConfirmed').checked});}
+  try{await runMotion('forward-trial',{});}
   finally{nativeForwardPending=false;renderMotion();}
 };
 function nativePreviewRequestReady(){
@@ -230,7 +270,6 @@ function nativeHoldRequestReady(){
     &&Number.isFinite(elapsed)&&elapsed>=0&&elapsed<1500
     &&Number.isFinite(h?.age_ms)&&h.age_ms>=0&&h.age_ms+elapsed<1500
     &&Number.isInteger(h.generation)&&h.calibrated===true&&!h.error&&!h.start_blocked_reason
-    &&(h.head_clearance_required!==true||h.hold_head_deg!=null)
     &&Array.isArray(h.online_ids)&&h.online_ids.length===15&&motorIds.every(id=>h.online_ids.includes(id))
     &&Array.isArray(h.fault_ids)&&h.fault_ids.length===0
     &&motionStandDegrees(h)!==null&&['off','walk'].includes(h.mode);
@@ -243,15 +282,112 @@ function nativeZeroBalanceRequestReady(){
     &&Number.isFinite(elapsed)&&elapsed>=0&&elapsed<1500
     &&Number.isFinite(h?.age_ms)&&h.age_ms>=0&&h.age_ms+elapsed<1500
     &&Number.isFinite(h?.imu_age_ms)&&h.imu_age_ms>=0&&h.imu_age_ms+elapsed<1500
-    &&Number.isInteger(h.generation)&&h.calibrated===true&&!h.error&&!h.start_blocked_reason
-    &&!h.model_start_blocked_reasons?.walk&&h.mode==='hold'&&h.hold_ready===true
+    &&Number.isInteger(h.generation)&&h.calibrated===true&&!h.error&&!nativeZeroBalanceBlockingReason(h)
+    &&h.mode==='hold'&&h.hold_ready===true
     &&h.armed===true&&h.pending_stop!==true&&h.firmware_error===0
     &&Array.isArray(h.online_ids)&&h.online_ids.length===15&&motorIds.every(id=>h.online_ids.includes(id))
     &&Array.isArray(h.torque_ids)&&h.torque_ids.length===15&&motorIds.every(id=>h.torque_ids.includes(id))
     &&Array.isArray(h.fault_ids)&&h.fault_ids.length===0
     &&h.imu_ok===true&&finiteVector(g)&&Math.hypot(...g)>.000001
     &&Math.acos(Math.max(-1,Math.min(1,-g[2]/Math.hypot(...g))))*180/Math.PI<15
-    &&motionModelContractReady('walk',h)&&motionFixedHeadWalkReady(h);
+    &&motionModelContractReady('walk',h);
+}
+function nativeZeroBalanceBlockingReason(h){
+  // The detached status formatter re-runs the 100ms control gates after it
+  // copies its sample. Those two age explanations authorize no motion: allow
+  // one explicit request within the unchanged 1500ms display window instead.
+  // START and each TARGET still enforce fresh 100ms feedback on the X5.
+  const displayAgeReasons=['舵机反馈已过期','需要新鲜有效的 IMU 与关节反馈'];
+  for(const reason of [h?.start_blocked_reason,h?.model_start_blocked_reasons?.walk]){
+    if(reason&&!displayAgeReasons.includes(reason))
+      return reason===h?.model_start_blocked_reasons?.walk?motionKnownWalkBlockedReason(h):reason;
+  }
+  return '';
+}
+let nativeZeroStartPending=false;
+el('motionWalk').onclick=async()=>{
+  if(nativeZeroStartPending||motionBusy||requestBusy||motionReceiptContextCurrent()
+    ||motionRequestTimeout?.action==='start'
+    ||!nativeZeroBalanceRequestReady())return;
+  nativeZeroStartPending=true;renderMotion();
+  try{await runMotion('start',{mode:'walk'});}
+  finally{nativeZeroStartPending=false;renderMotion();}
+};
+function nativeZeroBalanceStatus(h,ready){
+  if(motionConnectionEstablished()&&h?.mode==='hold'&&['zero_time_limit','page_heartbeat_lost'].includes(h?.candidate_profile?.last_trial_stop?.cause)){
+    const elapsed=receivedAt===null?Infinity:performance.now()-receivedAt;
+    const fresh=!fetchError&&Number.isFinite(elapsed)&&elapsed>=0&&elapsed<1500
+      &&[h.age_ms,h.imu_age_ms].every(v=>Number.isFinite(v)&&v>=0&&v+elapsed<1500);
+    if(!fresh||h.armed!==true||h.pending_stop||h.error)return {kind:'unknown',label:'结束状态等待反馈',text:'上次确认试跑已结束并转入固定站姿；当前保持状态等待新反馈，请继续防跌。'};
+    if(h.candidate_profile.last_trial_stop.cause==='page_heartbeat_lost')return {kind:'interrupted-holding',label:'页面失联 · 已转固定站姿',text:h.candidate_profile.last_trial_stop.reason+'。请检查页面与网络，确认站姿后再重新开始；不会自动恢复行走。'};
+    return {kind:'holding',label:'再次零速试跑 · 当前保持站姿',text:'30秒模型试跑正常结束，正在缓慢恢复或保持固定站姿，扭矩保持开启。尚不代表行走通过；需要下电时先托稳机身，再点击停止运动。'};
+  }
+  const m=snapshot?.motion,d=h?.last_stop_diagnostic,op=m?.last_operation,p=m?.closed_proof;
+  const stopped=h?.mode==='off'||h?.connected===false||['fault','closed'].includes(m?.phase);
+  const diagnosticCurrent=Number.isInteger(d?.before?.generation)&&d.before.generation<h?.generation;
+  const operationCurrent=op?.action==='stop'&&op.after?.generation===h?.generation;
+  const source={button:'点击了停止运动','page-hidden':'运控页面被隐藏',pagehide:'离开或关闭了运控页面','workspace-leave':'切换了工作台功能'};
+  const reason=motionTerminalReason(m)||h?.error||(diagnosticCurrent?d.reason:'')||(operationCurrent?source[op.stop_source]||op.error:'');
+  if(stopped&&(reason||diagnosticCurrent||m?.phase==='fault')){
+    const entered=diagnosticCurrent&&d.before.mode==='walk';
+    const closedRelease=m?.owns_connection===false&&['closed','fault'].includes(m.phase)
+      &&h?.connected===false&&h.mode==='off'&&Number.isInteger(h.generation)
+      &&p?.serial_closed===true&&p.release_confirmed===true
+      &&Number.isInteger(p.before?.generation)&&p.before.generation<h.generation
+      &&p.before.connected===true&&p.after?.generation===h.generation
+      &&p.after.connected===false&&p.after.mode==='off'
+      &&(p.connection_sequence===undefined||p.connection_sequence===m.connection_sequence);
+    return {kind:'stopped',label:'零速试跑已停止',text:(entered?'已进入行走模型试跑，现已停止。':'当前未运行零速试跑。')
+      +'停止原因：'+(nativeTrialStopDescription(h)||(reason?feedbackErrorText(reason):'停止记录未提供具体原因'))+'。'
+      +(h?.release_confirmed===true||closedRelease?'最近回读已确认 15 个舵机扭矩关闭。':'全部舵机扭矩关闭尚未确认，请继续托稳机身。')
+      +'可展开下方「查看连接与停止的具体记录」。'};
+  }
+  if(nativeZeroStartPending)return {kind:'starting',label:'正在启动零速试跑…',text:'启动请求正在检查，请等待 X5 确认；尚不能据此判断模型已运行，请勿重复点击。'};
+  if(motionReceiptContextCurrent()&&motionReceipt.action==='start'&&motionReceipt.mode==='walk')
+    return {kind:'accepted',label:'零速启动已确认 · 等待反馈',text:'X5 已确认进入行走模型零速试跑，正在等待对应的新反馈；控制心跳已续接，确认应答不会刷新传感器读数。'};
+  if(motionConnectionEstablished()&&h?.mode==='walk'){
+    const elapsed=receivedAt===null?Infinity:performance.now()-receivedAt;
+    const recent=!fetchError&&Number.isFinite(elapsed)&&elapsed>=0&&elapsed<1500
+      &&[h.age_ms,h.imu_age_ms].every(age=>Number.isFinite(age)&&age>=0&&age+elapsed<1500);
+    if(!recent)return {kind:'unknown',label:'试跑状态等待新反馈',text:'上次确认行走模型正在运行；页面反馈已过期，当前状态等待更新。请保持防跌准备，停止按钮仍可使用。'};
+    const trial=h.candidate_profile,warmup=trial?.zero_walk_warmup;
+    const targetCount=warmup?.generation===h.generation&&Number.isInteger(warmup.successful_zero_TARGET_count)
+      ?warmup.successful_zero_TARGET_count:null;
+    const remaining=Number.isFinite(trial?.trial_seconds_remaining)
+      ?Math.max(0,trial.trial_seconds_remaining-elapsed/1000):null;
+    const running=h.forward_trial?.phase==='running'?'受限前进指令试步运行中'
+      :targetCount===null?'零速模式已启动':targetCount===0?'零速模式已启动，等待首帧控制':'零速试跑运行中';
+    return {kind:'running',label:running+(remaining===null?'':' · 剩余约'+Math.ceil(remaining)+'秒'),
+      text:running+'。'+(remaining===null?'':'本轮整体窗口剩余约'+Math.ceil(remaining)+'秒，')
+      +'最长30秒，到时结束模型试跑并缓慢恢复固定站姿，保持扭矩；紧急停止仍会卸力。页面倒计时仅用于显示。'};
+  }
+  if(!motionConnectionEstablished())return {kind:'disconnected',label:'零速试跑 · 未连接',text:'零速试跑尚未启动：运控未连接。先检查连接并载入模型；连接不会自动启动动作。'};
+  if(motionRequestTimeout?.action==='start')return {kind:'unknown',label:'启动结果等待确认',text:'启动应答超时，正在核对实际状态；不会重发启动请求。请查看新反馈或使用停止按钮。'};
+  if(motionBusy||requestBusy)return {kind:'waiting',label:'零速试跑 · 等待当前操作',text:'上一项操作尚未结束，等待 X5 返回结果；尚未启动新的零速试跑。'};
+  if(h?.mode!=='hold')return {kind:'waiting',label:'零速试跑 · 等待固定站姿',text:'零速试跑尚未启动：先恢复固定站姿并等待实际关节到位。'};
+  if(motionError)return {kind:'rejected',label:'零速试跑未启动',text:'零速启动未确认：'+feedbackErrorText(motionError)+'。当前仍是固定站姿，请查看具体记录。'};
+  if(ready)return {kind:'ready',label:'行走模型 · 零速试跑（最长30秒）',text:'当前保持固定站姿，零速试跑尚未启动。可以点击一次；X5 会重新检查100毫秒内的实时反馈、头颈、关节范围和机身姿态，通过后才接管。'};
+  const elapsed=receivedAt===null?Infinity:performance.now()-receivedAt;
+  let why=nativeZeroBalanceBlockingReason(h);
+  if(!why&&(!Number.isFinite(elapsed)||elapsed<0||elapsed>=1500||![h?.age_ms,h?.imu_age_ms].every(age=>Number.isFinite(age)&&age>=0&&age+elapsed<1500)))why='页面反馈已过期，等待新的后台状态';
+  if(!why)why=h?.hold_ready!==true?'固定站姿尚未到位':'头颈、舵机在线、扭矩或实时姿态检查尚未通过';
+  return {kind:'blocked',label:'零速试跑 · 等待条件',text:'当前保持固定站姿，零速试跑尚未启动：'+why+'。'};
+}
+let nativeMotionDetailsRevision=-1,nativeMotionDetailsSnapshot=null;
+function nativeRenderMotionDetails(){
+  if(nativeMotionDetailsRevision===snapshotRevision&&nativeMotionDetailsSnapshot===snapshot)return;
+  nativeMotionDetailsRevision=snapshotRevision;nativeMotionDetailsSnapshot=snapshot;
+  const m=snapshot?.motion,h=nativeHoldRequestHardware(),s=snapshot?.session;
+  const records={connection_check:s?.connection_check,recovery_recheck:s?.recovery_recheck,
+    connection_error_details:recoveryTechnicalText(),motion_phase:m?.phase,
+    motion_error:m?.error,hardware_error:h?.error,last_stop_diagnostic:h?.last_stop_diagnostic,
+    last_operation:m?.last_operation,closed_proof:m?.closed_proof,
+    trial_stop_policy:h?.candidate_profile?.trial_stop_policy,
+    last_trial_stop:h?.candidate_profile?.last_trial_stop,
+    page_heartbeat:h?.candidate_profile?.page_heartbeat,
+    leg_following:h?.candidate_profile?.leg_following,
+    browser_heartbeat:{page_visible:!document.hidden,last_error:motionHeartbeatTransientError,attempts:motionHeartbeatAttempts.slice(-12)}};
+  el('nativeMotionTechnicalDetails').textContent=JSON.stringify(records,null,2);
 }
 connectionTargetText=()=> 'X5 独立工作台 · '+globalThis.location.host+'；采集、维护和运控均在 X5 运行。';
 const nativeOriginalCanMotionRecheck=canMotionRecheck,nativeOriginalMotionRecheck=recheckMotionFeedback,nativeOriginalRecoveryInfo=motionRecoveryInfo;
@@ -273,23 +409,13 @@ renderMotion=function(){nativeOriginalRenderMotion();
   el('motionShadow').disabled=!previewReady||motionBusy||requestBusy;
   el('motionPreviewModel').disabled=!previewReady||motionBusy||requestBusy;
   el('motionShadow').title=previewReady?'点击后由 X5 检查当前反馈，只推理，不开启扭矩':'等待连接、扭矩关闭和有效反馈';
-  el('motionStand').disabled=!nativeHoldRequestReady()||motionBusy||requestBusy||!el('motionSupportConfirmed').checked;
-  el('motionStand').title=!el('motionSupportConfirmed').checked?'请先确认机身有稳固支撑':nativeHoldRequestReady()?'点击后由 X5 检查当前反馈，通过后进入固定站姿':nativeHoldRequestHardware()?.start_blocked_reason||'连接或反馈待更新；支撑确认已保留';
+  el('motionStand').disabled=!nativeHoldRequestReady()||motionBusy||requestBusy;
+  el('motionStand').title=nativeHoldRequestReady()?'点击后由 X5 检查当前反馈，通过后进入固定站姿':nativeHoldRequestHardware()?.start_blocked_reason||'连接或反馈待更新';
   const zeroReady=nativeZeroBalanceRequestReady();
-  if(nativeHoldRequestHardware()?.head_clearance_required===true){
-    el('motionWalk').disabled=!zeroReady||motionBusy||requestBusy||!el('motionSupportConfirmed').checked;
-    el('motionWalk').title=zeroReady?'点击后由 X5 检查当前100毫秒内的反馈，通过后接管零速平衡':motionKnownWalkBlockedReason(nativeHoldRequestHardware())||'等待站姿到位、头颈记录和有效连接';
-    if(!zeroReady&&nativeHoldRequestHardware()?.mode==='hold'&&motionKnownWalkBlockedReason(nativeHoldRequestHardware()))
-      setMotionText(el('motionWalkGateStatus'),motionKnownWalkBlockedReason(nativeHoldRequestHardware()));
-    if(zeroReady)setMotionText(el('motionWalkGateStatus'),'固定站姿已到位。点击后由 X5 检查实时反馈，再启动固定头颈零速平衡；机身仍需防跌支撑。');
-    const trial=nativeHoldRequestHardware()?.candidate_profile;
-    if(trial?.backend_trial_limit_s===30){
-      el('motionWalk').textContent='零速平衡（30秒）';
-      if(zeroReady)setMotionText(el('motionWalkGateStatus'),'固定站姿已到位。零速试验最长30秒，倾角达到15°会提前停止卸力；请保持防跌支撑。');
-      if(nativeHoldRequestHardware()?.mode==='walk'&&Number.isFinite(trial.trial_seconds_remaining))
-        setMotionText(el('motionWalkGateStatus'),'零速平衡剩余约'+Math.ceil(trial.trial_seconds_remaining)+'秒；到时自动停止卸力，请保持防跌支撑。');
-    }
-  }
+  // This is the only presentation gate for the native zero-entry button.
+  // A failed/disconnected frame cannot inherit a previously enabled button.
+  el('motionWalk').disabled=!zeroReady||nativeZeroStartPending||motionBusy||requestBusy
+    ||motionRequestTimeout?.action==='start';
   if(motionReceiptContextCurrent())for(const id of ['motionShadow','motionStand'])el(id).disabled=true;
   if(motionReceiptContextCurrent())el('motionWalk').disabled=true;
   const m=snapshot?.motion,known=Array.isArray(m?.models_loaded)?m.models_loaded:Object.keys(m?.deployment?.model_hashes||{});
@@ -302,38 +428,26 @@ renderMotion=function(){nativeOriginalRenderMotion();
   // Presentation only: unchanged native start/lease/feedback/pose gates.
   el('walkModelLoadState').textContent=loaded.includes('walk')?'已加载':'尚未加载';
   el('walkModelPreview').disabled=el('motionShadow').disabled||motionReceiptContextCurrent();
+  nativeRenderTrialStopPolicy(nativeHoldRequestHardware());
   el('walkModelForwardResult').textContent=nativeForwardResultText();
   const forwardReason=nativeForwardBlockedReason();
   el('walkModelForwardLocked').disabled=!!forwardReason;
-  el('walkModelForwardLocked').title=forwardReason||'一次1.2秒前进指令，自动回零；请在旁防跌';
-  el('walkModelForwardReason').textContent=forwardReason||'可以触发一次试验：前进指令峰值0.15 m/s，1.2秒后回零。尚未通过实机行走验收，请在旁防跌。';
-  el('motionWalk').textContent='行走模型 · 零速试跑（最长30秒）';
-  const walkHardware=nativeHoldRequestHardware();
-  let walkGuide;
-  const walkDisplayElapsed=receivedAt===null?Infinity:performance.now()-receivedAt;
-  if(!motionConnectionEstablished())walkGuide='按钮不可用：尚未连接运控。先点击「连接并载入模型」；连接不会自动启动动作。';
-  else if(walkHardware?.mode==='walk')walkGuide=el('motionWalkGateStatus').textContent;
-  else if(motionBusy||requestBusy)walkGuide='按钮不可用：上一项操作尚未结束，请等待 X5 返回结果。';
-  else if(motionReceiptContextCurrent())walkGuide='按钮不可用：操作已收到，正在等待对应的新状态；请勿重复点击。';
-  else if(walkHardware?.mode==='shadow')walkGuide='按钮不可用：当前正在不动作预览，舵机扭矩关闭。先点击「停止运动 · 释放扭矩」结束预览，再点击「缓慢恢复上次站姿」；站姿到位后才能零速试跑。';
-  else if(!el('motionSupportConfirmed').checked)walkGuide='按钮不可用：尚未勾选防跌准备。请先托稳机身、双脚平放并勾选确认。';
-  else if(walkHardware?.head_clearance_required===true&&walkHardware.hold_head_deg==null)walkGuide='按钮不可用：本次连接尚未记录头颈避让位置。先确认整个恢复路径无遮挡，再点击「记录当前头颈位置 · 不动作」。';
-  else if(!walkHardware)walkGuide='按钮不可用：正在等待运控状态更新，暂时无法确认站姿是否到位。';
-  else if(walkHardware.mode!=='hold')walkGuide='按钮不可用：尚未进入固定站姿。先点击「缓慢恢复上次站姿」；固定站姿到位后才能零速试跑。'+(walkHardware.error?' 上次停止原因：'+walkHardware.error:'');
-  else if(walkHardware?.error||walkHardware?.start_blocked_reason)walkGuide='按钮不可用：'+(walkHardware.error||walkHardware.start_blocked_reason);
-  else if(motionKnownWalkBlockedReason(walkHardware))walkGuide='按钮不可用：'+motionKnownWalkBlockedReason(walkHardware);
-  else if(localFilePage||fetchError||!snapshot?.token)walkGuide='按钮不可用：网页连接异常，请刷新工作台并重新检查连接。';
-  else if(!Number.isFinite(walkDisplayElapsed)||walkDisplayElapsed<0||walkDisplayElapsed>=1500||![walkHardware?.age_ms,walkHardware?.imu_age_ms].every(age=>Number.isFinite(age)&&age>=0&&age+walkDisplayElapsed<1500))walkGuide='按钮不可用：页面反馈已过期，正在等待更新。不要移动脚掌来使按钮变亮。';
-  else if(walkHardware?.calibrated!==true)walkGuide='按钮不可用：当前校准未通过检查，需要重新核对已保存校准。';
-  else if(walkHardware?.fault_ids?.length)walkGuide='按钮不可用：舵机报告故障，ID '+walkHardware.fault_ids.join('、')+'。';
-  else if(!Array.isArray(walkHardware?.online_ids)||walkHardware.online_ids.length!==15||!motorIds.every(id=>walkHardware.online_ids.includes(id)))walkGuide='按钮不可用：尚未确认 15 个舵机全部在线。';
-  else if(walkHardware?.pending_stop===true||walkHardware?.armed!==true||walkHardware?.torque_ids?.length!==15)walkGuide='按钮不可用：固定站姿未确认全部舵机保持上力，或正在停止；请先托稳并检查站姿状态。';
-  else if(!motionModelContractReady('walk',walkHardware))walkGuide='按钮不可用：'+motionModelContractHint('walk',walkHardware);
-  else if(!motionFixedHeadWalkReady(walkHardware))walkGuide='按钮不可用：固定头颈适配尚未就绪，请核对本次头颈记录和连接。';
-  else walkGuide=zeroReady?'站姿检查通过，可以启动行走模型的零速试跑；请在旁保护。':'按钮不可用：实时姿态或站姿检查尚未通过，请保持双脚平放并等待状态更新。';
-  el('walkModelTestGuide').textContent=walkGuide;
-  el('motionWalk').title=walkGuide;
-  if(el('motionWalk').disabled)setMotionText(el('motionWalkGateStatus'),walkGuide);
+  el('walkModelForwardLocked').title=forwardReason||'一次2秒前进指令，自动回零；请在旁防跌';
+  el('walkModelForwardReason').textContent=forwardReason||'可以触发一次试验：前进指令峰值0.20 m/s，2秒后回零。尚未通过实机行走验收，请在旁防跌。';
+  const runStatus=nativeZeroBalanceStatus(nativeHoldRequestHardware(),zeroReady);
+  el('motionWalk').textContent=runStatus.label;
+  el('motionWalk').title=runStatus.text;
+  el('walkModelTestGuide').textContent='先进入固定站姿，确认防跌准备后点击一次零速试跑；通过首帧控制后再判断模型效果。';
+  const following=nativeHoldRequestHardware()?.candidate_profile?.leg_following;
+  const followingWarning=nativeHoldRequestHardware()?.mode==='walk'&&following?.ready===false&&following?.worst
+    ?' 关节跟随未到位：ID '+following.worst.id+'，实际 '+following.worst.actual_deg.toFixed(1)+'°，已下发目标 '+following.worst.target_deg.toFixed(1)+'°，偏差 '+Math.abs(following.worst.error_deg).toFixed(2)+'°；先不要前进。':'';
+  el('walkModelRunStatus').textContent=runStatus.text+followingWarning;
+  el('walkModelRunStatus').dataset.state=runStatus.kind;
+  // Keep the established diagnostics node for accessibility and tests, without
+  // repeating the full model status in the separate IMU panel.
+  setMotionText(el('motionWalkGateStatus'),runStatus.text);
+  el('motionWalkGateStatus').hidden=true;
+  nativeRenderMotionDetails();
 };
 const nativeOriginalRender=render;
 render=function(){nativeOriginalRender();
@@ -378,7 +492,7 @@ def native_page(source, *, authentication_required=True, full_workbench=False):
                 "const epoch=['start','stop','connect','disconnect','capture-head-clearance','forward-trial'].includes(action)?++motionActionEpoch:motionActionEpoch;",
 
             "if(action==='start'&&!motionFresh())return;":
-                "if(action==='start'&&!(extra.mode==='hold'?nativeHoldRequestReady():extra.mode==='shadow'?nativePreviewRequestReady():extra.mode==='walk'&&nativeHoldRequestHardware()?.head_clearance_required===true?nativeZeroBalanceRequestReady():motionFresh()))return;",
+                "if(action==='start'&&!(extra.mode==='hold'?nativeHoldRequestReady():extra.mode==='shadow'?nativePreviewRequestReady():extra.mode==='walk'?nativeZeroBalanceRequestReady():motionFresh()))return;",
             "if(action==='start'&&extra.mode==='hold'&&motionStandDegrees()===null)return;":
                 "if(action==='start'&&extra.mode==='hold'&&motionStandDegrees(nativeHoldRequestHardware())===null)return;",
             "const generation=(action==='capture-head-clearance'?(snapshot.motion?.hardware??snapshot.motion?.last_hardware):['stop','command'].includes(action)?motionControlHardware():snapshot.motion?.hardware)?.generation,pageGeneration=motionPageGeneration();":
@@ -386,13 +500,315 @@ def native_page(source, *, authentication_required=True, full_workbench=False):
             "if(action==='start'&&['walk','getup','pick','roulade'].includes(extra.mode)&&!motionModelContractReady(extra.mode))return;":
                 "if(action==='start'&&['walk','getup','pick','roulade'].includes(extra.mode)&&!motionModelContractReady(extra.mode,extra.mode==='walk'?nativeHoldRequestHardware():snapshot?.motion?.hardware))return;",
             "if(action==='start'&&extra.mode==='walk'&&(snapshot.motion.hardware.mode!=='hold'||snapshot.motion.hardware.hold_ready!==true||motionWalkBlockedReason()))return;":
-                "if(action==='start'&&extra.mode==='walk'&&(nativeHoldRequestHardware()?.head_clearance_required===true?!nativeZeroBalanceRequestReady():snapshot.motion.hardware.mode!=='hold'||snapshot.motion.hardware.hold_ready!==true||motionWalkBlockedReason()))return;",
+                "if(action==='start'&&extra.mode==='walk'&&(!nativeZeroBalanceRequestReady()))return;",
         }
         for old, new in replacements.items():
             if source.count(old) != 1:
                 raise ValueError('固定站姿请求适配结构已变化')
             source = source.replace(old, new, 1)
     return source.replace(marker, script + '\n' + marker).encode('utf-8')
+
+
+# Included in the isolated native workbench module after its original renderer.
+TRACKING_PANEL = '''<section class="card" id="trackingProbePanel">
+<h3>站姿关节跟随检查</h3>
+<p>先恢复固定站姿，只让所选关节缓慢增加 3°、回位，5 秒后结束检查并继续保持固定站姿，扭矩保持。每次检查一个关节，用于分析实际跟随。</p>
+<label>检查关节 <select id="trackingProbeJoint"><option value="14">左踝 · ID14</option><option value="11">左髋侧摆 · ID11</option><option value="21">右髋侧摆 · ID21</option><option value="23">右膝 · ID23</option></select></label>
+<label><input type="checkbox" id="trackingSupportConfirmed">本次已托稳机身，双脚平放承重，能观察所选关节；需要下电时先托稳再停止</label>
+<p><button id="trackingProbeStart" disabled>左踝跟随检查 · 5 秒</button></p>
+<p class="note" id="trackingProbeResult" role="status" aria-live="polite">先恢复固定站姿。</p>
+</section>'''
+TRACKING_SCRIPT = r'''
+let trackingProbePending=false;
+const trackingProbeNames={14:'左踝',11:'左髋侧摆',21:'右髋侧摆',23:'右膝'};
+function trackingProbeJoint(){
+  const value=el('trackingProbeJoint').value||'23';
+  return /^(11|14|21|23)$/.test(value)?Number(value):null;
+}
+function trackingProbeReason(){
+  const h=nativeHoldRequestHardware(),p=h?.tracking_probe,age=receivedAt===null?Infinity:performance.now()-receivedAt,joint=trackingProbeJoint();
+  if(joint===null)return '请选择左踝、左右髋侧摆或右膝。';
+  if(!el('trackingSupportConfirmed').checked)return '请确认本次托稳机身、双脚承重并观察所选关节。';
+  if(trackingProbePending||motionBusy||requestBusy||motionReceiptContextCurrent())return '上一项操作尚未完成。';
+  if(!motionConnectionEstablished()||!p||p.protocol!==1)return '请先连接运控并恢复固定站姿。';
+  const allowed=p.allowed_by_joint?p.allowed_by_joint[String(joint)]===true:p.allowed;
+  if(!allowed)return p.blocked_reasons_by_joint?.[String(joint)]||p.blocked_reason||'站姿检查条件尚未通过。';
+  if(h.mode!=='hold'||!h.hold_ready||h.armed!==true||h.pending_stop||h.error||h.firmware_error||h.generation!==p.mode_generation)return '当前固定站姿未就绪。';
+  if(localFilePage||fetchError||!snapshot?.token||!Number.isFinite(age)||age<0||age>=1500||![h.age_ms,h.imu_age_ms].every(v=>Number.isFinite(v)&&v>=0&&v+age<1500))return '页面反馈已过期，请等待新状态。';
+  if(!ownsMotionControl())return '请在启动本轮站姿的页面操作。';
+  return '';
+}
+const trackingOriginalRenderMotion=renderMotion;
+renderMotion=function(){
+  trackingOriginalRenderMotion();
+  const h=nativeHoldRequestHardware(),p=h?.tracking_probe,reason=trackingProbeReason(),name=trackingProbeNames[trackingProbeJoint()]||'关节',activeName=trackingProbeNames[p?.id]||name;
+  el('trackingProbeStart').disabled=!!reason;
+  el('trackingProbeStart').textContent=name+'跟随检查 · 5 秒';
+  el('trackingProbeStart').title=reason||'仅'+name+'增加3°并回位，5秒后回到固定站姿，保持扭矩';
+  const age=receivedAt===null?Infinity:performance.now()-receivedAt;
+  const remaining=Number.isFinite(p?.remaining_s)&&Number.isFinite(age)&&age>=0
+    ?Math.max(0,p.remaining_s-age/1000):null;
+  const countdown=remaining===null?'':'距检查结束约 '+remaining.toFixed(1)+' 秒；';
+  const holding=h?.mode==='hold'&&h.armed===true&&!h.pending_stop&&!h.error&&!fetchError&&Number.isFinite(age)&&age>=0&&age<1500&&[h.age_ms,h.imu_age_ms].every(v=>Number.isFinite(v)&&v>=0&&v+age<1500);
+  el('trackingProbeResult').textContent=p?.phase==='running'?'检查中：'+countdown+'观察'+activeName+'，结束后保持固定站姿和扭矩。'
+    :p?.phase==='completed'?(holding?'正常到期：5秒检查窗口结束，固定站姿和扭矩保持中。需要下电时先托稳，再点击停止运动。':'检查窗口已结束；当前扭矩保持未确认，请查看最新状态并继续托稳。')
+    :p?.phase==='cancelled'?(nativeTrialStopDescription(h)||'检查已停止或中断；请查看停止原因')+'；请继续托稳。'
+    :reason||'已就绪，点击后'+name+'缓慢增加3°并回位；5秒后继续保持固定站姿和扭矩。';
+};
+el('trackingSupportConfirmed').onchange=renderMotion;
+el('trackingProbeJoint').onchange=()=>{el('trackingSupportConfirmed').checked=false;renderMotion();};
+el('trackingProbeStart').onclick=async()=>{
+  if(trackingProbeReason())return;
+  const joint_id=trackingProbeJoint();
+  trackingProbePending=true;
+  try{await runMotion('tracking-probe',{support_confirmed:el('trackingSupportConfirmed').checked,joint_id});}
+  finally{trackingProbePending=false;el('trackingSupportConfirmed').checked=false;renderMotion();}
+};
+'''
+_original_native_page = native_page
+
+SOFT_BUTTON_BOOTSTRAP = r'''
+// Keep legacy logical gates, while every native button remains interactive.
+const nativeButtonStates=new WeakMap(),nativeButtonMessages=new WeakMap();
+const nativeStaticButtonIds=new Set(__NATIVE_BUTTON_IDS__);
+const nativeDisabledDescriptor=typeof HTMLButtonElement==='function'
+  ?Object.getOwnPropertyDescriptor(HTMLButtonElement.prototype,'disabled'):null;
+let nativeActiveButton=null,nativeButtonMessageSequence=0,nativeButtonActivation=0;
+const nativeAcceptedDirectionPointers=new Map();
+const nativeDirectionButtonIds=new Set(['motionForward','motionBackward','motionLeft','motionRight']);
+function nativeInstallSoftButton(button){
+  if(!button||nativeButtonStates.has(button))return button;
+  const state={blocked:button.disabled===true};
+  // The native prototype setter controls :disabled and native click behavior.
+  // The own accessor below retains the old JavaScript gate value only.
+  if(nativeDisabledDescriptor?.set)nativeDisabledDescriptor.set.call(button,false);
+  else button.removeAttribute?.('disabled');
+  nativeButtonStates.set(button,state);
+  Object.defineProperty(button,'disabled',{configurable:true,
+    get(){return state.blocked;},
+    set(value){state.blocked=!!value;button.dataset.nativeButtonBlocked=String(state.blocked);
+      if(nativeDisabledDescriptor?.set)nativeDisabledDescriptor.set.call(button,false);}});
+  button.dataset.nativeButtonBlocked=String(state.blocked);
+  return button;
+}
+const nativeOriginalGetElementById=document.getElementById.bind(document);
+document.getElementById=function(id){const node=nativeOriginalGetElementById(id);
+  return nativeStaticButtonIds.has(id)||node?.tagName?.toLowerCase()==='button'?nativeInstallSoftButton(node):node;};
+const nativeOriginalCreateElement=document.createElement.bind(document);
+document.createElement=function(tag,...args){const node=nativeOriginalCreateElement(tag,...args);
+  return String(tag).toLowerCase()==='button'?nativeInstallSoftButton(node):node;};
+for(const button of document.querySelectorAll?.('button')||[])nativeInstallSoftButton(button);
+for(const id of nativeStaticButtonIds)document.getElementById(id);
+if(typeof MutationObserver==='function')new MutationObserver(records=>{
+  for(const record of records){
+    if(record.type==='attributes'&&record.target.tagName?.toLowerCase()==='button'
+      &&record.target.hasAttribute('disabled')){nativeInstallSoftButton(record.target);record.target.disabled=true;}
+    for(const node of record.addedNodes||[]){
+      if(node.tagName?.toLowerCase()==='button')nativeInstallSoftButton(node);
+      for(const button of node.querySelectorAll?.('button')||[])nativeInstallSoftButton(button);
+    }
+  }
+}).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['disabled']});
+function nativeButtonMessage(button,message){
+  if(!button)return;
+  let node=nativeButtonMessages.get(button);
+  if(!node&&!message)return;
+  if(!node){node=document.createElement('p');node.className='note native-button-message';
+    node.id='native-button-message-'+(++nativeButtonMessageSequence);
+    node.setAttribute('role','status');node.setAttribute('aria-live','polite');
+    nativeButtonMessages.set(button,node);
+    const slot=document.createElement('span');slot.className='native-button-slot';
+    Object.assign(slot.style||(slot.style={}),{display:'inline-flex',flexDirection:'column',alignItems:'flex-start',
+      gap:'6px',maxWidth:'100%',minWidth:'0'});
+    Object.assign(node.style||(node.style={}),{color:'#b42318',whiteSpace:'normal',overflowWrap:'anywhere',
+      maxWidth:'34rem',margin:'0',lineHeight:'1.5'});
+    const parent=button.parentNode||button.parentElement;parent?.insertBefore?.(slot,button);
+    if(parent?.classList?.contains('settings-actions'))parent.style.alignItems='flex-end';
+    slot.append(node,button);
+    const described=button.getAttribute?.('aria-describedby')||'';
+    button.setAttribute?.('aria-describedby',(described+' '+node.id).trim());}
+  node.textContent=message||'';node.hidden=!message;
+}
+function nativeButtonFromEvent(event){
+  const target=event.target;
+  const button=target?.closest?.('button')||(nativeButtonStates.has(target)?target:null);
+  return button?nativeInstallSoftButton(button):null;
+}
+function nativeActivateButton(button){
+  // Alias buttons may synchronously call another button's click(). Keep the
+  // user's outer operation as the destination for its eventual error.
+  nativeActiveButton=nativeActiveButton||button;nativeButtonMessage(button,'');
+  const activation=++nativeButtonActivation;
+  Promise.resolve().then(()=>{if(nativeButtonActivation===activation)nativeActiveButton=null;});
+}
+function nativeSoftButtonCapture(event){
+  const button=nativeButtonFromEvent(event);if(!button)return;
+  if(['pointerup','pointercancel','lostpointercapture'].includes(event.type)){
+    if(!nativeDirectionButtonIds.has(button.id))return;
+    // Only an accepted direction press may issue its single release-to-zero.
+    // Rejected presses and later duplicate capture tails cannot send commands.
+    const key=event.pointerId??'default',accepted=nativeAcceptedDirectionPointers.get(key)===button;
+    if(accepted){nativeAcceptedDirectionPointers.delete(key);nativeActivateButton(button);}
+    else{
+      event.preventDefault?.();event.stopImmediatePropagation?.();
+    }
+    return;
+  }
+  const pointerKey=event.pointerId??'default';
+  if(event.type==='pointerdown')nativeAcceptedDirectionPointers.delete(pointerKey);
+  // Re-evaluate ordinary display gates before a click; this never refreshes
+  // sensor ages, retries an action or changes a backend interlock.
+  if(button.id!=='motionStop'&&typeof render==='function')try{render();}catch{}
+  if(button.disabled){event.preventDefault?.();event.stopImmediatePropagation?.();
+    nativeButtonMessage(nativeActiveButton||button,nativeButtonGateReason(button));return;}
+  if(event.type==='pointerdown'&&nativeDirectionButtonIds.has(button.id))nativeAcceptedDirectionPointers.set(pointerKey,button);
+  nativeActivateButton(button);
+}
+document.addEventListener('click',nativeSoftButtonCapture,true);
+document.addEventListener('pointerdown',nativeSoftButtonCapture,true);
+for(const type of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(type,nativeSoftButtonCapture,true);
+'''
+
+SOFT_BUTTON_UI = r'''
+function nativeMaintenanceButtonReason(button){
+  const m=snapshot?.maintenance,s=snapshot?.session,id=maintenanceId('servoQueryId'),row=m?.servo;
+  if(!m||m.phase==='unavailable')return '当前服务没有提供舵机维护。';
+  if(maintenanceExitBusy)return '正在等待本次维护连接关闭，不能重复操作。';
+  if(m.busy===true)return '舵机维护正在处理上一项操作，请等待结果。';
+  if(m.blocked_reason)return m.blocked_reason;
+  if(['servoEnter','servoScan','servoVoltages'].includes(button.id)&&!m.owns_connection&&s?.status!=='closed')return '反馈采集仍占用连接，请先结束采集。';
+  if(m.connected!==true||m.compatible!==true)return '尚未建立兼容的舵机维护连接，请先连接维护。';
+  if(id===null)return '请输入 0–253 的有效舵机 ID。';
+  if(['servoCenter','servoRename','servoUseCurrent','servoUseZero'].includes(button.id)){
+    if(!maintenanceFresh())return '维护反馈已过期，先读取所选舵机的新状态。';
+    if(row?.id!==id||row.online!==true||row.error!==0)return '所选舵机尚未返回在线、无故障的有效状态。';
+    if(row.torque!==0)return '所选舵机扭矩尚未关闭，不能执行该操作。';
+  }
+  if(button.id==='servoCenter'){
+    if(m.identity_changed===true)return '舵机编号映射已改变，先核对并复查映射。';
+    if(!jointSaved(id))return '所选关节尚未完成零点、方向和安全范围校准。';
+    if(maintenanceTarget()===null)return '请输入 0–4095 的有效目标刻度。';
+    const joint=calibrationJoint(id),target=maintenanceTarget();
+    if(target<joint.min||target>joint.max)return '目标超出已保存安全范围 '+joint.min+'–'+joint.max+'。';
+    if(!el('servoSupportConfirmed').checked)return '请先确认机身已托稳、该关节运动路径无遮挡。';
+  }
+  if(button.id==='servoRename'){
+    if(maintenanceId('servoNewId')===null||maintenanceId('servoNewId')===id)return '请输入与当前 ID 不同的有效新 ID。';
+    if(!el('servoIsolatedConfirmed').checked)return '请先确认总线上仅连接需要改编号的舵机。';
+    if(!el('servoMappingConfirmed').checked)return '请先确认改编号后的关节映射影响。';
+  }
+  return m.fault_review_blocked_reason||m.error||'当前维护条件尚未通过；请先读取所选舵机状态。';
+}
+function nativeButtonGateReason(button){
+  const id=button.id||'',h=nativeHoldRequestHardware();
+  if(['runtimeLogLatest','runtimeLogNewer','runtimeLogOlder'].includes(id)){
+    if(el('runtimeLogPanel').getAttribute('aria-busy')==='true')return '正在读取本页运行日志，请等待结果；不会重复读取。';
+    if(id==='runtimeLogNewer')return '当前已经是最新一页，没有更新的记录。';
+    if(id==='runtimeLogOlder')return '当前没有更早的运行记录。';
+    return '正在读取最新运行日志，请等待本次结果。';
+  }
+  if(localFilePage)return '当前是本地文件，请打开 X5 工作台服务后再操作。';
+  if(!snapshot)return '尚未收到工作台状态，请等待连接检查结果。';
+  if(motionBusy||requestBusy)return '上一项操作尚未结束，请等待本次结果；不会重复发送。';
+  if(id==='saveRangeBoundaries')return motionRangeUpdateReason()||button.title;
+  if(id==='motionWalk')return nativeZeroBalanceStatus(h,nativeZeroBalanceRequestReady()).text;
+  if(id==='walkModelForwardLocked')return nativeForwardBlockedReason()||'本轮前进指令不满足执行条件。';
+  if(id==='trackingProbeStart')return trackingProbeReason()||'本轮关节检查尚未就绪。';
+  if(id==='motionImuRead')return motionImuReadBlockedReason();
+  if(id==='motionImuEnd')return '当前没有可结束的独立 IMU 读取会话。';
+  if(id==='motionRecheck')return motionRecoveryInfo();
+  if(id.startsWith('motion')||id==='walkModelPreview'){
+    if(id==='motionStop'||id==='motionDisconnect')return '当前没有由本工作台占用的运控连接；无需重复停止或断开。';
+    if(button.title)return button.title;
+    if(!motionConnectionEstablished())return '运控尚未连接，先连接并载入模型。';
+    return h?.error||h?.start_blocked_reason||'当前模型、头颈或实时反馈条件尚未通过。';
+  }
+  if(id.startsWith('recoverFeedback'))return feedbackErrorText(recoveryBlockedReason(),recoveryTechnicalText())||'当前没有可恢复的采集连接。';
+  if(id.startsWith('servo'))return nativeMaintenanceButtonReason(button);
+  if(id.startsWith('zero'))return zeroGateReason()||(zeroDraftActive()?'已有未保存的零点预览，请先保存或取消。':'当前零点步骤尚未准备完成。');
+  if(id.startsWith('joint'))return jointGateReason()||(jointDraftActive()||zeroDraftActive()?'存在尚未保存或取消的采样步骤。':id==='jointNext'&&nextUnfinishedJoint()===null?'15 个关节均已完成，没有下一个未完成关节。':'请按当前关节步骤操作，并确认正方向。');
+  if(id.startsWith('wizard'))return gateReason()||'当前 IMU 采样步骤尚未准备完成，请按步骤操作。';
+  if(id==='endFeedback')return '当前没有可结束的反馈采集；若正在关闭，请等待关闭确认。';
+  if(id==='connectionStatusLink')return '当前没有待处理的采集连接检查记录；运控记录可在运控页展开查看。';
+  return button.title||'当前操作条件尚未满足，请查看本区状态并完成当前步骤。';
+}
+function nativeWrapButtonOperation(original,errorReader,buttonReader){
+  return async function(...args){
+    const button=nativeActiveButton||buttonReader?.(...args);
+    nativeActiveButton=null;
+    const result=await original.apply(this,args);
+    const error=errorReader();if(error)nativeButtonMessage(button,feedbackErrorText(error));
+    return result;
+  };
+}
+runMotion=nativeWrapButtonOperation(runMotion,()=>motionError,(action,extra={})=>el(action==='start'
+  ?{hold:'motionStand',walk:'motionWalk',shadow:'motionShadow',getup:'motionGetup',pick:'motionPick',roulade:'motionRoulade'}[extra.mode]
+  :{connect:'motionConnect',disconnect:'motionDisconnect',stop:'motionStop','forward-trial':'walkModelForwardLocked','tracking-probe':'trackingProbeStart','capture-head-clearance':'motionHeadCapture'}[action]||'motionConnect'));
+runMaintenance=nativeWrapButtonOperation(runMaintenance,()=>maintenanceError);
+run=nativeWrapButtonOperation(run,()=>actionError);
+runZero=nativeWrapButtonOperation(runZero,()=>zeroError);
+runJoint=nativeWrapButtonOperation(runJoint,()=>jointError);
+recoverFeedback=nativeWrapButtonOperation(recoverFeedback,()=>recoveryError);
+endFeedback=nativeWrapButtonOperation(endFeedback,()=>endError);
+for(const id of ['recoverFeedback','recoverFeedbackNearFault','recoverFeedbackInWizard','recoverFeedbackInJoints','recoverFeedbackInZeros'])el(id).onclick=()=>recoverFeedback();
+'''
+
+def native_page(source, *, authentication_required=True, full_workbench=False):
+    page = _original_native_page(source, authentication_required=authentication_required,
+                                 full_workbench=full_workbench).decode()
+    if not full_workbench:
+        return page.encode()
+    replacements = {
+        "['start','forward-trial']": "['start','forward-trial','tracking-probe']",
+        "['command','stop','forward-trial']": "['command','stop','forward-trial','tracking-probe']",
+        "['start','stop','connect','disconnect','capture-head-clearance','forward-trial']":
+            "['start','stop','connect','disconnect','capture-head-clearance','forward-trial','tracking-probe']",
+        "['stop','command','forward-trial']": "['stop','command','forward-trial','tracking-probe']",
+        "  // This is a control receipt, never a sensor frame.":
+            "  if(request.action==='tracking-probe'&&(value.mode!=='hold'||value.control_owner?.id!==motionControlId||value.control_owner?.generation!==value.generation))throw new Error('关节检查控制权未确认');\n  // This is a control receipt, never a sensor frame.",
+        '<label class="source-note">不动作预览模型 ': TRACKING_PANEL + '<label class="source-note">不动作预览模型 ',
+        '</script>': TRACKING_SCRIPT + '\n</script>',
+    }
+    for old, new in replacements.items():
+        if page.count(old) != 1:
+            raise ValueError('关节检查页面适配结构已变化: ' + old[:40])
+        page = page.replace(old, new, 1)
+    button_ids = re.findall(r'<button\b[^>]*\bid="([^"]+)"', page)
+    bootstrap = SOFT_BUTTON_BOOTSTRAP.replace('__NATIVE_BUTTON_IDS__', json.dumps(button_ids))
+    if page.count('<script>') != 1:
+        raise ValueError('按钮提示适配需要唯一工作台脚本')
+    page = page.replace('<script>', '<script>\n' + bootstrap, 1)
+    page = page.replace('</script>', SOFT_BUTTON_UI + '\n</script>', 1)
+    return page.encode()
+
+
+def expanded_feedback_ranges(config, hardware, updates):
+    if type(updates) is not list or not 1 <= len(updates) <= 15:
+        raise ValueError('请选择有效的越界读数')
+    updated = copy.deepcopy(config)
+    seen = set()
+    for item in updates:
+        if type(item) is not dict or set(item) != {'id', 'position', 'min', 'max'}:
+            raise ValueError('边界更新字段无效')
+        sid = item['id']
+        if type(sid) is not int or sid in seen:
+            raise ValueError('关节编号无效或重复')
+        seen.add(sid)
+        joint = next((j for j in updated['joints'] if j['id'] == sid), None)
+        raw = next((r for r in hardware.get('rawdata', []) if r.get('id') == sid), {})
+        if (joint is None or sid not in hardware.get('online_ids', [])
+                or any(type(item[k]) is not int or not 0 <= item[k] <= 4095 for k in ('position', 'min', 'max'))
+                or joint['min'] != item['min'] or joint['max'] != item['max']
+                or raw.get('position') != item['position']):
+            raise ValueError('读数或已保存区间已变化，请刷新后重试')
+        value = item['position']
+        if value < joint['min']:
+            joint['min'] = value
+        elif value > joint['max']:
+            joint['max'] = value
+        else:
+            raise ValueError('当前读数已在范围内，无需更新')
+    return updated
 
 
 class NativeWorkbench:
@@ -543,8 +959,8 @@ class NativeWorkbench:
             value.update(token=self.token, motion=motion,
                          hardware=motion.get('hardware') if live else copy.deepcopy(motion.get('hardware')),
                          native_access=dict(authentication_required=self.authentication_required,
-                                            page_generation=self.generation, full_workbench=True),
-                         connection_target=dict(kind='wifi', host=HOST, page_url=ORIGIN+'/', native=True))
+                                            page_generation=self.generation, full_workbench=True, joint_follow_protocol=1),
+                         connection_target=dict(kind='wifi', host='192.168.1.11', page_url='http://192.168.1.11:8767'+'/', native=True))
             if value.get('feedback') is None and motion.get('hardware') is not None:
                 value['body_imu'] = (motion['hardware'].get('imu') if live else
                                      copy.deepcopy(motion['hardware'].get('imu')))
@@ -565,7 +981,7 @@ class NativeWorkbench:
                      body_imu=((motion.get('hardware') or {}).get('imu') if live else
                                copy.deepcopy((motion.get('hardware') or {}).get('imu'))),
                      native_access=dict(authentication_required=self.authentication_required),
-                     connection_target=dict(kind='wifi', host=HOST, page_url=ORIGIN + '/', native=True),
+                     connection_target=dict(kind='wifi', host='192.168.1.11', page_url='http://192.168.1.11:8767' + '/', native=True),
                      wizard=dict(stage='idle', expected_action=None, busy=False, progress=0,
                                  sample_count=0, message=READ_ONLY, error=None),
                      joint_wizard=dict(stage='idle', id=None, busy=False, error=None),
@@ -603,15 +1019,46 @@ class NativeWorkbench:
                                            error=str(error), recorded_monotonic=self.clock())
             return self.runtime.snapshot()
 
+    def _expand_feedback_ranges(self, body, before):
+        """Save explicitly selected live outliers; never send position targets."""
+        hardware = before.get('hardware') or {}
+        if (self.calibration_service is None or before.get('phase') != 'ready'
+                or before.get('owns_connection') is not True
+                or body.get('generation') != hardware.get('generation')
+                or hardware.get('mode') != 'off' or hardware.get('armed') is not False
+                or hardware.get('release_confirmed') is not True
+                or hardware.get('torque_ids') != []
+                or type(hardware.get('age_ms')) not in (int, float)
+                or not 0 <= hardware['age_ms'] < 100
+                or type(before.get('feedback_age_ms')) not in (int, float)
+                or not 0 <= before['feedback_age_ms'] < 500):
+            raise ValueError('请先停止运动，等待新鲜反馈确认扭矩全部关闭，再更新边界')
+        session = self.calibration_service.session
+        with session.lock:
+            updated = expanded_feedback_ranges(session.config, hardware, body.get('updates'))
+            # The existing writer requires a proven closed UART before its
+            # atomic persistent commit and RAM calibration reload.
+            self.runtime.disconnect()
+            try:
+                warning = session._write_calibration(updated)
+            except OSError as error:
+                raise ValueError('边界保存失败，原校准保留；运控已断开：' + str(error)) from error
+            session.config = updated
+        result = self.snapshot(live=True)
+        result['range_update_message'] = warning or '越界读数已保存为安全区间边界；运控已断开，请重新连接载入。'
+        return result
+
     def motion_action(self, body, *, principal=None, live=False):
         if type(body) is not dict:
             raise ValueError('运控请求必须是 JSON 对象')
         action = body.get('action')
         fields = {'action', 'page_generation', 'generation', 'control_id'}
-        extras = dict(start={'mode', 'support_confirmed', 'behavior_confirmed', 'preview_model'},
+        extras = dict(start={'mode', 'support_confirmed', 'behavior_confirmed', 'preview_model', 'joint_follow', 'clearance_confirmed'},
                       command={'forward', 'side', 'yaw'}, heartbeat={'background'},
+                      **{'joint-target': {'joint_id', 'angle_deg', 'sequence', 'speed_deg_s'}},
                       stop={'stop_source'}, connect=set(), disconnect=set(),
-                      **{'capture-head-clearance': {'clearance_confirmed'}, 'forward-trial': {'support_confirmed'}})
+                      **{'expand-feedback-ranges': {'updates'}},
+                      **{'capture-head-clearance': {'clearance_confirmed'}, 'forward-trial': {'support_confirmed'}, 'tracking-probe': {'support_confirmed', 'joint_id'}})
         if action not in extras or set(body) - fields - extras[action]:
             raise ValueError('未知运控操作或参数')
         if type(body.get('page_generation')) is not int or body['page_generation'] != self.generation:
@@ -625,8 +1072,6 @@ class NativeWorkbench:
         if action == 'start':
             if body.get('mode') not in ('shadow', 'hold') + MODEL_NAMES:
                 raise ValueError('未知动作模式')
-            if body['mode'] != 'shadow' and body.get('support_confirmed') is not True:
-                raise ValueError('请先托稳机身并勾选支撑确认')
             if body['mode'] in ('getup', 'roulade') and body.get('behavior_confirmed') is not True:
                 raise ValueError('请确认保护装置与动作区域')
             if body.get('preview_model', 'walk') not in MODEL_NAMES:
@@ -634,14 +1079,23 @@ class NativeWorkbench:
             for key in ('support_confirmed', 'behavior_confirmed'):
                 if key in body and type(body[key]) is not bool:
                     raise ValueError('支撑确认格式无效')
+        if action == 'start' and ('joint_follow' in body or 'clearance_confirmed' in body):
+            if body.get('joint_follow') is not True or body.get('mode') != 'hold' or body.get('clearance_confirmed') is not True:
+                raise ValueError('关节随动需要固定保持模式和活动间隙确认')
+        if action == 'joint-target':
+            from joint_follow import validate_target
+            validate_target(body.get('joint_id'), body.get('angle_deg'), body.get('sequence'),
+                            (10,11,12,13,14,20,21,22,23,24,30,31,32,33,34), body.get('speed_deg_s'))
         if action == 'heartbeat' and 'background' in body and type(body['background']) is not bool:
             raise ValueError('后台心跳参数无效')
         if action == 'capture-head-clearance' and body.get('clearance_confirmed') is not True:
             raise ValueError('请先确认头颈与板卡、线束有活动间隙')
         if action == 'stop' and body.get('stop_source') not in STOP_SOURCES:
             raise ValueError('停止来源无效')
-        if action == 'forward-trial' and body.get('support_confirmed') is not True:
+        if action == 'tracking-probe' and body.get('support_confirmed') is not True:
             raise ValueError('请确认本轮防跌准备')
+        if action == 'tracking-probe' and (type(body.get('joint_id', 23)) is not int or body.get('joint_id', 23) not in (11, 14, 21, 23)):
+            raise ValueError('关节检查仅支持左踝、左右髋侧摆和右膝')
         if action == 'command':
             for key, bound in (('forward', .2), ('side', .1), ('yaw', .5)):
                 number = body.get(key)
@@ -649,15 +1103,23 @@ class NativeWorkbench:
                     raise ValueError('行走指令范围无效')
         # STOP must be able to invalidate an in-progress model preflight. The
         # controller already serializes UART operations and generation checks.
-        receipt_action = live and action in ('start', 'stop', 'capture-head-clearance', 'forward-trial')
+        receipt_action = live and action in ('start', 'stop', 'capture-head-clearance', 'forward-trial', 'tracking-probe')
         with (nullcontext() if action in ('stop', 'heartbeat') else self.io_lock):
             with self.lock:
                 if self.closed:
                     raise ValueError('原生工作台已关闭')
                 owner = copy.deepcopy(self.control_owner)
-            before = (self.runtime.control_context() if action == 'heartbeat' or receipt_action
+            before = (self.runtime.range_feedback_snapshot() if action == 'expand-feedback-ranges'
+                      else self.runtime.control_context() if action == 'heartbeat' or receipt_action
                       else self.runtime.snapshot())
             hardware = before.get('hardware') or {}
+            if action == 'expand-feedback-ranges':
+                return self._expand_feedback_ranges(body, before)
+            # Only the page-owned slider session uses an attended browser
+            # lease. Ordinary X5-owned models keep their explicit-stop rule.
+            if (action == 'stop' and body['stop_source'] != 'button'
+                    and not hardware.get('joint_follow', {}).get('active')):
+                raise ValueError('页面切换或关闭不再停止运控；只有明确的停止命令可执行')
             # Delayed publication may hide display feedback. For an explicit
             # hold request use only its generation/ownership context here;
             # runtime.action independently reads the actual controller and
@@ -666,24 +1128,30 @@ class NativeWorkbench:
                     and before.get('phase') == 'ready' and before.get('owns_connection') is True
                     and not hardware):
                 hardware = before.get('last_hardware') or {}
-            if action in ('start', 'command', 'heartbeat', 'capture-head-clearance', 'forward-trial') and (
+            if action in ('start', 'command', 'joint-target', 'heartbeat', 'capture-head-clearance', 'forward-trial', 'tracking-probe') and (
                     type(body.get('generation')) is not int or body['generation'] != hardware.get('generation')):
                 raise ValueError('Motion state changed; refresh before starting')
-            if action == 'start' and hardware.get('mode') != 'off' and (
+            if action == 'start' and body.get('joint_follow') is True and hardware.get('mode') != 'off':
+                raise ValueError('请先停止当前动作，再启用关节随动')
+            shared_model_button = (getattr(self, 'shared_model_buttons', False)
+                and principal is not None and not hardware.get('joint_follow', {}).get('active')
+                and (action == 'start' and body.get('mode') in ('hold',) + MODEL_NAMES
+                     or action == 'command' and hardware.get('mode') == 'walk'))
+            if action == 'start' and hardware.get('mode') != 'off' and not shared_model_button and (
                     not owner or client != owner['id'] or principal != owner['principal'] or
                     body.get('generation') != owner['generation']):
                 raise ValueError('当前动作由另一页面控制；先停止再由本页启动')
             if action == 'capture-head-clearance' and hardware.get('mode') != 'off':
                 raise ValueError('请先停止运动并确认扭矩关闭，再记录头颈位置')
-            if action in ('command', 'heartbeat', 'forward-trial') or action == 'stop' and body['stop_source'] != 'button':
+            if (action in ('command', 'joint-target', 'heartbeat', 'forward-trial', 'tracking-probe') and not shared_model_button) or action == 'stop' and body['stop_source'] != 'button':
                 if action == 'stop' and body['stop_source'] == 'window-blur':
                     raise ValueError('窗口失焦不再停止运动；请刷新旧页面')
                 if not owner or client != owner['id'] or principal != owner['principal'] or body.get('generation') != owner['generation'] or hardware.get('generation') != owner['generation']:
                     raise ValueError('该页面未启动当前动作；旧页面请求未执行')
-                if action == 'stop' and hardware.get('mode') == 'hold' and (
+                if action == 'stop' and hardware.get('mode') == 'hold' and not hardware.get('joint_follow', {}).get('active') and (
                         body['stop_source'] == 'page-hidden' or hardware.get('hold_control_protocol') == 2):
                     raise ValueError('固定站姿由 X5 独立保持；请使用停止按钮结束站姿')
-            audited = action in ('start', 'stop', 'disconnect', 'connect', 'capture-head-clearance', 'forward-trial')
+            audited = action in ('start', 'stop', 'disconnect', 'connect', 'capture-head-clearance', 'forward-trial', 'tracking-probe')
             operation = None
             if audited:
                 with self.lock:
@@ -693,6 +1161,8 @@ class NativeWorkbench:
                                                generation=body.get('generation'), stop_source=body.get('stop_source'),
                                                recorded_monotonic=self.clock(), state='pending',
                                                error=None, before=copy.deepcopy(hardware))
+                    if action == 'tracking-probe':
+                        operation['joint_id'] = body.get('joint_id', 23)
                     self.last_operation = operation
             try:
                 if action == 'connect':
@@ -714,6 +1184,8 @@ class NativeWorkbench:
                 else:
                     result = (self.runtime.action_receipt(body) if receipt_action
                               else self.runtime.action(copy.deepcopy(body)))
+                if action == 'joint-target':
+                    return dict(result, page_generation=self.generation)
                 if action == 'heartbeat':
                     # Authentication, owner and generation were checked above;
                     # runtime.action checked the actual controller generation.
@@ -834,7 +1306,7 @@ def handler_for(workbench):
                 raise ValueError('重复请求头无效')
             if any(any(ord(char) < 32 or ord(char) == 127 for char in name + value) for name, value in items):
                 raise ValueError('请求头格式无效')
-            if self.headers.get('Host') != HOST + ':' + str(PORT):
+            if self.headers.get('Host') != self.connection.getsockname()[0] + ':' + str(PORT):
                 raise ValueError('工作台地址无效')
             if 'transfer-encoding' in names or 'expect' in names:
                 raise ValueError('不支持分块或预期请求')
@@ -845,7 +1317,7 @@ def handler_for(workbench):
                 raise ValueError('请求长度无效')
             size = int(length)
             if post:
-                if self.headers.get('Origin') != ORIGIN:
+                if self.headers.get('Origin') != 'http://' + self.headers.get('Host', ''):
                     raise ValueError('仅允许工作台同源请求')
                 if not 0 < size <= MAX_REQUEST or self.headers.get('Content-Type', '').split(';')[0] != 'application/json':
                     raise ValueError('请求大小或类型无效')

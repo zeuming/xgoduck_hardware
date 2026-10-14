@@ -1,0 +1,129 @@
+--- a/policy/motion.py
++++ b/policy/motion.py
+@@ -62,6 +62,7 @@
+         self._pending_policy_evidence = None
+         self._last_trial_stop = None
+         self._head_projection = []
++        self._target_projection = []
+         super().__init__(sessions, config_path, port,
+             transport_factory=transport_factory or _no_io_factory, clock=clock,
+             require_head_clearance=False, allow_fixed_head_walk=False,
+@@ -201,22 +202,36 @@
+         return np.asarray(self._walk_head_profile, dtype=np.float32).copy()
+ 
+     def _execution_target_locked(self, mode, policy_target):
++        # TARGET-CLAMP-20261013: user explicitly requested saved-range target
++        # saturation instead of stopping on an out-of-range policy request.
++        # Upstream 8cdbbd scs_bus.h:satPos only bounds encoder values 0..4095;
++        # this device-specific adapter retains the user's saved bounds. A goal
++        # below min becomes min+1 tick; above max becomes max-1 tick. Goals at
++        # or within either endpoint are unchanged. This is NOT a global margin
++        # or calibration rewrite, and does not modify actor/EMA/raw history.
++        # Convert only changed targets back to degrees for accurate execution
++        # logs. _raw_targets_locked and the MCU still validate every sent goal.
++        if len(policy_target) != 15 or not all(math.isfinite(v) for v in policy_target):
++            raise MotionError('目标角度无效')
+         result = list(policy_target)
+-        self._head_projection = []
+-        if mode == 'walk':
+-            # Physical head travel saved by the user can be smaller than the
+-            # actor's head requests. Preserve every leg target and raw history.
+-            # This projection has a separate four-seed paired gait acceptance.
+-            for index, joint in enumerate(self._config['joints']):
+-                if joint['id'] not in (30, 31, 32, 33):
+-                    continue
+-                lo, hi = sorted((tick-joint['zero'])*360/4095*joint['sign']
+-                                for tick in (joint['min'], joint['max']))
+-                bounded = min(hi, max(lo, result[index]))
+-                if bounded != result[index]:
+-                    self._head_projection.append(dict(id=joint['id'],
+-                        requested_deg=float(result[index]), executed_deg=float(bounded)))
+-                result[index] = bounded
++        projections = []
++        for index, joint in enumerate(self._config['joints']):
++            low, high = joint['min'], joint['max']
++            if not (type(low) is int and type(high) is int and 0 <= low < high <= 4095):
++                raise MotionError(f"ID {joint['id']} 已保存范围无效")
++            value = int(round(joint['zero'] + result[index] / 360 * 4095 * joint['sign']))
++            bounded = low + 1 if value < low else high - 1 if value > high else value
++            if bounded == value:
++                continue
++            requested = float(result[index])
++            result[index] = (bounded - joint['zero']) * 360 / 4095 * joint['sign']
++            projections.append(dict(id=joint['id'], requested_ticks=value,
++                executed_ticks=bounded, requested_deg=requested,
++                executed_deg=float(result[index]), min=low, max=high))
++        self._target_projection = projections
++        # Compatibility for existing head diagnostics; the scope now includes
++        # every joint and every normal motion mode, including recovery goals.
++        self._head_projection = [dict(row) for row in projections if row['id'] in (30,31,32,33)]
+         return result
+ 
+     def capture_head_clearance(self, **kwargs):
+@@ -362,6 +377,7 @@
+             generation=self._generation, sample_us=state.get('sample_us'),
+             actual_raw_ticks=list(state.get('positions', ())), command=self._command.tolist(),
+             attempted_target_ticks=target, error=error, recovery=self._recovery.status(),
++            target_range_projection=copy.deepcopy(self._target_projection),
+             feedback_provenance=self._snapshot_policy_feedback_locked())
+ 
+     def _snapshot_policy_feedback_locked(self):
+@@ -412,7 +428,8 @@
+         evidence = self._pending_policy_evidence
+         if evidence is not None:
+             evidence.update(target_write_attempted=True,
+-                target_write_started_monotonic=self._clock(), transmitted_ticks=row['attempted_target_ticks'])
++                target_write_started_monotonic=self._clock(), transmitted_ticks=row['attempted_target_ticks'],
++                target_range_projection=copy.deepcopy(self._target_projection))
+         try:
+             response = super()._request(kind, payload)
+             if evidence is not None:
+@@ -471,7 +488,12 @@
+             head_fixed=False, takeover_seconds=0, stance_transition_seconds=0,
+             additional_goal_slew=None, command_limits=[.4,.3,1.],
+             head_range_projection=dict(enabled=True, bounds='saved calibration',
+-                last=copy.deepcopy(self._head_projection), leg_targets_changed=False),
++                last=copy.deepcopy(self._head_projection), leg_targets_changed=any(
++                    row['id'] < 30 for row in self._target_projection)),
++            target_range_projection=dict(enabled=True, units='encoder ticks',
++                below_min='min + 1', above_max='max - 1', in_range='unchanged',
++                scope='planned target only; actual position checks unchanged',
++                last=copy.deepcopy(self._target_projection)),
+             hardware_walking_verified=False),
+             page_heartbeat_required=self._mode != 'off',
+             hold_control_protocol=1,
+--- a/policy/production_motion.py
++++ b/policy/production_motion.py
+@@ -965,8 +965,9 @@
+         return target
+ 
+     def _record_policy_target_locked(self, target):
+-        # Raw, complete policy output remains visible even when an unexecuted
+-        # head target would exceed its range. Leg targets are never clamped.
++        # Preserve the complete original policy request for diagnostics. The
++        # device adapter may bound execution goals; this list describes raw
++        # requests outside saved bounds, not necessarily a rejected transmission.
+         self._last_policy_target = [float(v) for v in target]
+         self._last_policy_target_rejections = []
+         for angle, joint in zip(target, self._config['joints']):
+@@ -1509,7 +1510,8 @@
+                 self._target_times.append(self._clock())
+             else:
+                 try:
+-                    self._raw_targets_locked(target, mode=selected)
++                    preview_target = self._execution_target_locked(selected, target)
++                    self._raw_targets_locked(preview_target, mode=selected)
+                 except MotionError as error:
+                     preview_error = '不动作预览：' + str(error) + '；未发送舵机目标'
+             if action is not None:
+--- a/service/official_runtime_ui.js
++++ b/service/official_runtime_ui.js
+@@ -36,7 +36,7 @@
+     + ' rad/s。指令送达不代表已完成实机行走验收。';
+ };
+ nativeRenderTrialStopPolicy = function () {
+-  el('motionStopPolicy').textContent = '官方恢复逻辑：倾角超过55°持续约0.15秒后进入默认姿态和起身模型；恢复站稳后返回行走。头颈目标遵守已保存范围，腿部使用原模型目标。保留急停、通信超时及保存范围检查；急停会释放扭矩。';
++  el('motionStopPolicy').textContent = '官方恢复逻辑：倾角超过55°持续约0.15秒后进入默认姿态和起身模型；恢复站稳后返回行走。目标低于保存下限时取下限+1刻度，高于上限时取上限−1刻度；范围内保持原目标。实际位置异常、通信故障及急停仍按原停止流程处理。';
+ };
+ el('walkModelForwardLocked').onclick = async function () {
+   const reason = nativeForwardBlockedReason();

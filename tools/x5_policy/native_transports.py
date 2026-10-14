@@ -98,6 +98,7 @@ def usb_recovery_proof(kernel, expected, serial, validate_kernel):
     removed_callback = rf'usb {port}: ch341_read_int_callback - usb_submit_urb failed: -19'
     faults, informational, cycles, previous, stage, hub_pending = [], [], 0, -1., 0, False
     disconnect_time, callback_seen = None, False
+    enumeration_time, descriptor_errors = None, 0
     for line in tail:
         match = re.fullmatch(r'\[\s*(\d+\.\d+)\] (.*)', line)
         if not match or float(match[1]) < previous:
@@ -111,7 +112,9 @@ def usb_recovery_proof(kernel, expected, serial, validate_kernel):
         network_info = (
             re.fullmatch(r'IPv6: ADDRCONF\(NETDEV_CHANGE\): (?:usb[01]|wlan0): link becomes ready', match[2])
             or re.fullmatch(r'rwnx_send_sm_connect_req drv_vif_index:0 connect to [^\s]+ channel:[1-9][0-9]{0,4} auth_type:[0-9]+', match[2])
-            or re.fullmatch(r'get_txpwr_max:txpwr_max:[0-9]+\s*', match[2]))
+            or re.fullmatch(r'get_txpwr_max:txpwr_max:[0-9]+\s*', match[2])
+            or re.fullmatch(r'(?:deinit:macaddr:|reord_mac:)(?:[0-9a-f]{2},){5}[0-9a-f]{2}', match[2])
+            or re.fullmatch(r'device wlan0 (?:entered|left) promiscuous mode', match[2]))
         if network_info:
             validate_kernel(expected['kernel_prefix'] + line + '\n', expected)
             informational.append(line)
@@ -131,8 +134,18 @@ def usb_recovery_proof(kernel, expected, serial, validate_kernel):
             faults.append(dict(line=line, reason='CH341 reported ENODEV during USB disconnect'))
             callback_seen = True
             continue
+        # A transient descriptor failure is historical only after this same
+        # enumeration completes with the reviewed identity and UART attachment.
+        if (stage == 4 and enumeration_time is not None
+                and previous - enumeration_time <= 2.0 and descriptor_errors < 2
+                and re.fullmatch(rf'usb {port}: device descriptor read/64, error -32', match[2])):
+            faults.append(dict(line=line, reason='USB descriptor failed during completed re-enumeration'))
+            descriptor_errors += 1
+            continue
         if not re.fullmatch(patterns[stage], match[2]):
             raise ValueError('日志包含未完成重连或其他硬件异常，不能自动解除：' + line[:256])
+        if stage == 3:
+            enumeration_time, descriptor_errors = previous, 0
         if stage == 0:
             faults.append(dict(line=line, reason='Kernel reported a USB disconnect/reset/error'))
             hub_pending = False
@@ -155,6 +168,11 @@ USB_RECOVERY_VALIDATOR = r'''
 _native_strict_validate_kernel = validate_kernel
 def validate_kernel(kernel, expected):
     proof = NATIVE_USB_RECOVERY
+    if 'restore_kernel_history' in globals():
+        try:
+            kernel = restore_kernel_history(kernel, proof['kernel_prefix'])
+        except ValueError as error:
+            raise ProbeError(str(error)) from error
     baseline = _native_strict_validate_kernel(expected['kernel_prefix'], expected)
     if (proof['boot_id'] != expected['boot_id'] or proof['cid'] != expected['cid'] or
             proof['base_sha256'] != hashlib.sha256(expected['kernel_prefix'].encode()).hexdigest() or
@@ -181,22 +199,74 @@ def install_usb_recovery(namespace, source, proof):
         return source
     addition = '\nNATIVE_USB_RECOVERY = ' + repr(proof) + '\n' + USB_RECOVERY_VALIDATOR
     exec(compile(addition, '<native-usb-recovery-guard>', 'exec'), namespace)
+    if 'restore_kernel_history' in namespace:
+        reader = namespace['bounded_dmesg']
+        restore = namespace['restore_kernel_history']
+        namespace['bounded_dmesg'] = lambda: restore(reader(), proof['kernel_prefix'])
     return source + addition
+
+
+def current_usb_recovery_proof(kernel, expected, serial, validate_kernel):
+    """Retain USB history without requiring a particular enumeration sequence.
+
+    serial_proof has checked the current device. Connection/feedback gates still
+    run afterward; accepting history never enables torque or resumes motion.
+    """
+    prefix = expected['kernel_prefix']
+    lines, baseline = kernel.splitlines(), prefix.splitlines()
+    if lines[:len(baseline)] != baseline:
+        raise ValueError('启动日志已变化或丢失，不能按 USB 重连恢复。')
+    if len(kernel.encode()) > reader.MAX_KERNEL_BYTES:
+        raise ValueError('USB 重连记录超过检查范围。')
+    if (serial['vid'], serial['pid'], serial['serial_number']) != ('1a86', '7523', ''):
+        raise ValueError('USB 控制器身份变化，不能自动恢复。')
+    port, tty = re.escape(serial['sysfs_name']), re.escape(Path(serial['path']).name)
+    hub, separator, number = serial['sysfs_name'].rpartition('.')
+    if not separator:
+        hub, _, number = serial['sysfs_name'].partition('-')
+    device_line = re.compile(
+        rf'\[\s*\d+\.\d+\] (?:usb {port}: |ch341 {port}:1\.0: |'
+        rf'ch341-uart {tty}: |usb {re.escape(hub)}-port{re.escape(number)}: )')
+    faults, other = [], []
+    for line in lines[len(baseline):]:
+        if device_line.match(line):
+            faults.append(dict(line=line, reason='USB history retained; current connection checked separately'))
+        else:
+            other.append(line)
+    # Unrelated hardware faults remain subject to the original validator.
+    validate_kernel(prefix + ''.join(line + '\n' for line in other), expected)
+    if not faults:
+        return None
+    return dict(schema_version=1, kernel_prefix=kernel,
+        kernel_sha256=hashlib.sha256(kernel.encode()).hexdigest(),
+        base_sha256=hashlib.sha256(prefix.encode()).hexdigest(),
+        boot_id=expected['boot_id'], cid=expected['cid'], serial=copy.deepcopy(serial),
+        faults=faults, informational_lines=other, reconnect_count=0,
+        historical_faults_cleared=False, motion_resumed=False)
 
 
 def prepare_usb_recovery(namespace, expected):
     kernel = namespace['bounded_dmesg']()
+    if 'restore_kernel_history' in namespace:
+        kernel = namespace['restore_kernel_history'](kernel, expected['kernel_prefix'])
     _, serial = namespace['serial_proof'](expected)
     try:
         namespace['validate_kernel'](kernel, expected)
     except namespace['ProbeError']:
-        return usb_recovery_proof(kernel, expected, serial, namespace['validate_kernel'])
-    # The legacy classifier does not classify this hub message on its own.
-    # It must still block a reconnect until the full return can be proved.
+        try:
+            return usb_recovery_proof(kernel, expected, serial, namespace['validate_kernel'])
+        except ValueError:
+            return current_usb_recovery_proof(kernel, expected, serial, namespace['validate_kernel'])
+    # Some USB enumeration messages are not classified by the legacy guard.
+    # Retain them as history after checking the current serial identity.
     tail = kernel.splitlines()[len(expected['kernel_prefix'].splitlines()):]
-    if any(re.fullmatch(r'\[\s*\d+\.\d+\] usb \S+-port[1-9][0-9]*: disabled by hub \(EMI\?\), re-enabling\.\.\.', line)
+    if any('Device not responding to setup address' in line
+            or re.fullmatch(r'\[\s*\d+\.\d+\] usb \S+-port[1-9][0-9]*: disabled by hub \(EMI\?\), re-enabling\.\.\.', line)
             or re.fullmatch(r'\[\s*\d+\.\d+\] usb \S+: ch341_read_int_callback - usb_submit_urb failed: -[0-9]+', line) for line in tail):
-        return usb_recovery_proof(kernel, expected, serial, namespace['validate_kernel'])
+        try:
+            return usb_recovery_proof(kernel, expected, serial, namespace['validate_kernel'])
+        except ValueError:
+            return current_usb_recovery_proof(kernel, expected, serial, namespace['validate_kernel'])
     return None
 LOCAL_CHILD_BOOTSTRAP = '''import hashlib,os,select,sys,time
 n=int(sys.argv[1]); digest=sys.argv[2]; parent=int(sys.argv[3])
@@ -545,6 +615,69 @@ def _native_partial_servo_diagnostic(fd, sequence, state, expected, metadata):
 '''
 
 
+JOINT_COLLECTION_READER = r'''
+_joint_exchange = _exchange
+_joint_decode_state = _decode_state
+_joint_tracker = StateTracker
+_joint_hello = _hello_feedback
+_joint_torque_known = 0
+
+def _hello_feedback(fd, metadata):
+    _joint_hello(fd, metadata)
+    # Type30 selects the interface in MCU RAM. Its firmware handler refuses
+    # enabled torque and never writes motor goals.
+    reply = _joint_exchange(fd, 30, 2, time.monotonic() + REPLY_SECONDS, metadata)
+    if reply != bytes((30, 0)):
+        raise ProbeError('Joint collection feedback interface refused')
+
+def _exchange(fd, kind, sequence, total_deadline, metadata):
+    global _joint_torque_known
+    if kind != 2:
+        return _joint_exchange(fd, kind, sequence, total_deadline, metadata)
+    payload = _joint_exchange(fd, 32, sequence, total_deadline, metadata)
+    # SOURCE_STATE independently reports torque validity. An unreadable
+    # position must not close the entire calibration session.
+    versions = {170: 1, 214: 2, 205: 3, 249: 4}
+    if payload[108:110] != bytes((1, versions[len(payload)])):
+        raise ProbeError('Joint collection state version mismatch')
+    _joint_torque_known = struct.unpack_from('<H', payload, 106)[0]
+    if _joint_torque_known & ~ALL_MASK:
+        raise ProbeError('Invalid joint collection torque mask')
+    return payload[:STATE_PACKET.size]
+
+def _decode_state(payload):
+    state = _joint_decode_state(payload)
+    state['torque_known_mask'] = _joint_torque_known
+    return state
+
+class JointCollectionStateTracker(_joint_tracker):
+    def accept(self, state, now):
+        # Publish the actual online mask. Keep the original torque, fault,
+        # IMU and clock checks. Missing torque feedback pauses capture in the
+        # parent instead of destroying the whole collection session.
+        return super().accept(dict(state, online_mask=ALL_MASK), now)
+
+StateTracker = JointCollectionStateTracker
+'''
+
+
+def joint_collection_source(base_source):
+    """Use independent torque validity for passive joint collection."""
+    changes = (
+        ('if kind not in (1, 2):', 'if kind not in (1, 2, 30, 32):'),
+        ('(0x81, 16) if kind == 1 else (0x82, STATE_PACKET.size)',
+         '(0x81, 16) if kind == 1 else (0x80, 2) if kind == 30 else (0xa0, None) if kind == 32 else (0x82, STATE_PACKET.size)'),
+        ('size != expected_size',
+         '((kind == 32 and size not in (170, 214, 205, 249)) or (kind != 32 and size != expected_size))'),
+        ('        sequence = 1\n', '        sequence = 2\n'),
+    )
+    for before, after in changes:
+        if base_source.count(before) != 1:
+            raise ValueError('Joint collection reader boundary differs: ' + before)
+        base_source = base_source.replace(before, after, 1)
+    return base_source + '\n' + JOINT_COLLECTION_READER
+
+
 def partial_servo_diagnostic_source(base_source):
     """Add one bounded read-only diagnostic only to a terminal joint fault."""
     anchor = '            accepted = tracker.accept(state, now)\n'
@@ -581,7 +714,7 @@ def child_source(namespace, root, generation, *, scope, guard_spec=None, parent_
     else:
         source, entry = base_source, 'run_reader'
         if scope == 'joints':
-            source = partial_servo_diagnostic_source(source)
+            source = joint_collection_source(source)
     source += ('\nNATIVE_PIN = ' + repr(pin) + '\nNATIVE_PARENT = ' + str(parent_pid)
                + '\n' + CHILD_GUARD)
     if scope in ('imu', 'joints'):
@@ -907,8 +1040,9 @@ class NativeLocalTransports:
         self.recovery_guard_factory = recovery_guard_factory
 
     def _source(self, generation, scope):
-        factory = (self.recovery_guard_factory if scope in ('metadata','maintenance')
-                   and self.recovery_guard_factory is not None else self.guard_factory)
+        # Every acquisition is explicit. Reconcile a completed USB reconnect
+        # before binding readers, including the first reader after reboot.
+        factory = self.recovery_guard_factory or self.guard_factory
         namespace = factory()
         spec = None if self.guard_spec_factory is None else self.guard_spec_factory(namespace)
         expected,source=child_source(namespace, self.root, generation, scope=scope, guard_spec=spec)

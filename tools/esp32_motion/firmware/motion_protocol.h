@@ -29,7 +29,9 @@ constexpr size_t kOffRegisterDetailsSize = 42 + kOffRegisterBlockCount * 20;
 constexpr size_t kCenterFailureAckSize = 101;
 constexpr uint32_t kStateFreshUs = 50000;
 constexpr uint32_t kWatchdogUs = 250000;
+// Compatibility path for explicit pose transitions, not motor capability.
 constexpr float kSlewCountsPerSec = 600.0f;
+constexpr uint8_t kPolicyPositionProfile = 1;
 enum Type : uint8_t {
   Hello = 1, State = 2, ConfigRequest = 3, Arm = 4, Target = 5, Stop = 6, FaultDetails = 7,
   MaintenanceCaps = 8, MaintenanceEnter = 9, MaintenanceRead = 10,
@@ -37,7 +39,7 @@ enum Type : uint8_t {
   MaintenanceRelease = 14, MaintenanceExit = 15, MaintenanceCenterCheck = 16,
   MaintenanceVoltageCaps = 17, MaintenanceVoltageRead = 18,
   VoltageState = 19, TelemetryCaps = 20, PositionReadDetails = 21, GoalReadDetails = 22,
-  OffRegisterDetails = 23
+  OffRegisterDetails = 23, PolicyPositionCaps = 24
 };
 enum Error : uint8_t {
   Ok = 0, BadPacket = 1, BadState = 2, BadConfig = 3, Stale = 4, Range = 5,
@@ -197,6 +199,7 @@ class Interlock {
  public:
   Config config;
   bool configured = false, armed = false;
+  bool policyPosition = false;
   uint32_t cookie = 0, lastCommandUs = 0;
   Error lastError = Ok;
   uint16_t desired[kMotorCount] = {}, goals[kMotorCount] = {};
@@ -216,18 +219,22 @@ class Interlock {
     for (size_t i = 0; i < kMotorCount; ++i) {
       desired[i] = goals[i] = feedback.positions[i]; continuousGoals[i] = feedback.positions[i];
     }
-    lastCommandUs = now; slewUs_ = now;
+    lastCommandUs = now; slewUs_ = now; policyPosition = false;
     // Caller writes these current-position goals BEFORE enabling torque,
     // then verifies torque and sets armed. prepareArm itself cannot arm.
     return record(Ok);
   }
   Error target(const Frame& frame, uint32_t now) {
-    if (frame.length != 34) return record(BadPacket);
+    // The optional byte is an explicit per-target execution contract. Legacy
+    // senders retain their old path. Unknown profiles never update goals/time.
+    if (frame.length != 34 && !(frame.length == 35 && frame.payload[34] == kPolicyPositionProfile))
+      return record(BadPacket);
     if (!armed || cookie == 0 || u32(frame.payload) != cookie) return record(BadState);
     uint16_t candidate[kMotorCount];
     for (size_t i = 0; i < kMotorCount; ++i) candidate[i] = u16(frame.payload + 4 + i * 2);
     if (!config.contains(candidate)) return record(Range);
     memcpy(desired, candidate, sizeof(desired));
+    policyPosition = frame.length == 35;
     lastCommandUs = now; return record(Ok);
   }
   bool check(const Feedback& feedback, uint32_t now) {
@@ -236,11 +243,19 @@ class Interlock {
     if (!feedback.fresh(now) || uint32_t(now - lastCommandUs) > kWatchdogUs) { disarm(Stale); return true; }
     return false;
   }
-  void disarm(Error error = Ok) { armed = false; cookie = 0; lastError = error; }
+  void disarm(Error error = Ok) { armed = false; cookie = 0; policyPosition = false; lastError = error; }
   void slew(uint32_t now) {
     if (!armed) return;
     const uint32_t elapsed = uint32_t(now - slewUs_);
     slewUs_ = now;
+    if (policyPosition) {
+      // Match upstream position-goal execution. The host already applies EMA
+      // and a separately timed stance-to-policy transition. An extra slew here
+      // changes the trained dynamics. Never modify servo speed/gain registers.
+      for (size_t i = 0; i < kMotorCount; ++i)
+        continuousGoals[i] = goals[i] = desired[i];
+      return;
+    }
     const float step = kSlewCountsPerSec * float(elapsed > 50000 ? 50000 : elapsed) / 1000000.0f;
     for (size_t i = 0; i < kMotorCount; ++i) {
       const float delta = float(desired[i]) - continuousGoals[i];

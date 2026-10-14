@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Duck Sim Lab · 鸭子仿真工作台</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect rx='12' width='40' height='40' fill='%23ffab57'/%3E%3Cpath d='M10 24V15h14v6h6v5H10' fill='%2313181d'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">{"imports":{"three":"/vendor/three.module.js"}}</script>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="duckmark">▰</span><div>DUCK <b>SIM LAB</b><small>XGO DUCK / 仿真工作台</small></div></div>
+  <nav aria-label="工作模式">
+    <button data-mode="live" class="active" aria-pressed="true">实机随动</button>
+    <button data-mode="calibration" aria-pressed="false">三维校准</button>
+    <button data-mode="simulation" aria-pressed="false">物理仿真</button>
+    <button data-mode="replay" aria-pressed="false">实机回放</button>
+    <button data-mode="joints" aria-pressed="false">关节调试</button>
+  </nav>
+  <div class="local" id="connection-badge"><i></i> 本地计算 <span>·</span> 未连接实机</div>
+</header>
+<main>
+ <section id="joint-controls" class="joint-toolbar" aria-label="真机随动操作" hidden>
+  <div class="joint-follow-panel">
+   <div class="follow-toolbar-main">
+    <div class="follow-overview">
+     <strong id="joint-follow-state" role="status">正在读取启用条件…</strong>
+     <p id="joint-follow-readiness" class="follow-readiness" role="status" aria-live="polite">正在读取 X5 状态。若长时间没有变化，请刷新页面并检查设备连接。</p>
+    </div>
+    <div class="follow-actions">
+     <label class="joint-follow-confirm"><input id="joint-follow-support" type="checkbox"> 我已托稳机身、确认活动间隙，允许全部舵机上扭矩</label>
+     <div class="follow-toolbar-buttons"><button id="joint-follow-connect">连接实机</button><button id="joint-follow-start" class="primary">检查并启用随动</button><button id="joint-follow-stop" class="joint-follow-stop" disabled>停止随动 · 全部卸力</button></div>
+    </div>
+   </div>
+   <div class="follow-toolbar-feedback">
+    <div class="follow-notice-slot"><div id="joint-follow-message" class="follow-notice" role="alert" hidden></div><p class="hint follow-default-hint">未启用时滑块仅预览模型。启用后，实心为实测位置，紫色为目标。</p></div>
+    <button id="joint-follow-inspect" aria-haspopup="dialog" aria-controls="joint-follow-details">提示与检查详情 ↗</button>
+   </div>
+   <dialog id="joint-follow-details" class="follow-dialog" aria-labelledby="joint-follow-details-title">
+    <div class="follow-dialog-head"><h2 id="joint-follow-details-title">随动状态与诊断</h2><button id="joint-follow-close" type="button" aria-label="关闭诊断，返回关节滑块">关闭 ✕</button></div>
+    <div id="joint-follow-diagnostics" class="follow-diagnostics" role="region" aria-label="随动诊断，可滚动查看" tabindex="0">
+     <div id="joint-follow-message-detail" class="follow-notice" hidden></div>
+     <ul class="follow-checks" aria-label="真机随动启用条件">
+      <li id="joint-check-service">○ 控制服务：等待读取</li>
+      <li id="joint-check-connection">○ 实机连接：等待读取</li>
+      <li id="joint-check-feedback">○ 实时反馈：等待读取</li>
+      <li id="joint-check-hardware">○ 舵机与校准：等待读取</li>
+      <li id="joint-check-range">○ 当前位置：等待读取</li>
+      <li id="joint-check-support">○ 托稳确认：尚未勾选</li>
+     </ul>
+     <p class="hint">位置栏保留最近一次有效读数；反馈过期时不能启用随动。</p>
+     <p class="hint">从真机当前位置开始；转动速度可在关节滑块上方设置为 1–50°/秒，默认 5°/秒。每轮起点 ±10°，受已保存范围限制。全部 15 个舵机保持目标，只调整所选关节。</p>
+     <p class="hint">离开此模式、隐藏页面或心跳中断会停止并卸力，请持续托稳机身。刷新后需重新启用。</p>
+    </div>
+    <div class="follow-dialog-footer"><button id="joint-follow-details-stop" class="wide joint-follow-stop" disabled>停止随动 · 全部卸力</button><div class="follow-help"><button id="joint-follow-refresh" type="button">刷新状态</button><a href="/" target="_blank" rel="noopener">打开实机工作台 ↗</a></div></div>
+   </dialog>
+  </div>
+ </section>
+ <section class="stage-column">
+  <div class="stage" id="stage">
+    <div class="stage-top"><div><span class="eyebrow" id="mode-eyebrow">PHYSICS SIMULATION</span><h1 id="view-title">让动作看得见。</h1><p id="view-subtitle">真实关节结构 · 接触物理 · 行走策略</p></div><span class="chip" id="run-status">载入模型</span></div>
+    <div id="viewport" aria-label="可旋转缩放的鸭子三维视图"></div>
+    <div id="joint-annotations" class="joint-annotations" hidden>
+      <svg id="joint-leaders" aria-hidden="true"></svg>
+      <div id="joint-tags" aria-label="当前部位的舵机输出轴编号"></div>
+    </div>
+    <div id="demo-caption" class="demo-caption" hidden>紫色为模型示范 · 实机不动作</div>
+    <div class="loading" id="loading"><div class="spinner"></div><span>正在装配 16 个模型网格…</span></div>
+    <div class="view-controls" aria-label="相机视角"><button data-view="iso" class="active">透视</button><button data-view="front">正面</button><button data-view="side">侧面</button><button data-view="top">俯视</button><button id="frame-view" title="重新居中">⌖ 居中</button></div>
+    <div class="view-options"><label><input id="show-joint-ids" type="checkbox" checked> 关节编号</label><label><input id="ghost" type="checkbox"> 目标虚影</label><label><input id="follow" type="checkbox" checked> 跟随机身</label><label><input id="grid" type="checkbox" checked> 地面网格</label></div>
+    <div class="scene-note">拖动旋转 <span>·</span> 滚轮缩放 <span>·</span> 右键平移</div>
+    <div class="axis-key"><span class="x">X</span> 前 <span class="y">Y</span> 左 <span class="z">Z</span> 上</div>
+  </div>
+  <div class="telemetry">
+   <div><label>机身倾角</label><strong id="tilt">0.0<small> °</small></strong><span id="tilt-source">仿真计算</span></div>
+   <div><label id="distance-label">前向位移</label><strong id="distance">0.0<small> cm</small></strong><span id="distance-source">相对初始位置</span></div>
+   <div><label>前进指令</label><strong id="velocity">0.00<small> m/s</small></strong><span>输入值，非实测速度</span></div>
+   <div><label>足底接触</label><strong class="feet"><em id="left-contact">L</em><em id="right-contact">R</em></strong><span id="contact-source">MuJoCo 碰撞检测</span></div>
+  </div>
+  <section class="transport">
+   <div class="transport-head"><button id="play" class="play" title="播放 / 暂停（空格）" aria-label="播放">▶</button><button id="reset" class="reset" title="回到起点" aria-label="回到起点">↺</button><span class="time"><b id="current-time">00.00</b> / <span id="duration">06.00</span> s</span><span class="record-label" id="record-label">物理仿真</span><select id="rate" aria-label="播放速度"><option value="0.25">0.25× 慢放</option><option value="0.5">0.5× 慢放</option><option value="1" selected>1× 原速</option><option value="2">2× 加速</option></select></div>
+   <input id="timeline" type="range" min="0" max="6" step="0.001" value="0" aria-label="回放时间轴">
+   <div id="markers" class="markers"></div>
+   <p id="evidence-note">正在载入模型与仿真参数…</p>
+  </section>
+ </section>
+ <aside>
+  <section class="control-panel">
+   <div class="section-title"><h2 id="panel-title">仿真指令</h2><span class="tiny" id="engine">MUJOCO + ONNX</span></div>
+   <div id="message" class="message" role="status" aria-live="polite"></div>
+   <div id="live-controls" hidden>
+    <div class="live-target"><i></i><span id="live-target">X5 · 192.168.1.11</span><b>只读反馈</b></div>
+    <div class="live-stats"><div><span>在线舵机</span><strong id="live-online">— / 15</strong></div><div><span>接收距今</span><strong id="live-age">— ms</strong></div><div><span>接收频率</span><strong id="live-hz">— Hz</strong></div><div><span>扭矩状态</span><strong id="live-torque">未知</strong></div></div>
+    <div class="generate-row"><button id="live-connect" class="primary">连接实机反馈 ↗</button><button id="live-disconnect">断开</button></div>
+    <p class="hint" id="live-instructions">连接后，页面用编码器与 IMU 数据同步实机。先确认显示“扭矩关闭”，再托稳机身、轻动关节。</p>
+    <p class="hint">仅同步关节和倾斜；机身平移、绝对偏航没有测量数据。</p>
+    <p class="hint">实时模型、关节数值与曲线共用实机保存的校准。</p>
+   </div>
+   <div id="calibration-controls" hidden>
+    <p class="cal-intro">点击图中 ID 标签选关节，引线圆点是输出轴，亮线表示转轴方向。左右以鸭子自身为准；外壳和连杆可能属于相邻关节。</p>
+    <div class="joint-tabs" aria-label="图上编号部位"><button data-group="left" class="active">左腿 10–14</button><button data-group="right">右腿 20–24</button><button data-group="head">头颈嘴 30–34</button></div>
+    <p class="hint">编号按官方装配定义显示；实物总线 ID 尚需逐只核对。ID34 为嘴部开合，独立于行走模型的 14 个关节。</p>
+    <div class="cal-selection"><strong id="cal-name">左膝 · ID13</strong><span id="cal-location"></span></div>
+    <div class="cal-demo-buttons"><button id="cal-demo-positive">看正方向示范</button><button id="cal-demo-zero">看零姿态参考</button><button id="cal-demo-stop">收起示范</button></div>
+    <p class="hint" id="cal-hand-guide"></p>
+    <div class="cal-live"><span id="cal-connection">等待读取 X5 状态</span><strong id="cal-reading">—</strong><span id="cal-moving">尚未记录变化</span></div>
+    <div id="cal-error" class="message error" role="status" aria-live="polite"></div>
+    <div class="cal-demo-buttons"><button id="cal-connect">连接只读校准</button><button id="cal-disconnect">结束采集</button></div>
+    <label class="cal-check"><input type="checkbox" id="cal-support">机身已托稳，确认扭矩关闭后仅用手轻摆</label>
+    <label class="field-label" for="cal-task">这次做什么</label>
+    <select id="cal-task"><option value="observe">先核对关节与手动范围</option><option value="direction">正式校准方向与安全范围</option><option value="zero">重新标定机械零点</option></select>
+    <div id="cal-observe-panel">
+      <p class="hint">你点开始才记录，摆好后自己点结束。同步记录全部 15 个舵机，便于识别带动了哪些关节。</p>
+      <div id="cal-record-status" class="cal-step" aria-live="polite">未开始记录</div>
+      <div class="cal-demo-buttons"><button id="cal-record-start" class="primary">开始记录</button><button id="cal-record-stop">结束记录</button><button id="cal-export">导出本次记录</button></div>
+      <p class="hint">最长 120 秒。只读核对不修改校准；反馈中断会结束并标记记录不完整。</p>
+    </div>
+    <div id="cal-formal-panel" hidden>
+      <div id="cal-step" class="cal-step" role="status" aria-live="polite"></div>
+      <label class="cal-check"><input type="checkbox" id="cal-confirm"><span id="cal-confirm-label">刚才实际轻摆方向与紫色示范一致</span></label>
+      <div id="cal-preview" class="cal-preview"></div>
+      <button id="cal-next" class="primary wide">1 · 记录起点</button>
+      <div class="cal-demo-buttons"><button id="cal-save-direction" hidden>仅保存方向，沿用原范围</button><button id="cal-retry-a" hidden>重采安全位置 A</button><button id="cal-cancel">取消未保存步骤</button></div>
+      <p id="cal-formal-note" class="hint"></p>
+    </div>
+    <p class="hint">遇到阻力即停，不顶机械限位。此页采样、保存使用工作台同一份正式校准；只有点击保存才会更新。</p>
+   </div>
+   <div id="simulation-controls">
+    <div class="label-row"><label for="speed">前向目标速度</label><output id="speed-value">0.12 <small>m/s</small></output></div>
+    <input id="speed" type="range" min="-0.2" max="0.3" step="0.01" value="0.12">
+    <div class="presets"><button data-speed="-0.10">后退</button><button data-speed="0">原地</button><button data-speed="0.12" class="active">慢走</button><button data-speed="0.20">前进</button></div>
+    <div class="generate-row"><select id="sim-duration" aria-label="仿真时长"><option value="6">6 秒</option><option value="10">10 秒</option><option value="15">15 秒</option></select><button id="generate" class="primary">运行物理仿真 <span>↗</span></button></div>
+    <p class="hint">每次从站姿重新求解。速度在前 0.5 秒渐入，生成后可逐帧回看。</p>
+   </div>
+   <div id="replay-controls" hidden><label class="field-label" for="record">选择实机记录</label><select id="record"></select><button id="jump-forward" class="wide">跳到前进指令 →</button><p class="hint" id="record-reason"></p></div>
+  </section>
+  <section class="joints-panel">
+   <div class="section-title"><h2 id="joint-list-title">关节观察</h2><span class="tiny">15 个显示关节</span></div>
+   <div class="legend"><span><i class="actual-dot"></i>实际 / 仿真状态</span><span><i class="target-dot"></i>策略目标</span></div>
+   <div class="joint-tabs"><button data-group="left" class="active">左腿</button><button data-group="right">右腿</button><button data-group="head">头颈</button></div>
+   <div class="joint-speed-control" hidden>
+    <div class="joint-speed-label"><label for="joint-follow-speed">舵机转动速度</label><output id="joint-follow-speed-value" for="joint-follow-speed">5°/秒</output></div>
+    <input id="joint-follow-speed" type="range" min="1" max="50" step="1" value="5" aria-describedby="joint-follow-speed-hint">
+    <p id="joint-follow-speed-hint">1–50°/秒 · 启用随动后应用于实机</p>
+   </div>
+   <div id="joint-list"></div>
+   <div class="joint-preview-actions" hidden><p class="hint">拖动滑块时，在旁边查看模型变化。实机是否动作以上方随动状态为准。</p><button id="home-pose" class="wide">恢复模型默认站姿 ↺</button></div>
+   <div class="chart-head"><span id="chart-title">左膝 · 角度曲线</span><span>deg</span></div><canvas id="chart" aria-label="所选关节实际角度与目标角度曲线"></canvas>
+  </section>
+  <details class="model-info"><summary>模型与数据来源 <span>＋</span></summary><dl><dt>几何</dt><dd>项目 MJCF + 15 个 STL 网格</dd><dt>策略</dt><dd>xgoduck_walk.onnx · CPU</dd><dt>动力学</dt><dd>CAD 质量 · BAM 1910_m6<br>KP 5 / 7.7 V / 200 Hz 物理步进</dd><dt>尚未覆盖</dt><dd>实机电源、USB 延迟、个体摩擦与下颌 ID34</dd></dl><p id="model-hash"></p></details>
+ </aside>
+</main>
+<footer><span><i></i> XGO DUCK <b>/</b> LOCAL SIMULATION WORKSPACE</span><span id="footer-state">模型正在加载</span></footer>
+<script type="module" src="/app.js"></script>
+</body></html>

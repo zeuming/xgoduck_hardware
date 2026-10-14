@@ -1,0 +1,1481 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>鸭子工作台 · 校准与运控</title>
+  <style>
+    :root{--bg:#f6f7f2;--paper:#fffefa;--ink:#26382f;--muted:#6e7e75;--line:#dce3d8;--teal:#087368;--mint:#e6f3ed;--gold:#eab93f;--red:#a93d2d;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}button,input{font:inherit}button,a,input{outline-offset:4px}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #77bfb4}button:disabled{opacity:.45;cursor:not-allowed}[hidden]{display:none!important}a{color:var(--teal)}h1,h2,h3,p{margin:0}header{border-bottom:1px solid var(--line);background:var(--paper)}.header-inner,main{max-width:1170px;margin:auto}.header-inner{padding:18px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{font-weight:650;display:flex;align-items:center;gap:10px}.brand-mark{width:32px;height:32px;border-radius:9px;background:var(--gold);display:grid;place-items:center;font-size:19px}.brand small{display:block;font:10px var(--mono);color:var(--muted);letter-spacing:1px}.connection{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}.dot{width:8px;height:8px;border-radius:50%;background:#9aa69e}.dot.live{background:var(--teal)}.dot.fault{background:var(--red)}main{padding:30px 28px 40px}.hero{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:22px}h1{font-size:29px;line-height:1.3;letter-spacing:-.7px}.subtitle{margin-top:8px;color:var(--muted);font-size:13px}.button{display:inline-flex;justify-content:center;align-items:center;border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink);padding:10px 14px;font-size:12px;font-weight:600;text-decoration:none;cursor:pointer}.button.primary{background:var(--teal);border-color:var(--teal);color:white}.button:hover:not(:disabled){filter:brightness(.96)}.banner{padding:14px 17px;border:1px solid #e6dcae;background:#fff6d8;border-radius:10px;margin-bottom:18px;font-size:12px}.banner strong{display:block;margin-bottom:3px}.banner.error{background:#fff0ec;border-color:#e9c2b6;color:var(--red)}.progress-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}.progress-card{padding:14px 17px;border:1px solid var(--line);border-radius:11px;background:var(--paper)}.progress-card span{font-size:11px;color:var(--muted)}.progress-card strong{display:block;font:500 22px/1.6 var(--mono);color:var(--ink)}.progress-card.done strong{color:var(--teal)}.progress-card small{display:block;font-size:10px;color:var(--muted)}.card{border:1px solid var(--line);border-radius:14px;background:var(--paper);overflow:hidden;margin-bottom:18px}.card-heading{padding:20px 22px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px}h2{font-size:16px;font-weight:650}h2 .label{font:10px var(--mono);color:var(--teal);background:var(--mint);border-radius:4px;padding:4px 7px;margin-right:8px}.card-body{padding:0 22px 21px}.small{font-size:11px;color:var(--muted)}.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}.live-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.reading{padding:15px 17px;background:#f4f7f1;border-radius:10px}.reading-title{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px}.reading-title span{font-size:10px;color:var(--muted)}.vector{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}.vector small{display:block;color:var(--muted);font:10px var(--mono)}.vector strong{display:block;font:500 20px/1.6 var(--mono);overflow-wrap:anywhere}.meta-line{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--muted)}.install-copy{font-size:13px;line-height:1.8}.checklist{display:flex;flex-wrap:wrap;gap:8px 24px;margin:15px 0}.checklist label{display:flex;align-items:flex-start;gap:8px;font-size:12px}.checklist input{margin-top:5px;accent-color:var(--teal)}.note{font-size:11px;color:var(--muted);line-height:1.8}.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:18px 0 15px}.pose{padding:13px 12px;border:1px solid var(--line);border-radius:10px;min-width:0;background:white}.pose h3{font-size:13px;display:flex;align-items:center;gap:7px}.pose h3 b{width:23px;height:23px;display:grid;place-items:center;font:11px var(--mono);border-radius:50%;background:#eef2e9;color:var(--muted)}.pose svg{display:block;width:100%;height:auto;margin-top:8px}.pose p{font-size:11px;line-height:1.75;min-height:3.5em;margin:7px 0 12px;color:var(--muted)}.pose .button{width:100%;padding:9px 5px;font-size:11px}.pose[data-active="true"]{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal)}.pose[data-complete="true"] h3 b{background:var(--mint);color:var(--teal)}.wizard-result{padding:13px 16px;border-radius:9px;background:#f1f6ed;font-size:12px}.wizard-result.error{background:#fff0ec;color:var(--red)}#sampleProgress{width:100%;height:10px;margin:10px 0 0;accent-color:var(--teal)}.wizard-footer{display:flex;align-items:center;justify-content:space-between;gap:13px;margin-top:12px}.saved-result{border-top:1px solid var(--line);padding-top:14px;margin-top:15px}.saved-result strong{font-size:12px}.saved-result p{font-size:11px;color:var(--muted);margin-top:4px}.reference-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:20px}.reference-copy{font-size:12px;color:var(--muted);line-height:1.9}.reference-copy ol{padding-left:18px;margin:9px 0}.reference-copy strong{color:var(--ink)}details{border-top:1px solid var(--line)}summary{padding:13px 22px;font-size:12px;cursor:pointer;color:var(--teal)}.reference-image{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:8px}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:11px;white-space:nowrap}th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line)}th{font-weight:550;color:var(--muted);background:#f6f8f2}td{font-family:var(--mono)}td:first-child{font-family:inherit}tr:last-child td{border-bottom:0}.cal-note{padding:12px 22px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}footer{font-size:10px;color:var(--muted);display:flex;justify-content:space-between;gap:12px}.asset-error{padding:11px;background:#fff0ec;color:var(--red);font-size:11px;border-radius:7px;margin-top:8px}
+    .pose-status{margin-top:10px;padding:9px 10px;border-radius:7px;background:#f3f5ef;font-size:11px;line-height:1.8;min-height:56px;overflow-wrap:anywhere}.pose-status[data-kind="success"]{background:var(--mint);color:var(--teal)}.pose-status[data-kind="error"]{background:#fff0ec;color:var(--red)}.pose-status[data-kind="busy"]{background:#fff6d8;color:#83641b}.pose progress{display:block;width:100%;height:8px;margin-top:7px;accent-color:var(--teal)}.current-result{margin-top:16px;border:1px solid #cadfce;font-size:13px;font-weight:600}.current-result.error{border-color:#e9c2b6}.sample-meta{margin-top:6px;font-size:11px;font-weight:400;color:var(--muted)}
+    .hero{flex-wrap:wrap}.hero>div{flex:1;min-width:220px}.recovery-panel{display:flex;align-items:center;gap:15px;border:1px solid var(--line);border-radius:10px;background:var(--paper);padding:14px 17px;margin-bottom:18px}.recovery-copy{flex:1;min-width:0}.recovery-copy p{overflow-wrap:anywhere}.recovery-panel[data-kind="error"]{border-color:#e9c2b6}.recovery-panel[data-kind="error"] #recoveryStatus,#recoveryWizardStatus.error{color:var(--red)}.recovery-panel[data-kind="success"] #recoveryStatus{color:var(--teal)}
+    #joint-steps,#imu-steps{scroll-margin-top:18px}.joint-layout{display:grid;grid-template-columns:310px minmax(0,1fr);gap:24px}.joint-reference svg{width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:white}.joint-select{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}.joint-select select{font:inherit;border:1px solid var(--line);border-radius:8px;padding:9px 12px;background:white;max-width:100%}.joint-readings{display:flex;gap:25px;flex-wrap:wrap;margin-bottom:14px}.joint-readings small{display:block;color:var(--muted);font-size:11px}.joint-readings strong{font:500 23px var(--mono)}.joint-actions{display:grid;gap:9px;margin:15px 0}.joint-action{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px 12px}.joint-action p{font-size:11px;color:var(--muted)}.joint-action strong{font-size:12px}.joint-action[data-current="true"]{border-color:var(--teal)}.joint-action[data-done="true"]{background:var(--mint)}.joint-action .button{min-width:128px}.joint-result{overflow-wrap:anywhere}.joint-bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:12px}#jointProgress{width:100%;height:9px;accent-color:var(--teal)}#jointAssetError{color:var(--red)}@media(max-width:760px){.joint-layout{grid-template-columns:1fr}.joint-reference{max-width:330px;margin:auto}.joint-action{grid-template-columns:1fr}.joint-action .button{width:100%}}
+    .joint-auto-statuses{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:15px 0 10px}.joint-auto-status{padding:15px 17px;border:1px solid var(--line);border-radius:10px;background:#f4f7f1}.joint-auto-status span{display:block;font-size:12px;color:var(--muted)}.joint-auto-status strong{display:block;font-size:21px;line-height:1.45;margin-top:5px;overflow-wrap:anywhere}.joint-auto-status[data-state="good"]{background:var(--mint);border-color:#cadfce}.joint-auto-status[data-state="good"] strong{color:var(--teal)}.joint-auto-status[data-state="bad"]{background:#fff0ec;border-color:#e9c2b6}.joint-auto-status[data-state="bad"] strong{color:var(--red)}.joint-support-confirmation{border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:18px}.joint-support-confirmation .checklist{margin:10px 0 5px}@media(max-width:650px){.joint-auto-statuses{grid-template-columns:1fr;gap:8px}.joint-auto-status{padding:12px 14px}.joint-auto-status strong{font-size:20px}}
+    @media(max-width:1000px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.pose svg{max-height:220px}.pose p{min-height:0}.reference-grid{grid-template-columns:1fr}.hero{align-items:flex-start}main{padding-top:24px}}
+    @media(max-width:600px){.header-inner,main{padding-left:17px;padding-right:17px}.header-inner{align-items:flex-start}.brand small{font-size:8px}.connection{font-size:10px;max-width:130px}h1{font-size:24px}.hero{flex-direction:column;gap:12px}.hero .button{padding:7px 11px}.progress-grid{grid-template-columns:repeat(2,1fr);gap:9px}.progress-card{padding:12px 14px}.card-heading{padding:17px 16px 12px}.card-body{padding:0 16px 17px}.live-grid{grid-template-columns:1fr}.steps{gap:8px}.pose{padding:11px 8px}.pose h3{font-size:12px}.pose p{min-height:3.5em}.pose .button{font-size:10px}.wizard-footer{align-items:flex-start;flex-direction:column}.vector strong{font-size:19px}.checklist{display:grid;gap:9px}footer{flex-direction:column}}
+    @media(max-width:360px){.steps{grid-template-columns:1fr}.pose p{min-height:0}.pose svg{max-height:210px}}
+    .header-inner{max-width:1420px}.workspace{max-width:1420px;margin:auto;display:grid;grid-template-columns:208px minmax(0,1fr);align-items:start}.sidebar{position:sticky;top:0;min-height:calc(100vh - 83px);padding:27px 16px;border-right:1px solid var(--line);background:var(--paper)}.sidebar-caption{padding:0 12px 12px;font-size:10px;letter-spacing:1.5px;color:var(--muted)}.sidebar nav{display:grid;gap:7px}.nav-item{display:flex;align-items:center;gap:11px;padding:12px;border-radius:9px;font-size:13px;font-weight:550;text-decoration:none;color:var(--muted);border:1px solid transparent}.nav-icon{width:24px;text-align:center;font:18px var(--mono)}.nav-item:hover{background:#f3f6ee}.nav-item.active{color:var(--teal);background:var(--mint);border-color:#d2e6da}.sidebar-note{margin:25px 12px 0;padding-top:17px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);line-height:1.9}.workspace main{width:100%;min-width:0;max-width:none;margin:0;padding:28px 28px 40px}.hero-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.overview-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:18px}.overview-stat{padding:17px;background:#f4f7f1;border:1px solid var(--line);border-radius:10px}.overview-stat span{display:block;color:var(--muted);font-size:11px}.overview-stat strong{display:block;margin-top:7px;font-size:21px;line-height:1.5}.overview-stat strong[data-state="good"]{color:var(--teal)}.overview-stat strong[data-state="bad"]{color:var(--red)}.device-table td{font-family:inherit}.device-table td:nth-child(1),.device-table td:nth-child(4){font-family:var(--mono)}.device-state{font-size:11px}.device-state[data-state="good"]{color:var(--teal)}.device-state[data-state="bad"]{color:var(--red)}.source-note{font-size:11px;color:var(--muted);margin-bottom:14px}.history-note{padding:12px 14px;border:1px solid #e6dcae;border-radius:9px;background:#fff6d8;font-size:12px;margin-bottom:17px}.history-note strong{display:block;margin-bottom:4px}.settings-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:18px 0}.settings-field label{display:block;font-size:12px;margin-bottom:5px}.settings-field input,.settings-field select{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink)}.settings-field input:disabled{background:#f3f5ef;color:var(--muted)}.settings-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.settings-reading{font:500 23px var(--mono)}.capability-note{padding:15px 17px;background:#f4f7f1;border:1px solid var(--line);border-radius:10px;font-size:12px;margin-top:15px}.capability-note strong{display:block;margin-bottom:5px}.hero>div.hero-actions{flex:0 1 auto;min-width:0}.workspace #joint-steps,.workspace #imu-steps{scroll-margin-top:18px}@media(max-width:1050px){.workspace{grid-template-columns:176px minmax(0,1fr)}.workspace main{padding:24px 20px 36px}.sidebar{padding:24px 10px}.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.progress-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.joint-layout{grid-template-columns:1fr}.joint-reference{max-width:340px;margin:auto}.hero{align-items:flex-start}}@media(max-width:680px){.workspace{display:block}.sidebar{position:static;min-height:0;padding:12px 15px;border-right:0;border-bottom:1px solid var(--line)}.sidebar-caption,.sidebar-note{display:none}.sidebar nav{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.nav-item{flex-direction:column;gap:3px;padding:8px 3px;font-size:10px}.nav-icon{font-size:16px}.workspace main{padding:20px 15px 30px}.hero{gap:14px}.hero>div{min-width:0}.hero-actions{width:100%}.hero-actions .button{flex:1}.settings-form{grid-template-columns:1fr}.overview-stat{padding:13px}.overview-stat strong{font-size:19px}.device-table{font-size:10px}.device-table th,.device-table td{padding:9px}.card-heading{align-items:flex-start}}
+    .device-joint-map{margin:22px 0 0;padding-top:20px;border-top:1px solid var(--line)}.device-joint-map-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.device-joint-map-heading h3{font-size:15px}.device-joint-map>a{display:block}.device-joint-map .reference-image{background:#fafaf7}.device-joint-map figcaption{margin-top:10px;font-size:11px;color:var(--muted);line-height:1.9}.device-joint-map-legend{display:flex;flex-wrap:wrap;gap:7px 18px;margin-top:10px;font-size:12px}.device-joint-map-legend strong{font-family:var(--mono);font-weight:550;color:var(--teal)}
+.servo-workbench-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(250px,1fr);gap:18px;margin-top:22px}.servo-panel{border:1px solid var(--line);border-radius:12px;padding:20px;min-width:0;background:white}.servo-panel h3,.servo-scan-panel h3{font-size:15px;margin-bottom:14px}.servo-panel h3 .label{font:10px var(--mono);color:var(--muted);border:1px solid var(--line);padding:3px 5px;border-radius:4px;margin-right:7px}.servo-position-display{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}.servo-position-display small,.servo-position-display span{display:block;color:var(--muted)}#servoSelectedPosition{display:block;font:600 58px/1.35 var(--mono);letter-spacing:-3px}.servo-position-ring{position:relative;width:110px;height:110px;flex:none}.servo-position-ring svg{width:100%;height:100%;transform:rotate(-90deg)}.servo-position-ring strong{position:absolute;inset:0;display:grid;place-items:center;font:15px var(--mono);font-weight:500}.servo-target-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:18px 0 8px;font-size:12px}.servo-preset{border:0;background:transparent;color:var(--teal);font:inherit;cursor:pointer;padding:0}.servo-target-row{display:flex;gap:10px;align-items:stretch}.servo-target-row input{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font:22px var(--mono)}.servo-target-row .button{flex:none}.servo-current-id{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding:6px 0 20px;margin-bottom:18px}.servo-current-id strong{font:500 40px var(--mono)}.servo-scan-panel{border-top:1px solid var(--line);margin-top:22px;padding-top:18px}.servo-log-list{max-height:190px;overflow:auto}.servo-log-item{border-top:1px solid var(--line);padding:8px 0;font-size:12px;overflow-wrap:anywhere}.servo-log-item time{font:11px var(--mono);color:var(--muted);margin-right:12px}.servo-log-item.error{color:var(--red)}@media(max-width:800px){.servo-workbench-grid{grid-template-columns:1fr}}@media(max-width:420px){.servo-target-row{flex-wrap:wrap}.servo-target-row .button{width:100%}#servoSelectedPosition{font-size:48px}}
+.servo-scale{height:5px;background:#e2e9e1;border-radius:5px;position:relative;margin:20px 3px 8px}.servo-scale i{position:absolute;top:-4px;width:3px;height:13px;border-radius:2px;background:var(--teal)}.servo-scale i.target{background:#c69042;height:11px;top:-3px}.servo-scale-ticks{display:flex;justify-content:space-between;font:10px var(--mono);color:var(--muted)}
+@media(max-width:680px){.sidebar nav{grid-template-columns:repeat(5,minmax(0,1fr))}}#zeroRows .button{padding:6px 9px;font-size:11px}#zeroRows tr[data-selected="true"]{background:var(--mint)}
+.inline-zero-editor{padding:12px 14px;margin:12px 0 18px;border:1px solid var(--line);border-radius:9px;background:#f8faf5}.inline-zero-editor h3{font-size:13px}.inline-zero-editor .checklist{margin:9px 0}.inline-zero-editor .settings-actions{margin-top:10px}.inline-zero-editor .current-result{margin-top:10px;font-size:12px;font-weight:400}.inline-zero-editor .button{padding:8px 12px}
+.motion-stop{background:var(--red);border-color:var(--red);color:white}.motion-drive{padding:15px 0}.motion-drive button{touch-action:none;user-select:none}.motion-drive .settings-actions{margin-top:8px}@media(max-width:680px){.sidebar nav{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    .motion-feedback-meta{display:grid;grid-template-columns:minmax(150px,1fr) minmax(125px,1fr) minmax(190px,1.4fr);gap:6px 14px;margin:16px 0 6px;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}.motion-feedback-meta span{min-height:1.65em;white-space:nowrap}#motionLiveDetail{min-height:3.3em;margin:0 0 12px;font-variant-numeric:tabular-nums}.motion-table-wrap{overflow:visible;min-width:0}#motionJointTable{table-layout:fixed;min-width:0;width:100%;white-space:normal}#motionJointTable th:first-child{width:21%}#motionJointTable th:nth-child(6){width:19%}#motionJointTable th:last-child{width:12%}#motionJointTable th,#motionJointTable td{padding:9px 5px;white-space:normal;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}#motionJointTable td[data-state="bad"],#motionVoltageSummary[data-state="bad"]{color:var(--red)}#motionVoltageSummary{min-height:2em;margin-top:6px}.motion-voltage-note{margin:3px 0 12px}#motionImuFreshness{min-height:3.6em;font-variant-numeric:tabular-nums}#motionActionResult{min-height:3.3em}@media(max-width:760px){.motion-feedback-meta{grid-template-columns:1fr 1fr}.motion-feedback-meta span:last-child{grid-column:1/-1}}
+      @media(max-width:600px){#motionJointTable,#motionJointTable tbody{display:block}#motionJointTable thead{display:none}#motionJointTable tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px;padding:13px 0;border-bottom:1px solid var(--line)}#motionJointTable tr:last-child{border-bottom:0}#motionJointTable td{border:0;padding:0;min-width:0}#motionJointTable td:first-child{grid-column:1/-1;font-weight:600;padding-bottom:3px}#motionJointTable td:not(:first-child)::before{content:attr(data-label);display:block;font:10px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--muted)}}
+</style>
+</head>
+<body>
+<header><div class="header-inner"><div class="brand"><span class="brand-mark" aria-hidden="true">◒</span><div>鸭子工作台<small>RDK X5 · LIVE HARDWARE</small></div></div><button class="connection" id="connectionStatusLink" type="button" title="查看停止原因和继续采集入口" style="border:0;background:transparent;cursor:pointer"><span id="connectionDot" class="dot" aria-hidden="true"></span><span id="connectionLabel" role="status">等待连接状态</span></button></div></header>
+<div class="workspace">
+<aside class="sidebar" aria-label="工作台功能栏">
+  <p class="sidebar-caption">工作台功能</p>
+  <nav aria-label="选择工作台功能">
+    <a class="nav-item" id="navDevice" href="#device-status"><span class="nav-icon" aria-hidden="true">◉</span><span>设备状态</span></a>
+    <a class="nav-item" id="navServos" href="#servo-settings"><span class="nav-icon" aria-hidden="true">≡</span><span>舵机工作台</span></a>
+    <a class="nav-item" id="navZeros" href="#joint-zeros"><span class="nav-icon" aria-hidden="true">◎</span><span>机械零点</span></a>
+    <a class="nav-item" id="navJoints" href="#joint-steps"><span class="nav-icon" aria-hidden="true">↔</span><span>关节校准</span></a>
+    <a class="nav-item" id="navImu" href="#imu-steps"><span class="nav-icon" aria-hidden="true">⊕</span><span>IMU 校准</span></a>
+      <a class="nav-item" id="navMotion" href="#motion-models"><span class="nav-icon" aria-hidden="true">▷</span>运控模型</a>
+  </nav>
+  <p class="sidebar-note">一个入口，随时切换。<br>切换功能不会清空采样步骤；已保存的校准继续保留。</p>
+</aside>
+<main>
+  <div class="settings-actions"><button class="button" id="displayUpdatesToggle" type="button">暂停画面更新</button><span class="note" id="displayUpdatesStatus">画面异步更新；控制心跳和停止按钮独立。</span></div>
+  <div id="localFileNotice" class="banner" role="alert" hidden><strong>请打开校准服务页面</strong>当前打开的是本地 HTML 文件，无法读取校准状态。<a class="button primary" id="openCalibrationService" href="http://127.0.0.1:8767/#joint-steps" style="margin-left:10px">打开校准页面 →</a></div>
+  <div class="hero"><div><h1 id="workspaceTitle">设备状态</h1><p class="subtitle" id="workspaceSubtitle">查看舵机、控制器和 IMU 的真实反馈，以及已保存的校准。</p><p class="note" id="x5ConnectionTarget" hidden></p></div><div class="hero-actions"><button class="button primary" id="recoverFeedback" type="button" disabled>继续采集</button><button class="button" id="endFeedback" type="button" disabled>结束采集</button><a class="button" id="exportCalibration" href="/api/calibration" download="duck-calibration.json">导出校准 JSON</a></div></div>
+  <p class="note" style="margin:-10px 0 17px">结束采集会保留已保存校准，未完成步骤不保存；IMU 四步保存成功后自动结束。</p>
+  <div class="banner" id="workspaceInstructions"><strong id="workspaceInstructionsTitle">设备状态由当前采集会话提供。</strong><span id="workspaceInstructionsCopy">停止或超时后，实时数值会隐藏。已保存的零点、IMU 和关节校准继续保留。</span></div>
+  <div id="sessionAlert" class="banner error" role="alert" hidden></div>
+  <details id="motionStopDetails" class="banner" hidden><summary id="motionStopDetailsSummary">查看停止原因与反馈详情</summary><p id="motionStopReason" style="overflow-wrap:anywhere"></p><p id="motionStopFeedbackState"></p><p id="motionStopFeedbackAge"></p><p id="motionStopTorqueState"></p><p id="motionStopLiveDetail" class="note"></p></details>
+  <div id="recoveryPanel" class="recovery-panel" hidden><div class="recovery-copy"><p id="recoveryStatus" role="status" aria-live="polite">等待采集会话状态。</p><p class="note" id="recoveryHelp">你可以在这里结束、重新检查和恢复采集。只有点击才连接一次；检查失败会显示原因，已保存的校准保留。</p><details id="recoveryDetails" class="note" hidden><summary id="recoveryDetailsSummary">查看具体检查原因</summary><p id="recoveryTechnicalReason" style="overflow-wrap:anywhere;white-space:pre-wrap"></p></details></div><button class="button primary" id="recoverFeedbackNearFault" type="button" disabled>继续采集</button></div>
+  <section class="progress-grid" aria-label="分别显示各项校准进度">
+    <div class="progress-card" id="zeroProgressCard"><span>机械零点</span><strong id="zeroCount">— / 15</strong><small>已保存的数值继续保留</small></div>
+    <div class="progress-card" id="directionProgressCard"><span>关节方向</span><strong id="directionCount">— / 15</strong><small>逐关节跟图轻摆核对</small></div>
+    <div class="progress-card" id="limitsProgressCard"><span>安全范围</span><strong id="limitsCount">— / 15</strong><small>手动采集留有余量的两端</small></div>
+    <div class="progress-card" id="imuProgressCard"><span>IMU 朝向与静止校准</span><strong id="imuSavedState">未读取</strong><small>完成四步后保存到笔记本</small></div>
+  </section>
+  <section class="card" id="device-status" aria-labelledby="deviceTitle">
+    <div class="card-heading"><h2 id="deviceTitle"><span class="label">STATUS</span>设备状态</h2><span class="small" id="statusController">控制器未确认</span></div>
+    <div class="card-body">
+      <div class="overview-grid">
+        <div class="overview-stat"><span>舵机在线</span><strong id="statusServoCount">未确认</strong></div>
+        <div class="overview-stat"><span>当前故障</span><strong id="statusFaultCount">未确认</strong></div>
+        <div class="overview-stat"><span>舵机扭矩</span><strong id="statusTorque">未确认</strong></div>
+        <div class="overview-stat"><span>IMU</span><strong id="statusImu">未确认</strong></div>
+      </div>
+      <p id="statusDataSource" class="source-note" role="status">等待真实反馈。已保存校准不代表当前硬件状态。</p>
+      <div id="statusHistory" class="history-note" hidden><strong>上次诊断记录 · 不是实时状态</strong><p id="statusHistoryText"></p></div>
+      <div class="table-wrap"><table class="device-table"><thead><tr><th>编号</th><th>关节</th><th>当前状态</th><th>当前编码器</th><th>实际扭矩</th><th>校准记录</th></tr></thead><tbody id="deviceRows"></tbody></table></div>
+      <p class="note" style="margin-top:13px">在线、位置和扭矩仅显示新鲜反馈。实时状态未确认时，先查看上方停止原因；切换功能不会重新连接硬件。</p>
+      <figure class="device-joint-map" aria-labelledby="deviceJointMapTitle">
+        <div class="device-joint-map-heading"><h3 id="deviceJointMapTitle">舵机在鸭子身上的位置</h3><a class="small" href="/assets/zero-reference.png" target="_blank" rel="noopener">打开大图 ↗</a></div>
+        <a href="/assets/zero-reference.png" target="_blank" rel="noopener" aria-label="打开带舵机编号的鸭子位置大图"><img class="reference-image" src="/assets/zero-reference.png" width="1400" height="840" alt="此前使用的 XGO-Duck 编号位置图：正视与侧视标出左腿 10 至 14、右腿 20 至 24、头颈 30 至 33；嘴部 34 未在原模型中绘出" loading="lazy"></a>
+        <div class="device-joint-map-legend"><span>左腿 <strong>10–14</strong></span><span>右腿 <strong>20–24</strong></span><span>头颈 <strong>30–33</strong></span><span>嘴部开合 <strong>34</strong>（原图未绘出）</span></div>
+        <figcaption>编号对应上方状态表。图中是模型参考姿态，不随实机当前姿态变化；点击图片可放大查看。</figcaption>
+      </figure>
+    </div>
+  </section>
+  <section class="card" id="servo-settings" aria-labelledby="servoSettingsTitle" hidden>
+    <div class="card-heading"><h2 id="servoSettingsTitle"><span class="label">SERVO</span>舵机工作台</h2><button class="button primary" id="servoScan" type="button" disabled>一键扫描 ID 和位置</button></div>
+    <div class="card-body">
+      <p class="install-copy">连接、回中、设置编号。扫描会连接控制器并读取整条总线，也可单独连接后选择舵机。</p>
+      <div class="settings-actions"><button class="button" id="servoEnter" type="button" disabled>连接舵机</button><button class="button primary" id="servoReview" type="button" hidden disabled>复查舵机反馈</button><button class="button" id="servoExit" type="button" disabled>停止并断开</button></div>
+      <div class="settings-form">
+        <div class="settings-field"><label for="servoSelect">关节快捷选择</label><select id="servoSelect"><option value="">手动输入编号</option></select></div>
+        <div class="settings-field"><label for="servoQueryId">查询编号（0–253）</label><input id="servoQueryId" type="number" min="0" max="253" value="10"></div>
+      </div>
+      <div class="capability-note" id="servoPermissionReason" role="status" aria-live="polite"><strong id="servoMaintenanceTitle">等待维护状态</strong><p id="servoMaintenanceMessage">进入时会检查 ESP32 是否支持维护协议。旧固件需要先更新。</p></div>
+      <progress id="servoMaintenanceProgress" max="100" value="0" hidden style="width:100%;margin-top:12px;accent-color:var(--teal)" aria-label="维护操作进度"></progress>
+      <div class="servo-workbench-grid">
+        <div class="servo-panel">
+          <h3><span class="label">01</span>位置与回中</h3>
+          <div class="servo-position-display"><div><small id="servoPositionCaption">当前实际位置</small><strong id="servoSelectedPosition">—</strong><span class="small">POSITION / 0–4095</span></div><div class="servo-position-ring" aria-hidden="true"><svg viewBox="0 0 122 122"><circle cx="61" cy="61" r="51" fill="none" stroke="#edf2e9" stroke-width="7"/><circle id="servoPositionArc" cx="61" cy="61" r="51" fill="none" stroke="#73a88b" stroke-width="7" stroke-linecap="round" stroke-dasharray="320.44" stroke-dashoffset="320.44"/></svg><strong id="servoPositionDegrees">—</strong></div></div>
+          <div class="joint-readings"><div><small>当前状态</small><strong id="servoSelectedState">未确认</strong></div><div><small>实际扭矩</small><strong id="servoSelectedTorque">未确认</strong></div><div><small>校准记录</small><strong id="servoSelectedCalibration">等待读取</strong></div></div>
+          <div class="settings-actions"><button class="button" id="servoRead" type="button" disabled>读取当前位置</button><button class="button" id="servoRelease" type="button" disabled>停止并释放当前舵机</button></div><p class="note" id="servoPositionReadTime">尚未读到位置</p>
+          <div class="servo-target-heading"><label for="servoTarget">回中目标位置</label><button class="servo-preset" id="servoResetTarget" type="button">恢复默认 2047</button></div>
+          <div class="servo-target-row"><input id="servoTarget" type="number" min="0" max="4095" step="1" value="2047" aria-describedby="servoCenterHint"><button class="button primary" id="servoCenter" type="button" disabled>回中到 2047 ↗</button></div>
+          <div class="servo-scale" aria-hidden="true"><i id="servoActualMarker"></i><i id="servoTargetMarker" class="target"></i></div><div class="servo-scale-ticks"><span>0</span><span>2047</span><span>4095</span></div>
+          <div class="settings-actions"><button class="button" id="servoUseZero" type="button" disabled>使用已保存机械零点</button><button class="button" id="servoUseCurrent" type="button" disabled>使用当前位置</button></div>
+          <p class="note" id="servoCenterHint">回中目标只用于本次运动，不会修改已保存零点；整机运动需有已确认的安全范围。</p>
+          <div class="checklist"><label><input id="servoSupportConfirmed" type="checkbox" disabled><span>机身已由支架或垫块托稳，关节运动空间无遮挡</span></label></div>
+        </div>
+        <div class="servo-panel">
+          <h3><span class="label">02</span>舵机 ID</h3>
+          <div class="servo-current-id"><span class="small">当前选中的 ID</span><strong id="servoCurrentId">10</strong></div>
+          <div class="settings-field"><label for="servoNewId">新的 ID（0–253）</label><input id="servoNewId" type="number" min="0" max="253" placeholder="例如 10" disabled></div>
+          <div class="checklist"><label><input id="servoIsolatedConfirmed" type="checkbox" disabled><span>总线上只连接待改号的这一只舵机</span></label><label><input id="servoMappingConfirmed" type="checkbox" disabled><span>我了解修改编号后需要核对关节对应关系</span></label></div>
+          <button class="button primary" id="servoRename" type="button" disabled>写入新 ID</button>
+          <p class="note" style="margin-top:12px">新 ID 被占用时会拒绝写入。修改后，原编号与关节的对应关系需要重新核对，已有校准会保留。</p>
+        </div>
+      </div>
+      <div class="servo-scan-panel">
+        <div class="card-heading"><h3>舵机供电电压</h3><button class="button primary" id="servoVoltages" type="button" disabled>采集舵机电压</button></div>
+        <p class="note">每次点击读取 15 个舵机各自的供电电压，不开启扭矩。请先停止并断开运控、结束校准采集，再读取。</p>
+        <p id="servoVoltageSummary" role="status" aria-live="polite">尚未采集电压。</p>
+        <div class="table-wrap"><table aria-label="舵机电压采样记录"><thead><tr><th>关节</th><th>电压</th><th>采样状态</th><th>采样时间</th></tr></thead><tbody id="servoVoltageRows"></tbody></table></div>
+        <p class="note">这是舵机端电压，会包含线缆压降；不是电池剩余电量。电压按 0.1 V 换算，首次读数请与电池检测器核对。断开舵机供电后，未响应不能当作 0 V。</p>
+      </div>
+      <div class="servo-scan-panel"><h3>扫描结果</h3><p class="note" id="servoScanResult">点击上方「一键扫描 ID 和位置」。结果保留供选择，实际状态以新鲜读回为准。</p><div class="table-wrap"><table aria-label="扫描到的舵机"><thead><tr><th>舵机 ID</th><th>扫描时的位置</th><th>角度</th><th>扭矩</th></tr></thead><tbody id="servoScanRows"></tbody></table></div></div>
+      <div class="servo-scan-panel"><h3>操作记录</h3><div id="servoLogs" class="servo-log-list" role="log" aria-live="polite"><p class="note">读取和操作结果将显示在这里。</p></div></div>
+    </div>
+  </section>
+  <section class="card" id="joint-zeros" aria-labelledby="zeroTitle">
+    <div class="card-heading"><h2 id="zeroTitle"><span class="label">ZERO</span>逐舵机记零点</h2><span class="small">实测采集 · 只修改所选关节</span></div>
+    <div class="card-body">
+      <p class="note">原来的「记零点」在这里。只重采需要核对的关节；保存后该关节的方向与安全范围需重新采集，其他关节和 IMU 保留。</p>
+      <div class="table-wrap" style="margin:14px 0"><table aria-label="逐舵机机械零点"><thead><tr><th>关节</th><th>当前实测编码器</th><th>已保存零点</th><th>方向与范围</th><th>操作</th></tr></thead><tbody id="zeroRows"></tbody></table></div>
+      <div class="joint-select"><label for="zeroJointSelect">这次记零点</label><select id="zeroJointSelect" aria-label="选择要重采零点的关节"></select><strong id="zeroSelectedLabel" class="small"></strong></div>
+      <p id="zeroHardwareStatus" class="note" role="status"></p>
+      <div class="banner"><strong>摆到模型零姿态 q = 0，停稳后记零点。</strong>使用下图左侧「零姿态」正视和侧视作参考。右侧「默认姿态」是弯腿站姿，不能作为零点；遇到阻挡不要硬推。嘴部以轻合位置为零。</div>
+      <img class="reference-image" src="/assets/zero-reference.png" alt="模型零姿态正视、侧视及默认站姿对照" loading="lazy">
+      <div id="zeroEditorHome"><div id="zeroEditor" class="inline-zero-editor">
+      <h3 id="zeroEditorTitle">记当前关节零点</h3>
+      <div class="checklist"><label><input id="zeroSupportConfirmed" type="checkbox" disabled><span>机身已由垫块或支架托稳，双脚不承重</span></label></div>
+      <div class="checklist"><label><input id="zeroReferenceConfirmed" type="checkbox" disabled><span id="zeroReferenceLabel">已按模型零姿态摆好所选关节</span></label></div>
+      <div class="joint-readings" id="zeroReadings"><div id="zeroOldBox"><small>已保存零点</small><strong id="zeroOldReading">—</strong></div><div id="zeroLiveBox"><small>当前实测编码器</small><strong id="zeroLiveReading">—</strong></div><div><small>本次候选零点 · 尚未保存</small><strong id="zeroCandidateReading">—</strong></div></div>
+      <div class="settings-actions"><button class="button primary" id="zeroCapture" type="button" disabled>记零点</button><button class="button" id="zeroSave" type="button" disabled>保存零点</button><button class="button" id="zeroCancel" type="button" disabled>取消</button><button class="button" id="zeroCancelJointDraft" type="button" hidden disabled>取消未保存方向 / 范围步骤</button></div>
+      <progress id="zeroProgress" value="0" max="1" hidden aria-label="机械零点静止采样进度" style="width:100%;margin-top:12px"></progress>
+      <div id="zeroResult" class="wizard-result current-result" role="status" aria-live="polite">选择关节、对照零姿态摆稳，勾选确认后点击「记零点」。采样只生成预览，点击保存后才修改零点。</div>
+      <p id="zeroGate" class="note" role="status" style="margin-top:10px"></p>
+      </div></div>
+      <div class="settings-actions"><button class="button primary" id="recoverFeedbackInZeros" type="button" disabled>继续关节采集</button><a class="button" href="#joint-steps">继续关节方向与范围 →</a></div>
+    </div>
+  </section>
+  <section class="card" id="joint-steps" aria-labelledby="jointTitle">
+    <div class="card-heading"><h2 id="jointTitle"><span class="label">JOINT</span>逐关节校准 · 方向与安全范围</h2><span id="jointCompletedCount" class="small">— / 15 完成</span></div>
+    <div class="card-body">
+      <p id="jointProgressSummary" class="note">正在读取已保存的关节校准。</p>
+      <p id="jointSavedSummary" class="note" role="status" style="margin:6px 0 14px">正在读取哪些关节已完成并保存。</p>
+      <div class="joint-auto-statuses" aria-label="自动读取的真机状态" role="status" aria-live="polite">
+        <div class="joint-auto-status" id="jointOnlineStatusCard" data-state="unknown"><span>舵机在线</span><strong id="jointOnlineStatus">— / 15</strong></div>
+        <div class="joint-auto-status" id="jointTorqueStatusCard" data-state="unknown"><span>舵机扭矩</span><strong id="jointTorqueStatus">未确认</strong></div>
+        <div class="joint-auto-status" id="jointControllerStatusCard" data-state="unknown"><span>控制器</span><strong id="jointControllerStatus">未确认</strong></div>
+      </div>
+      <div class="joint-support-confirmation"><p class="note">这三项状态由设备自动读取，无需自己勾选在线或扭矩。全部舵机在线且实际扭矩已关闭后，才可确认支撑、手动轻摆。</p><div class="checklist"><label><input id="jointSupportConfirmed" type="checkbox" disabled><span>支撑确认：机身已由垫块或支架托稳，双脚不承重</span></label></div></div>
+      <div id="jointRecoveryControls" class="wizard-footer" hidden><p id="jointRecoveryStatus" class="note" role="status" aria-live="polite"></p><button class="button primary" id="recoverFeedbackInJoints" type="button" disabled>继续采集</button></div>
+      <div class="joint-select"><label for="jointSelect">当前关节</label><select id="jointSelect" aria-label="选择要手动校准的关节"></select><strong id="jointSelectedState" class="small" role="status">等待校准数据</strong></div>
+      <p id="jointSelectionHint" class="note" style="margin-bottom:12px" role="status">每个关节完成下面 5 步后保存。选择另一个关节时，参考图才会切换。</p>
+      <div class="banner"><strong>A / B：慢慢记录当前关节两侧的安全位置。</strong>腿部跟着移动不用强行锁住。托住腿的自重，尽量保持其余关节的参考姿态，不额外掰开其他关节来扩大范围。只记录不擦碰、留有明显间隙的位置；真实范围不足时，先停下核对，不要为了数字硬掰。</div>
+      <div class="joint-layout">
+        <div class="joint-reference">
+          <svg id="jointDirectionDiagram" viewBox="20 104 303 371" role="img" aria-label="所选关节的原项目零姿态与正方向对照"><image href="/assets/positive-direction.png" x="0" y="0" width="1600" height="1350"/></svg>
+          <svg id="jointMouthDiagram" viewBox="0 0 310 350" role="img" aria-labelledby="jointMouthTitle jointMouthDescription" hidden>
+            <title id="jointMouthTitle">34 · 嘴部开合</title>
+            <desc id="jointMouthDescription">上图嘴部轻合为零点，下图绿色下嘴张开为正方向。仅示意开合，不表示实物结构尺寸或限位角度。</desc>
+            <text x="14" y="29" fill="#526e66" font-size="21">34 · 嘴部开合</text>
+            <text x="14" y="52" fill="#708079" font-size="12">侧面示意 · 鸭嘴朝右</text>
+            <g transform="translate(20 65)">
+              <path d="M42 65Q30 8 100 7Q156 3 195 37L242 37L242 66Z" fill="#c2cbc5" stroke="#9cab9f" stroke-width="1.5"/>
+              <path d="M62 70H242L236 81H64Z" fill="#c2cbc5" stroke="#9cab9f" stroke-width="1.5"/>
+              <circle cx="64" cy="70" r="4" fill="#708079"/>
+              <text x="0" y="109" fill="#526e66" font-size="14">轻合 · 零点</text>
+            </g>
+            <path d="M15 190H295" stroke="#dce4d6"/>
+            <g transform="translate(20 207)">
+              <path d="M42 65Q30 8 100 7Q156 3 195 37L242 37L242 66Z" fill="#c2cbc5" stroke="#9cab9f" stroke-width="1.5"/>
+              <path d="M62 70H242L236 81H64Z" transform="rotate(14 64 70)" fill="#168575" stroke="#0b6f65" stroke-width="1.5"/>
+              <circle cx="64" cy="70" r="4" fill="#0b6f65"/>
+              <path d="M248 73Q259 88 250 107M244 100L250 110L258 103" fill="none" stroke="#0b6f65" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <text x="0" y="127" fill="#0b6f65" font-size="14">轻轻张开 · 正方向</text>
+            </g>
+          </svg>
+          <p id="jointReferenceCopy" class="note">灰色是模型零姿态，绿色是该关节的正方向。只小幅朝绿色方向轻摆，不用达到图中 +10°。</p>
+          <p id="jointReferenceCaution" class="note" style="margin-top:8px">图只说明模型方向。结合本机实际装配辨认关节；不要盲选方向，也不要用图上的角度当机械限位。</p>
+          <p id="jointAssetError" class="note" role="alert" hidden>原项目方向图尚未加载，采样暂不可用。</p>
+          <a id="jointFullReferenceLink" class="small" href="/assets/positive-direction.png" target="_blank" rel="noopener">查看完整原项目方向图 ↗</a>
+        </div>
+        <div>
+          <div class="joint-readings"><div><small>已保存机械零点</small><strong id="jointOriginalZero">—</strong></div><div><small>当前实测编码器</small><strong id="jointLivePosition">—</strong></div><div><small>本关节已保存范围</small><strong id="jointSavedRange">—</strong></div></div>
+          <div id="jointInlineZeroSlot"></div>
+          <div class="joint-readings" aria-label="本次两端采样记录"><div><small id="jointRangeALabel">位置 A · 尚未采集</small><strong id="jointRangeAReading">—</strong></div><div><small id="jointRangeBLabel">位置 B · 尚未采集</small><strong id="jointRangeBReading">—</strong></div><div><small>两端各留余量后的范围</small><strong id="jointRangePreview">—</strong></div></div>
+          <p id="jointRangeGuide" class="note" role="status" style="margin-bottom:12px">采集后这里会显示 A、B 和范围校验参照。数字不是要求硬掰到的位置。</p>
+          <div class="checklist"><label><input id="jointPositiveConfirmed" type="checkbox" disabled><span id="jointPositiveLabel">我确实沿图中绿色正方向轻摆了这个关节</span></label></div>
+          <div id="jointCurrentResult" class="wizard-result current-result joint-result" role="status" aria-live="polite">等真实反馈就绪后，从记录当前位置开始。</div><p id="jointSampleMeta" class="sample-meta">每次停稳后采集，约 0.35–3 秒；只有保存才会修改本关节配置。</p><progress id="jointProgress" value="0" max="1" hidden aria-label="关节静止采样进度"></progress>
+          <div class="joint-actions">
+            <div class="joint-action" id="jointStartRow"><div><strong>1 · 记录起点</strong><p id="jointStartValue">让所选关节停稳。这是方向比较的起点，不是重新采零点。</p></div><button class="button primary" id="jointDirectionStart" type="button" disabled>记录当前位置</button></div>
+            <div class="joint-action" id="jointEndRow"><div><strong>2 · 朝正方向轻摆</strong><p id="jointEndValue">沿绿色方向小幅轻摆，停稳并勾选正方向确认。</p></div><button class="button" id="jointDirectionEnd" type="button" disabled>记录正方向位置</button></div>
+            <div class="joint-action" id="jointDirectionReuseRow" hidden><div><strong>已完成关节：可只复核方向</strong><p id="jointDirectionReuseDetail">沿用已保存安全范围，仅更新当前关节方向。</p></div><button class="button" id="jointReuseDirection" type="button" disabled>保存方向 · 沿用已保存范围</button></div>
+            <div class="joint-action" id="jointRangeARow"><div><strong>3 · 安全位置 A</strong><p id="jointRangeAValue">其余关节保持参考姿态。当前关节摆到一侧不擦碰、有明显间隙的位置，停稳。</p></div><button class="button" id="jointRangeA" type="button" disabled>记录安全位置 A</button></div>
+            <div class="joint-action" id="jointRangeBRow"><div><strong>4 · 安全位置 B</strong><p id="jointRangeBValue">其余关节继续保持原姿态。再记录另一侧不擦碰、有明显间隙的位置，不用判断数值大小。</p></div><button class="button" id="jointRangeB" type="button" disabled>记录安全位置 B</button></div>
+            <div class="joint-action" id="jointSaveRow"><div><strong>5 · 保存本关节</strong><p id="jointSaveValue">方向和安全范围一并保存，原零点及 IMU 保持不变。</p></div><button class="button" id="jointSave" type="button" disabled>保存本关节</button></div>
+          </div>
+          <p id="jointMarginNote" class="note">这是其余关节保持参考姿态时采到的单关节范围，不代表所有关节组合都无碰撞。需自己留明显间隙；后台保存你选择的两端，不自动缩边；检查原零点和模型默认站姿在范围内。A/B 范围不设半圈跨度上限，按编码器较小值到较大值保存；跨 4095→0 的范围不支持。</p>
+          <div class="joint-bottom"><button class="button" id="jointCancel" type="button" disabled>取消未保存步骤 / 重来</button><button class="button" id="jointNext" type="button" disabled>下一个未完成关节 →</button></div>
+          <p id="jointGate" class="note" style="margin-top:10px">等待新鲜反馈、15 个舵机在线且实际扭矩关闭。</p>
+        </div>
+      </div>
+      <p id="jointAllDone" class="banner" style="margin-top:18px" hidden>15 个关节的方向和安全范围已保存，等待下一步受控实机检查；本页没有使能或模型运动按钮。</p>
+    </div>
+    <details><summary>查看 15 个已保存零点、方向与安全范围</summary><div class="table-wrap"><table><thead><tr><th>关节</th><th>已保存零点</th><th>方向核实</th><th>已保存安全范围</th></tr></thead><tbody id="jointRows"></tbody></table></div><p class="cal-note">所有配置保存在当前笔记本，可随时导出 JSON；只有在「机械零点」明确采样并保存，才修改所选零点。</p></details>
+    <details><summary>查看原项目模型零姿态参考</summary><div class="card-body"><img class="reference-image" src="/assets/zero-reference.png" alt="原项目模型零姿态正视、侧视与默认站姿参考" loading="lazy"></div></details>
+  </section>
+  <section class="card" id="imu-live" aria-labelledby="readingsTitle"><div class="card-heading"><h2 id="readingsTitle"><span class="label">LIVE</span>IMU 实时数据</h2><span class="small" id="freshnessLabel">等待真实反馈</span></div><div class="card-body">
+    <div class="live-grid">
+      <div class="reading"><div class="reading-title">传感器加速度<span>m/s² · 含重力</span></div><div class="vector"><div><small>X</small><strong id="accX">—</strong></div><div><small>Y</small><strong id="accY">—</strong></div><div><small>Z</small><strong id="accZ">—</strong></div></div></div>
+      <div class="reading"><div class="reading-title">传感器角速度<span>°/s</span></div><div class="vector"><div><small>X</small><strong id="gyroX">—</strong></div><div><small>Y</small><strong id="gyroY">—</strong></div><div><small>Z</small><strong id="gyroZ">—</strong></div></div></div>
+    </div>
+    <div class="meta-line"><span id="sampleTimestamps" class="mono">采样时间：—</span><span id="hardwareSummary">舵机电池断开时，舵机离线是预期状态。</span></div>
+    <p class="note" id="liveNote">超过 500 毫秒没有新反馈时，实时数值会隐藏。页面不会自动重新连接硬件。</p>
+  </div></section>
+  <section class="card" id="imu-steps" aria-labelledby="wizardTitle"><div class="card-heading"><h2 id="wizardTitle"><span class="label">IMU</span>IMU 四步校准 · 跟着摆 4 次</h2><span class="small">每次约 4 秒，最多 8 秒</span></div><div class="card-body">
+    <p class="note" style="margin-bottom:10px">IMU 已保存时无需重做。若要重做这四步，先断开 URT2 电池；关节校准需要电池供电，两项采样不能同时进行。</p><p class="install-copy">把 IMU 牢固固定在<span style="font-weight:650">躯干上</span>，靠近机身中部即可。平贴在与躯干底面平行的平整面，板边沿机身前后或左右方向摆正。固定后，再开始下面的引导。若需重新安装或拧螺丝，先正常关机并断开电源。</p>
+    <div class="checklist"><label><input id="mountedConfirmed" type="checkbox" disabled><span>IMU 已固定在躯干，不会晃动</span></label><label><input id="supportConfirmed" type="checkbox" disabled><span>机身由垫块或支架承重，双脚不承重</span></label></div>
+    <p class="note">图中鸭子来自原项目的模型参考图。只看躯干倾斜方向，关节不需要恢复零姿态。每次先摆稳、停静，再点击对应按钮。</p>
+    <div class="wizard-result current-result" id="wizardCurrentResult" role="status" aria-live="polite">等待 IMU 反馈，尚未开始采样。</div><p class="sample-meta" id="wizardSampleMeta">每步需要至少 100 个有效样本；只有通过本步检查才会开放下一步。</p>
+    <div id="recoveryWizardControls" class="wizard-footer" hidden><p id="recoveryWizardStatus" class="note" role="status" aria-live="polite"></p><button class="button primary" id="recoverFeedbackInWizard" type="button" disabled>继续采集</button></div>
+    <div class="steps">
+      <article class="pose" id="poseLevel"><h3><b>1</b>放平机身</h3><svg viewBox="0 0 300 270" role="img" aria-label="原项目鸭子侧视图，躯干水平并由支架承重，鸭嘴朝右"><g><svg x="68" y="26" width="164" height="204" viewBox="525 175 335 505" preserveAspectRatio="xMidYMid meet" overflow="hidden"><image href="/assets/zero-reference.png" x="0" y="0" width="1400" height="840"/></svg></g><g><path d="M29 245H271" stroke="#c6d1d6" stroke-width="2"/><path d="M137 243V171H163V243M127 171H173" fill="#e3eaee" stroke="#9eafb7" stroke-width="2"/></g><text x="20" y="17" fill="currentColor" font-size="12">侧面看 · 鸭嘴方向 →</text><text x="76" y="262" fill="currentColor" font-size="11">躯干水平，脚不承重</text></svg><p>躯干底面放平，保持静止。</p><button class="button primary" id="wizardLevel" type="button" disabled>采集水平姿态</button></article>
+      <article class="pose" id="poseFront"><h3><b>2</b>抬高前端</h3><svg viewBox="0 0 300 270" role="img" aria-label="原项目鸭子侧视图，抬高鸭嘴一端约二十至四十度"><g transform="rotate(-25 150 150)"><svg x="68" y="26" width="164" height="204" viewBox="525 175 335 505" preserveAspectRatio="xMidYMid meet" overflow="hidden"><image href="/assets/zero-reference.png" x="0" y="0" width="1400" height="840"/></svg></g><g><path d="M29 245H271" stroke="#c6d1d6" stroke-width="2"/><path d="M137 243V171H163V243M127 171H173" fill="#e3eaee" stroke="#9eafb7" stroke-width="2"/></g><path d="M258 113V68M252 76L258 65L264 76" fill="none" stroke="#25767f" stroke-width="3"/><text x="20" y="17" fill="currentColor" font-size="12">侧面看 · 鸭嘴方向 →</text><text x="67" y="262" fill="currentColor" font-size="11">抬高鸭嘴一端约 20–40°</text></svg><p>抬高鸭嘴那一端约 20–40°，左右保持平齐。</p><button class="button" id="wizardFront" type="button" disabled>采集前端抬高</button></article>
+      <article class="pose" id="poseLeft"><h3><b>3</b>抬高左侧</h3><svg viewBox="0 0 300 270" role="img" aria-label="原项目鸭子正视图，鸭子自身左侧在图右，抬高这一侧约二十至四十度"><g transform="rotate(-25 150 150)"><svg x="68" y="26" width="164" height="204" viewBox="75 175 355 505" preserveAspectRatio="xMidYMid meet" overflow="hidden"><image href="/assets/zero-reference.png" x="0" y="0" width="1400" height="840"/></svg></g><g><path d="M29 245H271" stroke="#c6d1d6" stroke-width="2"/><path d="M137 243V171H163V243M127 171H173" fill="#e3eaee" stroke="#9eafb7" stroke-width="2"/></g><path d="M258 113V68M252 76L258 65L264 76" fill="none" stroke="#25767f" stroke-width="3"/><text x="20" y="17" fill="currentColor" font-size="12">从鸭嘴正前方看</text><text x="57" y="262" fill="currentColor" font-size="11">鸭子左侧（图右边）抬高</text></svg><p>先回水平，再抬高鸭子自己的左侧约 20–40°。</p><button class="button" id="wizardLeft" type="button" disabled>验证左侧抬高</button></article>
+      <article class="pose" id="poseFinish"><h3><b>4</b>回到水平</h3><svg viewBox="0 0 300 270" role="img" aria-label="原项目鸭子侧视图，躯干恢复水平，静止后完成保存"><g><svg x="68" y="26" width="164" height="204" viewBox="525 175 335 505" preserveAspectRatio="xMidYMid meet" overflow="hidden"><image href="/assets/zero-reference.png" x="0" y="0" width="1400" height="840"/></svg></g><g><path d="M29 245H271" stroke="#c6d1d6" stroke-width="2"/><path d="M137 243V171H163V243M127 171H173" fill="#e3eaee" stroke="#9eafb7" stroke-width="2"/></g><text x="20" y="17" fill="currentColor" font-size="12">侧面看 · 鸭嘴方向 →</text><text x="76" y="262" fill="currentColor" font-size="11">恢复水平，静止后保存</text></svg><p>重新放平，保持静止，完成朝向与静止校准。</p><button class="button" id="wizardFinish" type="button" disabled>完成并保存校准</button></article>
+    </div>
+    <div id="referenceAssetError" class="asset-error" role="alert" hidden>模型参考图未加载，请先恢复图片显示再开始引导。</div>
+    <div class="wizard-result" id="wizardResult" role="status" aria-live="polite">固定 IMU 并确认机身支撑后，从第 1 步开始。</div><progress id="sampleProgress" value="0" max="1" hidden aria-label="本步采样进度"></progress>
+    <div class="wizard-footer"><p class="note" id="wizardGate">等待新鲜的 IMU 反馈。</p><button class="button" id="wizardCancel" type="button" disabled>取消本次 / 重新开始</button></div>
+    <div class="saved-result"><strong id="savedMountingTitle">机身朝向：待识别</strong><p id="savedMountingDetail">完成四步后，网页会保存朝向和静止角速度偏置。15 个关节零点保持不变。</p><p class="note">IMU 固定后，位置或朝向发生改变，需要重新做这四步。</p></div>
+  </div></section>
+
+  <section class="card" id="motion-models" aria-labelledby="motionTitle" hidden>
+    <div class="card-heading"><h2 id="motionTitle"><span class="label">MOTION</span>模型部署与运动控制</h2><button class="button primary" id="motionConnect" type="button" disabled>连接并载入模型</button></div>
+    <div class="card-body">
+      <div class="wizard-footer" id="motionRecoveryControls">
+        <p class="note" id="motionRecoveryStatus" role="status" aria-live="polite">检查连接与舵机状态，通过后即可自行连接模型。</p>
+        <button class="button" id="motionRecheck" type="button" disabled>重新检查连接与舵机</button>
+      </div>
+      <div class="overview-grid">
+        <div class="overview-stat"><span>模型运行位置</span><strong id="motionHost">尚未部署</strong></div>
+        <div class="overview-stat"><span>运控模型</span><strong id="motionModelsCount">0 / 4</strong></div>
+        <div class="overview-stat"><span>已载入校准</span><strong id="motionCalibration">等待部署</strong></div>
+        <div class="overview-stat"><span>最近动作反馈</span><strong id="motionMode">停止</strong></div>
+      </div>
+      <p id="motionDeploymentDetail" class="source-note">连接时自动载入本页保存的零点、方向、安全范围和 IMU 校准。</p>
+      <div class="table-wrap"><table class="device-table"><thead><tr><th>模型</th><th>运行状态</th><th>输入 / 输出</th><th>触发条件</th></tr></thead><tbody id="motionModelRows"></tbody></table></div>
+      <div class="capability-note" role="status" aria-live="polite"><strong id="motionStatusTitle">等待连接 X5</strong><p id="motionStatusMessage">点击「连接并载入模型」。会先结束校准采集，关闭原串口，再建立运控连接。</p></div>
+      <p class="note" id="motionFocusHint">固定站姿由 X5 独立保持，切换、刷新或关闭网页不会打断；点击停止按钮或硬件反馈异常时释放扭矩。机身仍需支撑。平衡与行走等动作离开页面或网页控制超时时停止。</p>
+      <p class="note" id="motionBalanceHint">先缓慢进入固定站姿，再单独启动站立平衡。固定站姿只保持关节角度，不会根据机身倾斜调整姿态；站立平衡使用零速度行走模型，会持续根据 IMU 和关节反馈调整目标，也可能小幅踏步。模型效果尚需本机验证，支撑装置须继续防止跌落。</p>
+      <div class="capability-note" id="motionImuPosture" role="status" aria-live="polite">
+        <strong>实时机身 IMU 姿态</strong>
+        <div class="joint-readings" style="margin-top:10px"><div><small>总倾角</small><strong id="motionImuTilt">—</strong></div><div><small>前后倾角</small><strong id="motionImuPitch">—</strong></div><div><small>左右倾角</small><strong id="motionImuRoll">—</strong></div></div>
+        <p id="motionImuFreshness" class="note">等待新鲜的 IMU 姿态；旧角度不会继续显示。</p>
+        <div class="settings-actions"><button class="button" id="motionImuRead" type="button" disabled>读取 IMU 姿态 · 不动作</button><button class="button" id="motionImuEnd" type="button" disabled>停止 IMU 读取</button></div>
+        <p id="motionImuReadStatus" class="note" role="status">等待独立 IMU 读取条件。舵机电池断开时也可读取；X5 与 ESP32 需保持供电。</p>
+        <p class="note">固定站姿期间，机身总倾角达到 15° 会停止。启动站立平衡前仍须小于 15°；关节到位不能证明独立站稳，机身仍需支撑。</p>
+        <p id="motionWalkGateStatus" class="note">等待当前站立平衡启动条件检查。</p>
+      </div>
+      <label class="source-note">不动作预览模型 <select id="motionPreviewModel"><option value="walk">行走</option><option value="getup">起身</option><option value="pick">俯身</option><option value="roulade">翻滚</option></select></label>
+      <div class="settings-actions">
+        <button class="button" id="motionShadow" type="button" disabled>真实反馈推理 · 不动作</button>
+        <button class="button primary" id="motionStand" type="button" disabled>缓慢进入固定站姿</button>
+        <button class="button primary" id="motionWalk" type="button" disabled>启动站立平衡</button>
+        <button class="button" id="motionPick" type="button" disabled>俯身 · 单次</button>
+        <button class="button motion-stop" id="motionStop" type="button" disabled>停止运动 · 释放扭矩</button>
+        <button class="button" id="motionDisconnect" type="button" disabled>停止并断开运控</button>
+      </div>
+      <p class="note" id="motionPreviewHeadStatus" hidden></p>
+      <div class="checklist"><label><input id="motionBehaviorConfirmed" type="checkbox">起身 / 翻滚区域已清空、线缆留有余量，已铺软垫并做好防跌保护；保护装置允许机身翻转</label></div>
+      <div class="settings-actions">
+        <button class="button" id="motionGetup" type="button" disabled>起身 · 单次</button>
+        <button class="button" id="motionRoulade" type="button" disabled>翻滚 · 单次</button>
+      </div>
+      <p id="motionBehaviorHint" class="note">起身、俯身和翻滚为单次模型测试，结束后停止并释放扭矩；先使用“不动作预览”，再逐项验证实际动作。</p>
+      <p class="notice error" id="motionActionResult" role="status" hidden></p>
+      <div id="motionDrive" class="motion-drive" hidden>
+        <p class="note">按住移动，松开恢复零速度平衡。切换功能、离开页面或连接超时会停止运动。</p>
+        <div class="settings-actions">
+          <button class="button" id="motionForward" type="button" disabled>按住前进</button>
+          <button class="button" id="motionBackward" type="button" disabled>按住后退</button>
+          <button class="button" id="motionLeft" type="button" disabled>按住左转</button>
+          <button class="button" id="motionRight" type="button" disabled>按住右转</button>
+        </div>
+      </div>
+      <div class="motion-feedback-meta"><span id="motionFeedbackState">等待反馈</span><span id="motionFeedbackAge">距反馈：尚无数据</span><span id="motionTorqueState">扭矩关闭尚未确认</span></div>
+      <p id="motionLiveDetail" class="source-note">尚未收到运控反馈。</p>
+      <p id="motionVoltageSummary" class="note" role="status" aria-live="polite"></p>
+      <p class="note motion-voltage-note">舵机端电压 · 工作范围 4–8.4 V；按 0.1 V 换算，首次请与电池检测器核对。读不到不代表 0 V。</p>
+      <div class="settings-actions"><button class="button" id="saveRangeBoundaries" type="button" disabled>将越界读数设为区间边界</button></div>
+      <p class="note" id="motionRangeUpdateHint">仅保存越界关节的边界，不驱动舵机；保存会断开运控，随后请重新连接。</p>
+      <div class="table-wrap motion-table-wrap"><table class="device-table" id="motionJointTable"><thead><tr><th>关节</th><th>最近实际位置</th><th>安全范围</th><th>默认站姿</th><th>模型目标 °</th><th>读数检查</th><th>供电电压</th></tr></thead><tbody id="motionJointRows"></tbody></table></div>
+      <p class="note" style="margin-top:14px">四个模型在 X5 CPU 运行。踏步、俯身和翻滚从站姿到位后启动；起身从停止状态或已到位站姿单独启动。俯身运行 4 秒、翻滚约 1.9 秒；起身先保持默认姿态 1 秒，再运行恢复模型，最长 8 秒。单次运行结束会停止并释放扭矩。模型目标越界或反馈异常时立即停止并显示原因。模型已加载不代表对应实际动作已验证。部署保存在 X5 内存中；重启后重新连接会复查板卡身份和日志。</p>
+    </div>
+  </section>
+
+  <footer><span id="sessionTime">真机反馈采集 · 等待状态</span><span>校准保存在笔记本 · 动作由运控页启动</span></footer>
+</main>
+</div>
+<script>
+'use strict';
+const localFilePage=globalThis.location?.protocol==='file:';
+const el=id=>document.getElementById(id);
+const motorIds=[10,11,12,13,14,20,21,22,23,24,30,31,32,33,34];
+const jointSpecs=[{id:10,name:'左髋旋转',tile:[0,0]},{id:11,name:'左髋侧摆',tile:[1,0]},{id:12,name:'左髋俯仰',tile:[2,0]},{id:13,name:'左膝',tile:[3,0]},{id:14,name:'左踝',tile:[4,0]},{id:20,name:'右髋旋转',tile:[4,1]},{id:21,name:'右髋侧摆',tile:[0,2]},{id:22,name:'右髋俯仰',tile:[1,2]},{id:23,name:'右膝',tile:[2,2]},{id:24,name:'右踝',tile:[3,2]},{id:30,name:'颈俯仰',tile:[0,1]},{id:31,name:'头俯仰',tile:[1,1]},{id:32,name:'头旋转',tile:[2,1]},{id:33,name:'头侧摆',tile:[3,1]},{id:34,name:'嘴部',tile:null}];
+// Fixed HOLD reference; ID 30 uses mechanical zero for rear-harness clearance.
+const jointDefaultDegrees=[0,-.087,-.349,-.005,.349,0,.087,.349,.005,-.349,0,.349,0,0,0].map(v=>v*180/Math.PI);
+// Fixed HOLD reference; preserve the policy's metadata and mechanical zeros.
+jointDefaultDegrees[2]+=1;jointDefaultDegrees[4]-=1;
+jointDefaultDegrees[7]-=1;jointDefaultDegrees[9]+=1;
+const legacyStandDegrees=[0,-5,-23,0,23,0,5,23,0,-23,0,20,0,0,0];
+const jointSteps=[['direction-start','jointDirectionStart','jointStartRow','记录当前位置'],['direction-end','jointDirectionEnd','jointEndRow','记录正方向位置'],['range-a','jointRangeA','jointRangeARow','记录安全位置 A'],['range-b','jointRangeB','jointRangeBRow','记录安全位置 B'],['save','jointSave','jointSaveRow','保存本关节']];
+const jointStageActions={'idle':'direction-start','failed':'direction-start','cancelled':'direction-start','complete':'direction-start','saved':'direction-start','await-positive':'direction-end','await-range-a':'range-a','await-range-b':'range-b','ready':'save'};
+const steps=[['level','wizardLevel','poseLevel','采集水平姿态'],['front-up','wizardFront','poseFront','采集前端抬高'],['left-up','wizardLeft','poseLeft','验证左侧抬高'],['finish','wizardFinish','poseFinish','完成并保存校准']];
+const workspaceRoutes=[
+  {key:'device-status',nav:'navDevice',title:'设备状态',subtitle:'查看舵机、控制器和 IMU 的真实反馈，以及已保存的校准。',sections:['device-status'],instructionTitle:'设备状态由当前采集会话提供。',instructionCopy:'停止或超时后，实时数值会隐藏。已保存的零点、IMU 和关节校准继续保留。'},
+  {key:'servo-settings',nav:'navServos',title:'舵机工作台',subtitle:'连接、回中、设置编号。沿用旧工作台的常用操作。',sections:['servo-settings'],instructionTitle:'点击「一键扫描 ID 和位置」，从结果中选择舵机。',instructionCopy:'校准采集仍在进行时，先结束采集。供电故障或连接关闭尚未确认时，工作台会显示原因并暂停操作。'},
+  {key:'joint-zeros',nav:'navZeros',title:'机械零点 · 逐舵机记零点',subtitle:'对照模型零姿态，选择关节，采样预览后再保存。',sections:['joint-zeros'],instructionTitle:'记零点：舵机供电，全部在线、扭矩关闭，机身由支撑承重。',instructionCopy:'只记录所选关节的模型零姿态；保存后重采该关节方向和范围，其他关节及 IMU 保留。'},
+  {key:'joint-steps',nav:'navJoints',title:'关节方向与安全范围',subtitle:'已保存的零点和 IMU 继续保留。手动轻摆，网页只记录实测位置。',sections:['joint-steps'],instructionTitle:'关节校准：垫稳机身，双脚不承重。',instructionCopy:'供电问题处理并恢复反馈后，15 个舵机全部在线、反馈新鲜且实际扭矩关闭，才可以手动轻摆关节。卡住时不要生掰，不要拉扯电线。'},
+  {key:'motion-models',nav:'navMotion',title:'运控模型',subtitle:'在 X5 运行模型，载入已保存校准，由按钮启动运动。',sections:['motion-models'],instructionTitle:'运控使用已保存校准，连接和部署不启动动作。',instructionCopy:'保持机身有支撑。先进入固定站姿，关节到位后单独启动站立平衡；停止按钮释放扭矩，支撑需要继续托住机身。'},
+  {key:'imu-steps',nav:'navImu',title:'IMU 四步校准',subtitle:'固定 IMU，跟图摆稳，点击采样。不需要自己设置 XYZ。',sections:['imu-live','imu-steps'],instructionTitle:'IMU 校准：保持 URT2 电池断开，X5 与 ESP32 保持供电。',instructionCopy:'IMU 采样不需要舵机供电。机身用稳固垫块或支架托住；调整姿态时不要拉扯电线。已保存的 IMU 无需重复校准。'}
+];
+let workspaceView='device-status',selectedServoId=10,maintenanceError='',maintenanceExitBusy=false,maintenanceOperationEpoch=0,lastMaintenanceLogSignature='',lastServoScanSignature='';
+const maintenanceTargets=new Map(),maintenanceLogs=[];
+let motionBusy=false,motionHeartbeatBusy=false,motionCommandBusy=false,motionError='',motionRequestTimeout=null,motionLastHeartbeat=-Infinity,motionDriveEpoch=0,motionDesired=[0,0,0];
+let motionHeartbeatTransientError='',motionHeartbeatAttempts=[];
+let motionControl=null,motionReceipt=null,motionActionEpoch=0;
+let displayUpdatesPaused=false,lastDisplayPoll=-Infinity,displayPollAbort=null;
+let motionConfirmationKey=null,motionConfirmationStop=null;
+const motionControlId=globalThis.crypto?.randomUUID?.().replaceAll('-','')||Array.from({length:16},()=>Math.floor(Math.random()*256).toString(16).padStart(2,'0')).join('');
+const motionRows=new Map(),motionModelRows=new Map();
+let motionDisplayKey=null,motionDisplayImu=null,motionDisplayHardware=null;
+const motionDisplayJoints=new Map();
+let snapshot=null,receivedAt=null,pollBusy=false,pollPromise=null,snapshotRevision=0,requestBusy=false,requestAction=null,fetchError='',actionError='',actionErrorAction=null,actionErrorGeneration=null,endError='',recoveryError='',recoveryPhase='idle',recoveryAttemptGeneration=null,assetOk=false,positiveAssetOk=false,selectedJointId=10,jointSelectionInitialized=false,jointError='',jointErrorAction=null,jointErrorGeneration=null,jointErrorId=null;
+const jointOptionElements=new Map();
+for(const spec of jointSpecs){const option=document.createElement('option');option.value=String(spec.id);option.textContent='ID '+spec.id+' · '+spec.name+' · 等待读取';el('jointSelect').append(option);jointOptionElements.set(spec.id,option);}
+let zeroError='',zeroErrorGeneration=null,zeroErrorId=null;
+const zeroElements=new Map();
+for(const spec of jointSpecs){const option=document.createElement('option');option.value=String(spec.id);option.textContent='ID '+spec.id+' · '+spec.name;el('zeroJointSelect').append(option);const row=document.createElement('tr'),cells=[];for(let i=0;i<5;i++){const cell=document.createElement('td');row.append(cell);cells.push(cell);}cells[0].textContent='ID '+spec.id+' · '+spec.name;const button=document.createElement('button');button.type='button';button.className='button';button.textContent='选择并记零点';button.setAttribute('aria-label','ID '+spec.id+' 选择并记零点');button.onclick=()=>{chooseJoint(spec.id);el('zeroJointSelect').scrollIntoView?.({behavior:'smooth',block:'start'});};cells[4].append(button);el('zeroRows').append(row);zeroElements.set(spec.id,{row,live:cells[1],saved:cells[2],state:cells[3],button});}
+const jointElements=new Map();
+for(const id of motorIds){const row=document.createElement('tr');const cells=[];for(let i=0;i<4;i++){const cell=document.createElement('td');row.append(cell);cells.push(cell);}cells[0].textContent='ID '+id+' · '+jointSpecs.find(spec=>spec.id===id).name;for(const cell of cells.slice(1))cell.textContent='—';el('jointRows').append(row);jointElements.set(id,cells);}
+const deviceElements=new Map();
+for(const spec of jointSpecs){
+  const row=document.createElement('tr'),cells=[];
+  for(let i=0;i<6;i++){const cell=document.createElement('td');row.append(cell);cells.push(cell);}
+  cells[0].textContent=String(spec.id);cells[1].textContent=spec.name;cells[2].className='device-state';
+  el('deviceRows').append(row);deviceElements.set(spec.id,{state:cells[2],position:cells[3],torque:cells[4],calibration:cells[5]});
+  const option=document.createElement('option');option.value=String(spec.id);option.textContent='ID '+spec.id+' · '+spec.name;el('servoSelect').append(option);
+}
+const stepResults=new Map();
+for(const [action,,poseId] of steps){const status=document.createElement('div');status.className='pose-status';status.id=poseId+'Status';status.textContent='尚未采样';const progress=document.createElement('progress');progress.max=1;progress.value=0;progress.hidden=true;progress.setAttribute('aria-label','本步采样进度');el(poseId).append(status,progress);stepResults.set(action,{status,progress});}
+for(const [name,label] of [['walk','行走'],['getup','起身'],['pick','俯身'],['roulade','翻滚']]){const row=document.createElement('tr'),cells=[];for(let i=0;i<4;i++){const cell=document.createElement('td');row.append(cell);cells.push(cell);}cells[0].textContent=label+' · '+name;el('motionModelRows').append(row);motionModelRows.set(name,cells);}
+for(const spec of jointSpecs){const row=document.createElement('tr'),cells=[],labels=['关节','最近实际位置','安全范围','默认站姿','模型目标 °','读数检查','供电电压'];for(let i=0;i<7;i++){const cell=document.createElement('td');cell.dataset.label=labels[i];row.append(cell);cells.push(cell);}cells[0].textContent='ID '+spec.id+' · '+spec.name;el('motionJointRows').append(row);motionRows.set(spec.id,cells);}
+let motionRangeUpdateMessage='',motionRangeUpdateBusy=false;
+function motionRangeUpdates(){const h=snapshot?.motion?.hardware;return (h?.rawdata||[]).flatMap(row=>{const j=calibrationJoint(row.id);return motorIds.includes(row.id)&&h.online_ids?.includes(row.id)&&encoder(row.position)&&j&&encoder(j.min)&&encoder(j.max)&&(row.position<j.min||row.position>j.max)?[{id:row.id,position:row.position,min:j.min,max:j.max}]:[];});}
+function motionRangeUpdateReason(){
+  const m=snapshot?.motion,h=m?.hardware,elapsed=receivedAt===null?Infinity:Math.max(0,performance.now()-receivedAt);
+  if(motionRangeUpdateBusy)return '正在保存边界，请等待结果；不会重复提交。';
+  if(motionBusy||requestBusy)return '上一项操作尚未结束，请等待结果。';
+  if(localFilePage||!snapshot?.native_access?.full_workbench)return '请打开 X5 工作台后保存边界。';
+  if(!motionConnectionEstablished()){
+    const error=m?.last_operation?.state==='failed'?m.last_operation.error:m?.error;
+    return '请点击“连接并载入模型”恢复位置读取，再保存边界；连接不会启动动作。'+(error?' 上次连接已结束：'+feedbackErrorText(error)+'。表格中的保留读数不能用于本次保存。':'');
+  }
+  if(h?.mode!=='off'||h?.armed!==false||h?.release_confirmed!==true||(h?.torque_ids||[]).length)return '请先点击“停止运动 · 释放扭矩”，确认扭矩全关后再保存边界。';
+  // Display polling is once a second. The save endpoint checks the actual
+  // controller sample against its unchanged 100 ms physical freshness gate.
+  if(fetchError||!Number.isFinite(h?.age_ms)||h.age_ms<0||h.age_ms+elapsed>=2500)return '页面反馈尚未更新，请等待当前读数恢复后再保存。';
+  if(!motionRangeUpdates().length)return '没有可更新的越界读数。';
+  return '';
+}
+async function expandMotionRanges(){
+  if(motionRangeUpdateBusy||el('saveRangeBoundaries').disabled)return;
+  const updates=motionRangeUpdates(),pageGeneration=motionPageGeneration(),generation=snapshot?.motion?.hardware?.generation;
+  motionRangeUpdateMessage='';motionRangeUpdateBusy=true;renderMotion();
+  const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),10000);
+  try{
+    const response=await fetch('/api/motion',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':snapshot.token},credentials:'same-origin',signal:abort.signal,body:JSON.stringify({action:'expand-feedback-ranges',page_generation:pageGeneration,generation,control_id:motionControlId,updates})});
+    const result=await response.json();if(!response.ok)throw new Error(result.error||'边界保存失败');
+    if(motionPageGeneration()!==pageGeneration||motionPageGeneration(result)!==pageGeneration)throw new Error('页面会话已变化，请刷新查看已保存区间');
+    if(motionStateNotOlder(result.motion,snapshot.motion)){snapshotRevision++;acceptSnapshot(result);render();}
+    motionRangeUpdateMessage=result.range_update_message||'越界读数已保存为安全区间边界；运控已断开，请重新连接载入。';
+  }catch(error){motionRangeUpdateMessage=error.name==='AbortError'?'保存应答超时，请检查已保存区间；不会自动重试。':'边界保存未完成：'+error.message;}
+  finally{clearTimeout(timer);motionRangeUpdateBusy=false;renderMotion();}
+}
+function motionPageGeneration(value=snapshot){return value?.native_access?.page_generation??value?.session?.generation;}
+// Connection ownership and feedback freshness have different lifetimes. A slow
+// status poll must not claim that an established serial connection is closing.
+function motionConnectionEstablished(){const m=snapshot?.motion,h=m?.hardware??m?.last_hardware;return m?.phase==='ready'&&m?.owns_connection===true&&m?.transport_exit?.process_exited!==true&&h?.connected===true;}
+function motionConnectionKey(){const m=snapshot?.motion;return JSON.stringify([motionPageGeneration(),m?.connection_sequence,m?.deployment?.archive_sha256,m?.deployment?.started_monotonic,snapshot?.calibration]);}
+function syncMotionConfirmations(){
+  const m=snapshot?.motion,key=motionConnectionKey(),reason=motionProtectiveStopReason(m);
+  const stop=reason?JSON.stringify([m?.hardware?.generation,reason]):null;
+  const connectionChanged=key!==motionConfirmationKey||!motionConnectionEstablished();
+  // Physical confirmations belong to this connection, not to a telemetry frame.
+  // Remember an observed stop across missing display frames: seeing the same
+  // retained diagnostic again must not revoke a renewed confirmation.
+  if(connectionChanged)motionConfirmationStop=null;
+  if(connectionChanged||stop!==null&&stop!==motionConfirmationStop){
+    el('motionBehaviorConfirmed').checked=false;
+  }
+  motionConfirmationKey=key;
+  if(stop!==null)motionConfirmationStop=stop;
+}
+function motionFresh(){const m=snapshot?.motion,h=m?.hardware,elapsed=receivedAt===null?Infinity:performance.now()-receivedAt;return !fetchError&&m?.phase==='ready'&&h?.connected===true&&typeof h.age_ms==='number'&&h.age_ms<100&&typeof m.feedback_age_ms==='number'&&m.feedback_age_ms+elapsed<500;}
+// Display continuity is separate from the strict action/heartbeat freshness
+// gate above. A normal slow poll must not replace every label or table cell.
+function setMotionText(node,value){if(String(node.textContent)!==String(value))node.textContent=value;}
+const motionDisplayVoltages=new Map();
+function renderMotionVoltages(){
+  const m=snapshot?.motion,h=m?.hardware,elapsed=receivedAt===null?Infinity:Math.max(0,performance.now()-receivedAt);
+  const sourceCurrent=!fetchError&&motionConnectionEstablished()&&Number.isFinite(m?.feedback_age_ms)&&m.feedback_age_ms+elapsed<1000;
+  for(const row of h?.motor_voltages||[]){
+    if(motorIds.includes(row.id)&&Number.isFinite(row.volts)&&row.volts>0&&row.volts<=25.5&&Number.isFinite(row.age_ms)&&row.age_ms>=0)
+      motionDisplayVoltages.set(row.id,{...row,receivedAt});
+  }
+  const fresh=[],low=[],high=[];
+  for(const [id,cells] of motionRows){
+    const row=motionDisplayVoltages.get(id),age=row?row.age_ms+Math.max(0,performance.now()-row.receivedAt)+(Number.isFinite(m?.feedback_age_ms)?m.feedback_age_ms:0):Infinity;
+    const current=sourceCurrent&&row?.fresh===true&&age<=1000;
+    if(current){fresh.push(row.volts);if(row.volts<4)low.push(id);else if(row.volts>8.4)high.push(id);}
+    setMotionText(cells[6],row?row.volts.toFixed(1)+' V'+(current?'':'（上次）'):'电压未知');
+    cells[6].title=row?'距电压采样约 '+(age/1000).toFixed(1)+' 秒；'+(current?'有效读数':'旧读数，当前电压未知'):'尚未取得有效舵机端电压';
+    cells[6].dataset.state=current?(row.volts<4||row.volts>8.4?'bad':'good'):'stale';
+  }
+  const warning=low.length||high.length;
+  setMotionText(el('motionVoltageSummary'),warning?
+    (low.length?'供电电压不足：ID '+low.join('、')+' 低于 4.0 V。':'')+(high.length?'供电电压过高：ID '+high.join('、')+' 超过 8.4 V。':'')+' 请停止动作并检查供电。':
+    h?.voltage_supported===false?'实时电压待固件更新；当前电压未知。':
+    fresh.length?'舵机电压 '+Math.min(...fresh).toFixed(1)+'–'+Math.max(...fresh).toFixed(1)+' V；'+fresh.length+'/15 个有效读数，自动更新。'+(fresh.length<15?'其余舵机电压未知。':''):
+    '当前电压未知：舵机供电未连接、离线或正在等待读数。');
+  el('motionVoltageSummary').dataset.state=warning?'bad':fresh.length?'good':'stale';
+}
+function motionDisplayRecent(display){return !fetchError&&motionConnectionEstablished()&&snapshot?.motion?.hardware?.connected===true&&display!==null&&display.age_ms<5000;}
+function reconcileMotionRequestTimeout(){
+  const pending=motionRequestTimeout,m=snapshot?.motion,h=m?.hardware,op=m?.last_operation;
+  // Only reconcile the one explicit connect attempt. Ordinary sensor updates,
+  // an older successful connect, or any motor action cannot resolve a timeout.
+  if(!pending||pending.action!=='connect'||motionError!==pending.message||motionPageGeneration()!==pending.pageGeneration||m?.deployment?.archive_sha256!==pending.deploymentHash||m?.deployment?.started_monotonic!==pending.deploymentStarted||!Number.isInteger(pending.connectionSequence)||m?.connection_sequence!==pending.connectionSequence+1||op?.action!=='connect'||!Number.isFinite(op.recorded_monotonic)||op.recorded_monotonic===pending.operationStamp)return;
+  if(op.state==='failed'&&typeof op.error==='string'&&op.error){motionError=op.error;motionRequestTimeout=null;return;}
+  if(op.state==='complete'&&!op.error&&!m.error&&motionFresh()&&h.mode==='off'&&h.armed===false&&h.release_confirmed===true&&h.online_ids?.length===15&&h.fault_ids?.length===0&&h.torque_ids?.length===0&&!h.error&&op.after?.connected===true&&op.after.generation===h.generation){motionError='';motionRequestTimeout=null;}
+}
+function motionImuAngles(maxAgeMs=100){
+  const m=snapshot?.motion,h=m?.hardware,g=h?.imu?.gravity,elapsed=receivedAt===null?Infinity:performance.now()-receivedAt;
+  if(!motionFresh()||h?.imu_ok!==true||!finiteVector(g)||Math.hypot(...g)<.000001)return null;
+  // The source frame must always have been fresh. A display may retain that
+  // received frame between status polls; starting motion still uses 100ms.
+  if(typeof h.imu_age_ms!=='number'||!Number.isFinite(h.imu_age_ms)||h.imu_age_ms<0||h.imu_age_ms>=100||!Number.isFinite(m.feedback_age_ms)||m.feedback_age_ms<0||h.imu_age_ms+m.feedback_age_ms+elapsed>=maxAgeMs)return null;
+  const degrees=180/Math.PI;
+  return {tilt:Math.acos(Math.max(-1,Math.min(1,-g[2])))*degrees,pitch:Math.atan2(g[0],-g[2])*degrees,roll:Math.atan2(-g[1],-g[2])*degrees};
+}
+function nativeImuReaderSupported(){return snapshot?.native_access?.full_workbench===true&&snapshot?.capabilities?.imu_calibration===true;}
+function imuReaderScope(){return snapshot?.session?.collection_scope==='imu';}
+function resetMotionDisplayIfChanged(){
+  const key=motionConnectionKey();
+  if(key!==motionDisplayKey){motionDisplayKey=key;motionDisplayImu=null;motionDisplayHardware=null;motionDisplayJoints.clear();motionDisplayVoltages.clear();}
+}
+function motionDisplayReadings(){
+  resetMotionDisplayIfChanged();
+  const m=snapshot?.motion,h=m?.hardware;
+  if(!fetchError&&m?.phase==='ready'&&h?.connected===true&&Number.isFinite(h.age_ms)&&h.age_ms>=0&&h.age_ms<500){
+    motionDisplayHardware={value:h,receivedAt,age_ms:h.age_ms};
+    for(const row of h.rawdata||[])if(motorIds.includes(row.id)&&h.online_ids?.includes(row.id)&&encoder(row.position))motionDisplayJoints.set(row.id,{position:row.position,receivedAt,age_ms:h.age_ms});
+  }
+  const cached=motionDisplayHardware;
+  return cached?{hardware:cached.value,age_ms:cached.age_ms+performance.now()-cached.receivedAt}:null;
+}
+function motionImuDisplayFrame(){
+  const moving=motionImuAngles(500),m=snapshot?.motion,h=m?.hardware;
+  if(moving)return {...moving,source:'motion',age_ms:h.imu_age_ms+m.feedback_age_ms+performance.now()-receivedAt};
+  const f=snapshot?.feedback,b=snapshot?.body_imu,a=b?.attitude;
+  // IMU-only readings are for display. They never replace motionImuAngles in
+  // the motion start gate or certify any offline joint or torque state.
+  if(!nativeImuReaderSupported()||!imuReaderScope()||!dataFresh()||!imuCalibrationSaved()||f?.scope!=='imu'||f?.joint_feedback_valid!==false||f.imu_ok!==true||![f.online_mask,f.fault_mask].every(v=>Number.isInteger(v)&&v>=0&&v<=32767)||f.torque_mask!==0||f.armed!==false||f.arm_cookie!==0||f.last_error!==0||Math.hypot(...f.accel_ms2)<.000001)return null;
+  if(b?.attitude_protocol!==1||a?.protocol!==1||b.source!=='calibration-feedback'||b.collection_scope!=='imu'||b.sample_us!==f.sample_us||b.imu_us!==f.imu_us)return null;
+  const age=b.imu_age_ms,delta=(f.sample_us-f.imu_us)|0;
+  if(typeof age!=='number'||!Number.isFinite(age)||age<0||age>=500||Math.abs(delta)>500000||age+ageMs()>=500)return null;
+  if(![a.tilt_deg,a.pitch_deg,a.roll_deg].every(v=>typeof v==='number'&&Number.isFinite(v))||a.tilt_deg<0||a.tilt_deg>180||Math.abs(a.pitch_deg)>180||Math.abs(a.roll_deg)>180)return null;
+  return {tilt:a.tilt_deg,pitch:a.pitch_deg,roll:a.roll_deg,source:'imu-only',age_ms:age+ageMs()};
+}
+function motionImuDisplayAngles(){
+  resetMotionDisplayIfChanged();
+  const frame=motionImuDisplayFrame(),now=performance.now();
+  if(frame){motionDisplayImu={frame,receivedAt:now};return {...frame,retained:false};}
+  // Display-only memory. Motion start gates always use motionImuAngles(),
+  // current hardware and their original age limits, never these saved values.
+  return motionDisplayImu?{...motionDisplayImu.frame,age_ms:motionDisplayImu.frame.age_ms+now-motionDisplayImu.receivedAt,retained:true}:null;
+}
+function motionImuReadBlockedReason(){
+  const s=snapshot?.session,m=snapshot?.motion;
+  if(localFilePage)return '请打开工作台服务页面后读取 IMU。';
+  if(!snapshot||typeof snapshot.token!=='string'||!snapshot.token||!Number.isInteger(s?.generation)||s.generation<0)return '等待有效的工作台会话。';
+  if(!nativeImuReaderSupported())return '当前服务未提供独立 IMU 姿态读取；运控连接时仍显示其真实 IMU 姿态。';
+  if(m?.owns_connection===true||m?.hardware?.connected===true||m?.phase==='deploying')return '运控正在使用连接；先点击「停止并断开运控」，等关闭确认后再读取 IMU。';
+  if(snapshot?.maintenance?.owns_connection===true)return '舵机维护正在使用连接；先到「舵机工作台」点击「停止并断开」，再读取 IMU。';
+  if(s?.status==='active')return imuReaderScope()?'正在独立读取 IMU，无需重复连接。':'当前正在采集关节；先到「设备状态」点击「结束采集」，再读取 IMU。';
+  if(s?.status==='waiting'||s?.status==='stopping')return s.status==='stopping'?'等待当前采集关闭确认，再读取 IMU。':imuReaderScope()?'正在连接 IMU，请等待本次检查结果。':'当前采集正在连接；请等待结果并结束采集，再读取 IMU。';
+  if(motionBusy||requestBusy||recoveryPending())return '正在处理当前请求，请等待；不会重复连接。';
+  if(fetchError)return '页面状态读取中断，请等待新的后台状态后再读取 IMU。';
+  if(typeof s?.imu_read_allowed==='boolean')return s.imu_read_allowed?'':feedbackErrorText(s.imu_read_blocked_reason||'当前 IMU 连接尚未满足读取条件。');
+  return canRecoverFeedback()?'':feedbackErrorText(recoveryBlockedReason(),recoveryTechnicalText());
+}
+function canMotionImuRead(){return !motionImuReadBlockedReason();}
+function canMotionImuEnd(){return !localFilePage&&nativeImuReaderSupported()&&imuReaderScope()&&snapshot?.motion?.owns_connection!==true&&snapshot?.motion?.hardware?.connected!==true&&snapshot?.maintenance?.owns_connection!==true&&canEndFeedback();}
+async function readMotionImu(){if(canMotionImuRead())return recoverFeedback('imu');}
+async function endMotionImu(){if(canMotionImuEnd())return endFeedback();}
+function motionHoldPoseDiagnostic(h){
+  if(h?.mode!=='hold'||h.hold_ready!==false)return '';
+  const target=motionStandDegrees(h),rows=h.rawdata;
+  if(!target||!Array.isArray(rows)||rows.length!==motorIds.length)return '';
+  const byId=new Map(rows.map(row=>[row?.id,row?.angle_deg]));
+  if(byId.size!==motorIds.length||!motorIds.every(id=>typeof byId.get(id)==='number'&&Number.isFinite(byId.get(id))))return '';
+  const errors=motorIds.map((id,index)=>({id,error:Math.abs(byId.get(id)-target[index])})).sort((a,b)=>b.error-a.error);
+  return '距站姿目标：'+errors.slice(0,3).map(row=>(jointSpecs.find(j=>j.id===row.id)?.name||'关节')+' ID '+row.id+' 偏差 '+row.error.toFixed(1)+'°').join('、');
+}
+function motionKnownWalkBlockedReason(h){
+  const known=h?.model_start_blocked_reasons?.walk||h?.start_blocked_reason||'';
+  const pose=known==='先启动站姿，并等待实际关节接近默认姿态'?motionHoldPoseDiagnostic(h):'';
+  return pose?known+'；'+pose:known;
+}
+function motionWalkBlockedReason(){
+  const h=snapshot?.motion?.hardware,known=motionKnownWalkBlockedReason(h);
+  if(known)return known;
+  const angles=motionImuAngles();
+  return !angles?'等待 100 毫秒内的新鲜 IMU 姿态后才能启动站立平衡。':angles.tilt>=15?'动作开始前机身需要保持水平（倾角小于 15°）':'';
+}
+function motionStandDegrees(h=snapshot?.motion?.hardware){
+  if(Array.isArray(h?.stand_target_deg)&&h.stand_target_deg.length===motorIds.length&&h.stand_target_deg.every(v=>typeof v==='number'&&Number.isFinite(v)))return h.stand_target_deg;
+  return h?.policy_metadata_protocol===1?null:legacyStandDegrees;
+}
+function motionModelContractReady(model='walk',h=snapshot?.motion?.hardware){
+  return h?.target_validation_protocol===1&&h?.policy_metadata_protocol===1&&motionStandDegrees(h)!==null;
+}
+function motionModelContractHint(model='walk',h=snapshot?.motion?.hardware){
+  if(h?.target_validation_protocol!==1||h?.policy_metadata_protocol!==1||motionStandDegrees(h)===null)return '控制程序已更新，请停止并断开运控，再连接并载入模型';
+  return '';
+}
+function motionStartupPending(m=snapshot?.motion){return m?.phase==='fault'&&m?.owns_connection===false&&m?.closed_proof?.no_uart_opened===true&&m?.error==='已明确选择仅启动诊断网页；尚未执行完整硬件连接检查，尚未启动舵机操作和采集。';}
+function motionTerminalReason(m=snapshot?.motion){
+  if(motionStartupPending(m))return '';
+  const h=m?.hardware;
+  if(!['fault','closed'].includes(m?.phase)&&h?.connected!==false&&m?.transport_exit?.process_exited!==true)return '';
+  return m?.error||m?.transport_exit?.original_error||h?.error||h?.last_stop_diagnostic?.reason||'';
+}
+function motionProtectiveStopReason(m=snapshot?.motion){
+  const h=m?.hardware,d=h?.last_stop_diagnostic;
+  if(m?.phase!=='ready'||h?.connected!==true||h?.mode!=='off')return '';
+  if(typeof h.error==='string'&&h.error)return h.error;
+  // A retained diagnostic belongs to this stop only immediately after its
+  // active generation. Do not attach an older stop to a later action.
+  return Number.isInteger(d?.before?.generation)&&h.generation===d.before.generation+1&&d.before.mode!=='off'&&typeof d.reason==='string'?d.reason:'';
+}
+function sameMotionDeployment(a,b){return a?.deployment?.archive_sha256===b?.deployment?.archive_sha256&&a?.deployment?.started_monotonic===b?.deployment?.started_monotonic;}
+function motionStateNotOlder(next,current){
+  if(next?.snapshot_superseded===true)return false;
+  const n=next?.deployment?.started_monotonic??0,c=current?.deployment?.started_monotonic??0;
+  if(n!==c)return n>c;
+  if(!sameMotionDeployment(next,current))return true;
+  const ns=next?.connection_sequence,cs=current?.connection_sequence;
+  if(Number.isInteger(ns)&&Number.isInteger(cs)&&ns!==cs)return ns>cs;
+  return (next?.hardware?.generation??next?.last_hardware?.generation??0)>=(current?.hardware?.generation??current?.last_hardware?.generation??0);
+}
+function motionReceiptContextCurrent(value=motionReceipt){return !!value&&value.pageGeneration===motionPageGeneration()&&value.deployment===snapshot?.motion?.deployment?.archive_sha256&&value.deploymentStarted===snapshot?.motion?.deployment?.started_monotonic&&value.connectionSequence===snapshot?.motion?.connection_sequence;}
+function motionControlHardware(){
+  const h=snapshot?.motion?.hardware??snapshot?.motion?.last_hardware;
+  return motionReceiptContextCurrent()&&motionReceipt.generation>=(h?.generation??0)?{...motionReceipt,hold_control_protocol:h?.hold_control_protocol}:h;
+}
+function claimMotionControl(value){motionControl={pageGeneration:motionPageGeneration(value),deployment:value.motion.deployment?.archive_sha256,deploymentStarted:value.motion.deployment?.started_monotonic,connectionSequence:value.motion.connection_sequence,generation:value.motion.hardware.generation};motionLastHeartbeat=-Infinity;motionError='';}
+function ownsMotionControl(){return !!motionControl&&motionControl.pageGeneration===motionPageGeneration()&&motionControl.deployment===snapshot?.motion?.deployment?.archive_sha256&&motionControl.deploymentStarted===snapshot?.motion?.deployment?.started_monotonic&&motionControl.connectionSequence===snapshot?.motion?.connection_sequence&&motionControl.generation===motionControlHardware()?.generation;}
+function motionIndependentHold(){const h=motionControlHardware();return h?.mode==='hold'&&h?.hold_control_protocol===2;}
+function acceptMotionReceipt(value,request){
+  if(request.epoch!==motionActionEpoch||!motionReceiptContextCurrent(request))return false;
+  if(Number.isInteger(value?.generation)&&value.generation<(motionControlHardware()?.generation??0))return false;
+  if(value?.action_receipt_protocol!==1||value.action!==request.action||value.page_generation!==request.pageGeneration||value.connection_sequence!==request.connectionSequence||!Number.isInteger(value.operation_epoch)||!Number.isInteger(value.generation)||value.generation<request.generation||value.generation<(motionControlHardware()?.generation??0)||value.connected!==true)throw new Error('动作确认格式或世代无效');
+  if(request.action==='start'&&(value.mode!==request.mode||value.control_owner?.id!==motionControlId||value.control_owner?.generation!==value.generation))throw new Error('启动控制权未确认');
+  if(request.action==='stop'&&(value.mode!=='off'||value.release_confirmed!==true||value.control_owner!==null))throw new Error('停止尚未回读确认全部扭矩关闭');
+  if(request.action==='capture-head-clearance'&&(value.mode!=='off'||value.release_confirmed!==true||value.control_owner!==null||!value.captured_head_deg||Object.keys(value.captured_head_deg).length!==4||![30,31,32,33].every(id=>typeof value.captured_head_deg[id]==='number'&&Number.isFinite(value.captured_head_deg[id]))))throw new Error('头颈记录或扭矩关闭尚未确认');
+  // This is a control receipt, never a sensor frame. Do not replace snapshot,
+  // receivedAt, feedback ages, torque lists, IMU or saved joint readings.
+  motionReceipt={...request,generation:value.generation,mode:value.mode,connected:true,release_confirmed:value.release_confirmed===true};
+  motionControl=request.action==='start'?{...request,generation:value.generation}:null;
+  motionLastHeartbeat=-Infinity;motionError='';motionRequestTimeout=null;snapshotRevision++;
+  return true;
+}
+let motionRecheckSource=null;
+function motionConnectBlockedReason(){
+  const s=snapshot?.session,m=snapshot?.maintenance;
+  if(fetchError)return '页面状态读取中断，请等待连接恢复。';
+  if(recoveryPending())return '正在检查连接与舵机，请等待本次结果。';
+  if(m?.identity_changed===true)return '舵机编号映射待核对，请先在舵机工作台核对编号。';
+  if(m?.fault_hold===true)return '舵机维护故障尚未复查通过，请先重新检查连接与舵机。';
+  if(s?.recovery_recheck||s?.status==='fault')return s?.recovery_recheck?.message||'当前反馈故障尚未复查通过，请先重新检查连接与舵机。';
+  if(s?.status==='stopping')return '原采集连接正在关闭，请等待关闭确认。';
+  const f=snapshot?.feedback;
+  if(s?.status==='active'&&dataFresh()&&(f?.online_mask!==32767||f.fault_mask!==0||f.torque_mask!==0||f.armed!==false||f.arm_cookie!==0))return '当前舵机反馈未通过，结束采集后重新检查连接与舵机。';
+  return '';
+}
+function canMotionRecheck(){
+  const m=snapshot?.motion;
+  if(localFilePage||!snapshot||motionBusy||requestBusy||m?.owns_connection===true||m?.phase==='deploying')return false;
+  return snapshot?.maintenance?.fault_hold===true?canMaintenance('review'):canRecoverFeedback();
+}
+function motionRecoveryInfo(){
+  const s=snapshot?.session,m=snapshot?.motion,maintenance=snapshot?.maintenance;
+  if(m?.owns_connection===true||m?.phase==='deploying')return '先点击「停止并断开运控」，等待连接关闭，再重新检查。';
+  if(maintenance?.fault_hold===true){
+    if(maintenance.busy===true)return '正在复查舵机反馈，请等待结果；不会开启扭矩或启动动作。';
+    return maintenanceError||maintenance.fault_review_blocked_reason||maintenance.error||'请先核对供电，再点击「重新检查连接与舵机」。';
+  }
+  if(motionRecheckSource==='maintenance')return maintenanceError||maintenance?.error||motionConnectBlockedReason()||'维护故障复查通过。现在可点击「连接并载入模型」；不会自动启动动作。';
+  if(recoveryPending()||recoveryError||recoveryPhase==='failed'||s?.connection_check?.phase==='failed')return recoveryInfo().text;
+  const f=snapshot?.feedback;
+  if(s?.status==='active'&&dataFresh()&&s?.feedback_recheck?.purpose==='joints'&&s.feedback_recheck.phase==='passed'&&f?.online_mask===32767&&f.fault_mask===0&&f.torque_mask===0&&f.armed===false&&f.arm_cookie===0){
+    return '复查通过：15 个舵机在线、无故障、扭矩全部关闭。现在可点击「连接并载入模型」；不会自动启动动作。';
+  }
+  if(s?.status==='active')return motionConnectBlockedReason()||'当前反馈采集已连接，可点击「连接并载入模型」；连接时会再次检查实际状态。';
+  const reason=recoveryBlockedReason();
+  return reason||((s?.error?s.error+' ':'')+'核对供电后，点击「重新检查连接与舵机」。检查只读取状态，不会开启扭矩或启动动作。');
+}
+async function recheckMotionFeedback(){
+  if(!canMotionRecheck())return;
+  motionError='';
+  if(snapshot?.maintenance?.fault_hold===true){motionRecheckSource='maintenance';return runMaintenance('review');}
+  motionRecheckSource='feedback';
+  // Capture the powered-servo purpose at this click, even if the user changes
+  // workspace while the one-shot check is running.
+  return recoverFeedback('joints');
+}
+function renderMotion(){
+  reconcileMotionRequestTimeout();
+  const m=snapshot?.motion,h=m?.hardware,d=m?.deployment,live=motionFresh(),connected=motionConnectionEstablished(),ready=m?.phase==='ready',owns=m?.owns_connection===true;
+  const display=motionDisplayReadings(),recent=motionDisplayRecent(display);
+  const loaded=ready&&d?.model_hashes?Object.keys(d.model_hashes).length:0,mode=h?.mode||'off';
+  const targetValidated=motionModelContractReady('walk',h),targetValidationHint=motionModelContractHint('walk',h),headRestricted=false;
+  setMotionText(el('motionStand'),'缓慢进入固定站姿');
+  el('motionPreviewHeadStatus').hidden=true;
+  setMotionText(el('motionBalanceHint'),'固定站姿使用模型配置的关节目标，包括头颈。先缓慢进入固定站姿，关节到位后再启动零速试跑；固定站姿本身不会自动平衡。');
+  setMotionText(el('motionWalk'),'启动站立平衡');
+  setMotionText(el('motionHost'),loaded?'X5 · CPU':'尚未部署');setMotionText(el('motionModelsCount'),loaded+' / 4');
+  setMotionText(el('motionCalibration'),loaded&&h?.calibrated?'15 / 15 + IMU':loaded?'校准待核对':'等待部署');
+  setMotionText(el('motionMode'),!recent?(m?.phase==='deploying'?'正在部署':owns?'反馈未确认':'停止'):{off:h?.release_confirmed?'停止 · 扭矩关闭':'停止 · 扭矩待确认',shadow:'不动作预览 · '+({walk:'行走',getup:'起身',pick:'俯身',roulade:'翻滚'}[h.active_model]||'行走'),hold:h.hold_ready?'关节站姿已到位 · 待核对机身姿态':'正在进入固定站姿',walk:headRestricted?'固定头颈零速平衡运行':[h.command?.forward,h.command?.side,h.command?.yaw].every(v=>typeof v==='number'&&Number.isFinite(v)&&Math.abs(v)<.000001)?'站立平衡模型运行':'平衡与行走模型运行',getup:'起身模型运行',pick:'俯身模型运行',roulade:'翻滚模型运行'}[mode]||'未确认');
+  setMotionText(el('motionDeploymentDetail'),d?'校准摘要 '+d.calibration_sha256+'；X5 内存部署；重新连接时会复查板卡身份和日志。':'连接时自动载入本页保存的零点、方向、安全范围和 IMU 校准。');
+  for(const [name,cells] of motionModelRows){setMotionText(cells[1],recent&&h.active_model===name?(mode==='shadow'?'最近反馈：不动作预览':'最近反馈：运行'):ready&&d?.model_hashes?.[name]?'X5 已校验并加载':m?.phase==='deploying'?'正在部署':'未加载');setMotionText(cells[2],'61 → 14');setMotionText(cells[3],!recent?'等待新鲜反馈':!motionModelContractReady(name,h)?motionModelContractHint(name,h):h.behavior_protocol!==1&&name!=='walk'?'需要重新连接载入控制程序':h.model_start_blocked_reasons?.[name]||(name==='walk'&&headRestricted?'固定站姿到位后启动固定头颈零速平衡':{walk:'固定站姿到位后启动零速度平衡',getup:'停止 / 已到位站姿；需防跌确认',pick:'站姿到位后执行一轮 4 秒',roulade:'站姿到位；需防跌确认；约 1.9 秒'}[name]));}
+  const outside=recent?(h.rawdata||[]).filter(row=>{const j=calibrationJoint(row.id);return j&&encoder(row.position)&&(row.position<j.min||row.position>j.max);}).map(row=>'ID '+row.id+' ('+row.position+')'):[];
+  const operation=m?.last_operation;
+  // A timed-out STOP reply remains failed in the audit. A later fresh STATE
+  // can still prove the requested safe state, without resending the command.
+  const stopped=connected&&h?.age_ms<100&&mode==='off'&&h.release_confirmed===true&&operation?.action==='stop'&&['complete','failed'].includes(operation.state);
+  const stopSource=h?.last_stop_diagnostic?.source||operation?.stop_source;
+  const stopSourceText={button:'点击了停止运动', 'window-blur':'运控窗口失去焦点', 'page-hidden':'运控页面被隐藏',pagehide:'离开或关闭了运控页面','workspace-leave':'切换了工作台功能'}[stopSource];
+  const operationError=operation?.state==='failed'&&!stopped?operation.error:'';
+  const disconnectedOwner=owns&&h?.connected===false;
+  const localError=stopped&&/运控(?:应答|请求)超时/.test(motionError)?'':motionError;
+  const terminalError=motionTerminalReason(m);
+  const protectiveReason=motionProtectiveStopReason(m);
+  const actionLabel=operation?.action==='start'?{hold:'进入固定站姿',shadow:'不动作预览',walk:'启动站立平衡',getup:'起身',pick:'俯身',roulade:'翻滚'}[operation.mode]||'启动运控':operation?.action==='stop'?'停止运动':'断开运控';
+  const currentStartRefusal=protectiveReason&&operation?.action==='start'&&operation.state==='failed'&&Number.isInteger(operation.generation)&&operation.generation===h.generation&&typeof operation.error==='string'&&operation.error?' 本次'+actionLabel+'未执行：'+feedbackErrorText(operation.error)+'。':'';
+  const protectiveError=protectiveReason?'保护停止：'+feedbackErrorText(protectiveReason)+'；请继续托稳机身。展开「查看停止原因与反馈详情」可查看扭矩和反馈状态。'+currentStartRefusal:'';
+  const connectionError=motionStartupPending(m)?motionConnectBlockedReason():m?.error;
+  const error=feedbackErrorText(terminalError||protectiveError||localError||operationError||connectionError||h?.error||(disconnectedOwner?'运控串口已断开。请点击「停止并断开运控」，关闭确认后重新连接并载入模型。':''));
+  el('motionActionResult').hidden=!error&&!motionBusy&&!stopped;
+  el('motionActionResult').classList.toggle('error',!!error);
+  setMotionText(el('motionActionResult'),error?(operationError&&!terminalError&&!protectiveError?actionLabel+'失败：':'')+error:motionBusy?'正在执行，请等待 X5 确认…':stopped?'停止记录：'+(stopSourceText?'原因：'+stopSourceText+'。':'本次网页停止未记录具体来源。')+'最近回读确认 15 个舵机扭矩全部关闭；反馈时效见下方。'+(operation.state==='failed'?'按钮应答未及时收到，随后真实反馈已确认停止，无需重复点击。':'')+'停止只释放扭矩，不会主动把关节摆回零点或站姿；请继续托稳机身。':'');
+  if(motionReceiptContextCurrent()){
+    const captured=motionReceipt.action==='capture-head-clearance';
+    setMotionText(el('motionMode'),captured?'头颈记录已确认 · 等待新反馈':motionReceipt.mode==='off'?'停止已确认 · 等待新反馈':'动作启动已确认 · 等待新反馈');
+    if(!error&&!motionBusy){el('motionActionResult').hidden=false;setMotionText(el('motionActionResult'),captured?'头颈避让位置已记录；扭矩保持关闭，传感器显示等待下一次状态更新。':motionReceipt.mode==='off'?'停止确认：真实回读已确认 15 个舵机扭矩全部关闭；传感器显示等待下一次状态更新。请继续托稳机身。':'启动已确认；正在续接控制心跳，传感器显示等待下一次状态更新。');}
+  }
+  setMotionText(el('motionStatusTitle'),error?'运控提示':m?.phase==='deploying'?'正在向 X5 部署模型':connected?'X5 运控已连接':'等待连接 X5');
+  setMotionText(el('motionStatusMessage'),error||(m?.phase==='deploying'?'正在检查板卡、传输模型和校准、加载 X5 运行依赖。请等待部署结果。':recent?(outside.length?'实际位置超出安全范围：'+outside.join('、')+'。确认扭矩关闭后轻轻摆回表中的记录范围，再进入站姿。':h.start_blocked_reason||(mode==='hold'&&h.hold_ready?'固定站姿未运行平衡模型。编码器已接近目标，不能验证实物装配、零点和正方向。请观察双脚前后是否对齐、是否翘脚尖或脚跟，以及两侧关节是否持续保持。若翘脚或关节回落，先停止并确认扭矩关闭，再核对髋、膝、踝的零姿态与方向，暂不启动其他动作。':'模型和已保存校准已载入。先确认支撑，再缓慢进入固定站姿。')):connected?'运控连接已建立；页面反馈待更新，取得新鲜反馈后才能启动动作。':'点击「连接并载入模型」。会先结束校准采集，关闭原串口，再建立运控连接。'));
+  if(motionReceiptContextCurrent()&&!error)setMotionText(el('motionStatusMessage'),'动作已确认；等待新的传感器状态，当前数值仍为此前读数。');
+  syncMotionConfirmations();
+  el('motionBehaviorConfirmed').disabled=!connected||motionBusy;
+  el('motionPreviewModel').disabled=!live||motionBusy||mode!=='off';
+  const connectBlocked=motionConnectBlockedReason();
+  el('motionConnect').disabled=localFilePage||!snapshot||!m||motionBusy||requestBusy||owns||m?.phase==='deploying'||!!connectBlocked;setMotionText(el('motionConnect'),m?.phase==='deploying'?'正在部署…':owns?(connected?'运控已连接':'连接待关闭确认'):'连接并载入模型');
+  el('motionConnect').title=connectBlocked;
+  el('motionRecoveryControls').hidden=connected&&(h??m?.last_hardware)?.fault_ids?.length===0;
+  el('motionRecheck').disabled=!canMotionRecheck();setMotionText(el('motionRecheck'),recoveryPending()||snapshot?.maintenance?.fault_hold===true&&snapshot.maintenance.busy===true?'正在检查…':'重新检查连接与舵机');
+  setMotionText(el('motionRecoveryStatus'),motionRecoveryInfo());
+  el('motionShadow').disabled=!live||motionBusy||requestBusy||mode!=='off'||!h?.calibrated;
+  el('motionStand').disabled=!live||motionBusy||requestBusy||!!h?.start_blocked_reason||motionStandDegrees(h)===null||!['off','walk'].includes(mode);
+  el('motionStand').title=!live?'等待新鲜的运控反馈':h?.start_blocked_reason||'';
+  const walkBlocked=motionWalkBlockedReason(),angles=motionImuDisplayAngles();
+  el('motionWalk').disabled=!live||motionBusy||requestBusy||!targetValidated||mode!=='hold'||h?.hold_ready!==true||!!walkBlocked;
+  el('motionWalk').title=!live?'等待新鲜的运控反馈':!targetValidated?targetValidationHint:walkBlocked;
+  if(motionReceiptContextCurrent())for(const id of ['motionShadow','motionStand','motionWalk'])el(id).disabled=true;
+  for(const [id,key] of [['motionImuTilt','tilt'],['motionImuPitch','pitch'],['motionImuRoll','roll']])setMotionText(el(id),angles?(Math.abs(angles[key])<.05?0:angles[key]).toFixed(1)+'°':'等待读数');
+  setMotionText(el('motionImuFreshness'),angles?(angles.source==='imu-only'?'IMU 独立读取 · 不动作；舵机状态未确认。':'最近收到的有效 IMU 姿态；启动动作仍检查 100 毫秒内的新鲜反馈。')+' 保留上次读数，收到新数据后自动更新。距采样 '+(angles.age_ms/1000).toFixed(1)+' 秒。':'实时 IMU 姿态不可用；尚未收到有效读数，正在等待数据。');
+  const imuReadReason=motionImuReadBlockedReason();el('motionImuRead').disabled=!!imuReadReason;el('motionImuRead').title=imuReadReason;el('motionImuEnd').disabled=!canMotionImuEnd();
+  setMotionText(el('motionImuReadStatus'),imuReadReason||(recoveryError?'IMU 读取未完成：'+feedbackErrorText(recoveryError):'舵机电池断开时可独立读取姿态。保持 X5 与 ESP32 供电，点击后只读取 IMU，不会开启扭矩或启动动作。'));
+  const displayWalkReason=motionKnownWalkBlockedReason(h)||(!angles?'等待 100 毫秒内的新鲜 IMU 姿态后才能启动站立平衡。':angles.tilt>=15?'动作开始前机身需要保持水平（倾角小于 15°）':'');
+  setMotionText(el('motionWalkGateStatus'),(recent&&!targetValidated?targetValidationHint+'。':'')+(!recent?'等待新鲜反馈后检查站立平衡启动条件。':mode==='walk'?headRestricted?'固定头颈零速平衡最近运行；不开放移动，机身仍需防跌支撑。':'平衡与行走模型最近运行；机身仍需防跌支撑。':displayWalkReason?'站立平衡暂不能启动：'+displayWalkReason:h?.hold_ready!==true?'先等待关节站姿到位，再核对机身姿态和支撑。':'最近姿态读数符合小于 15° 的要求；启动仍检查 100 毫秒内的新鲜反馈和机身支撑。'));
+  for(const [id,name] of [['motionGetup','getup'],['motionPick','pick'],['motionRoulade','roulade']]){const contract=motionModelContractReady(name,h);el(id).disabled=!live||motionBusy||requestBusy||!contract||h?.behavior_protocol!==1||!!h?.model_start_blocked_reasons?.[name]||name!=='pick'&&!el('motionBehaviorConfirmed').checked;el(id).title=live&&!contract?motionModelContractHint(name,h):'';}
+  if(motionReceiptContextCurrent())for(const id of ['motionGetup','motionPick','motionRoulade'])el(id).disabled=true;
+  setMotionText(el('motionBehaviorHint'),recent&&!motionModelContractReady('getup',h)?motionModelContractHint('getup',h):h?.behavior_result||(['getup','pick','roulade'].includes(mode)&&recent?'本轮剩余约 '+(h.behavior_seconds_remaining??0).toFixed(1)+' 秒；结束后停止并释放扭矩。':'起身、俯身和翻滚为单次模型测试，结束后停止并释放扭矩；先使用“不动作预览”，再逐项验证实际动作。'));
+  const transportExited=m?.transport_exit?.process_exited===true;
+  el('motionStop').disabled=localFilePage||!owns||m?.phase==='deploying'||transportExited;
+  setMotionText(el('motionStop'),transportExited?'停止运动 · 连接已断开':'停止运动 · 释放扭矩');
+  el('motionDisconnect').disabled=localFilePage||!owns||motionBusy||m?.phase==='deploying';
+  setMotionText(el('motionDisconnect'),transportExited?'检查断开并释放连接':'停止并断开运控');
+  el('motionDrive').hidden=mode!=='walk'||!connected||headRestricted;
+  for(const id of ['motionForward','motionBackward','motionLeft','motionRight']){el(id).hidden=headRestricted;el(id).disabled=headRestricted||motionReceiptContextCurrent()||!live||mode!=='walk'||motionBusy||!ownsMotionControl();}
+  const shown=display?.hardware;
+  setMotionText(el('motionFeedbackState'),fetchError?'页面通信中断':!connected?'运控连接已断开':!display?'等待反馈':recent?'反馈自动更新':'反馈延迟 · 保留读数');
+  setMotionText(el('motionFeedbackAge'),display?'距反馈：'+(display.age_ms/1000).toFixed(1)+' 秒':'距反馈：尚无数据');
+  setMotionText(el('motionTorqueState'),shown?.release_confirmed===true?'最近回读：15 个扭矩已全关':'最近回读：扭矩关闭尚未确认');
+  setMotionText(el('motionLiveDetail'),shown?'最近反馈：舵机在线 '+(shown.online_ids?.length||0)+'/15；故障 '+(shown.fault_ids?.length||0)+'；'+(shown.torque_observation?.known_ids?.length===0?'使能指令 '+(shown.torque_observation.commanded_enabled?'开启':'关闭')+'，扭矩实测未确认':'回读扭矩开启 '+(shown.torque_ids?.length||0)+'/15')+'；反馈 '+(shown.rates?.state_hz||0)+' Hz；目标 '+(shown.rates?.control_hz||0)+' Hz'+(mode!=='off'&&typeof shown.inference_ms==='number'?'；推理 '+shown.inference_ms.toFixed(2)+' ms':''):'尚未收到运控反馈，正在等待数据。');
+  el('motionStopDetails').hidden=workspaceView!=='motion-models'||!protectiveReason;
+  setMotionText(el('motionStopReason'),protectiveReason?'停止原因：'+feedbackErrorText(protectiveReason)+currentStartRefusal:'');
+  for(const name of ['FeedbackState','FeedbackAge','TorqueState','LiveDetail'])setMotionText(el('motionStop'+name),el('motion'+name).textContent);
+  const defaults=motionStandDegrees(h);
+  const rangeUpdates=motionRangeUpdates(),rangeReason=motionRangeUpdateReason();
+  el('saveRangeBoundaries').disabled=!!rangeReason;
+  el('saveRangeBoundaries').title=rangeReason||'保存当前越界读数为安全区间边界；仅保存校准，不驱动舵机。';
+  setMotionText(el('motionRangeUpdateHint'),motionRangeUpdateMessage||rangeReason||(rangeUpdates.length?'将更新 '+rangeUpdates.map(v=>'ID '+v.id+'：'+(v.position<v.min?v.min:v.max)+' → '+v.position).join('；')+'。仅保存边界，不驱动舵机；保存会断开运控。':'没有可更新的越界读数。仅保存边界，不驱动舵机。'));
+  renderMotionVoltages();
+  for(const [id,cells] of motionRows){const j=calibrationJoint(id),raw=motionDisplayJoints.get(id),reported=h?.rawdata?.find(v=>v.id===id),current=recent&&h?.online_ids?.includes(id)&&encoder(reported?.position),i=motorIds.indexOf(id),stand=defaults&&j&&encoder(j.zero)&&[-1,1].includes(j.sign)?roundToEven(j.zero+defaults[i]/360*4095*j.sign):null;setMotionText(cells[1],raw?.position??'等待读数');cells[1].title=raw?'最近读数；距采样约 '+((raw.age_ms+performance.now()-raw.receivedAt)/1000).toFixed(1)+' 秒。':'';setMotionText(cells[2],j&&encoder(j.min)&&encoder(j.max)?j.min+'–'+j.max:'待采集');setMotionText(cells[3],stand??'待采集');setMotionText(cells[4],Number.isFinite(shown?.last_action?.[i])?shown.last_action[i].toFixed(2):'未运行');const outside=raw&&j&&(raw.position<j.min||raw.position>j.max);setMotionText(cells[5],raw&&j?(current?'最近读数 · ':'上次读数 · ')+(outside?'超出范围':'范围内'):'等待读数');cells[5].dataset.state=outside?'bad':current?'good':'stale';}
+  if(workspaceView==='motion-models'){
+    if(!el('motionStopDetails').hidden){el('connectionStatusLink').disabled=false;el('connectionStatusLink').title='点击查看停止原因与反馈详情';}
+    el('sessionAlert').hidden=!error;setMotionText(el('sessionAlert'),error);el('sessionAlert').classList.toggle('error',!!error);
+    setMotionText(el('connectionLabel'),recent?'X5 运控 · '+el('motionMode').textContent:connected?'X5 运控 · 页面反馈待更新':m?.phase==='deploying'?'正在部署 X5 模型':'运控反馈未连接');
+    el('connectionDot').className='dot'+(recent?' live':error?' fault':'');
+    if(!motionBusy&&!motionIndependentHold()&&ownsMotionControl()&&performance.now()-motionLastHeartbeat>=100&&!motionHeartbeatBusy)motionHeartbeat();
+  }
+}
+async function runMotion(action,extra={}){
+  if(localFilePage||!snapshot?.token||!snapshot?.session||((motionBusy||requestBusy)&&!['stop','command'].includes(action)))return;
+  if(action==='connect'&&el('motionConnect').disabled)return;
+  if(action==='start'&&!motionFresh())return;
+  if(action==='start'&&motionReceiptContextCurrent())return;
+  if(action==='start'&&extra.mode==='hold'&&motionStandDegrees()===null)return;
+  if(action==='start'&&['getup','roulade'].includes(extra.mode)&&!el('motionBehaviorConfirmed').checked)return;
+  if(action==='start'&&['walk','getup','pick','roulade'].includes(extra.mode)&&!motionModelContractReady(extra.mode))return;
+  if(action==='start'&&extra.mode==='walk'&&(snapshot.motion.hardware.mode!=='hold'||snapshot.motion.hardware.hold_ready!==true||motionWalkBlockedReason()))return;
+  const generation=(action==='capture-head-clearance'?(snapshot.motion?.hardware??snapshot.motion?.last_hardware):['stop','command'].includes(action)?motionControlHardware():snapshot.motion?.hardware)?.generation,pageGeneration=motionPageGeneration();
+  const deploymentHash=snapshot.motion?.deployment?.archive_sha256,deploymentStarted=snapshot.motion?.deployment?.started_monotonic;
+  const connectionSequence=snapshot.motion?.connection_sequence,operationStamp=snapshot.motion?.last_operation?.recorded_monotonic;
+  const epoch=['start','stop','connect','disconnect','capture-head-clearance'].includes(action)?++motionActionEpoch:motionActionEpoch;
+  const receiptRequest={epoch,action,mode:extra.mode,generation,pageGeneration,deployment:deploymentHash,deploymentStarted,connectionSequence};let receiptAccepted=false;
+  if(action==='start'||action==='connect')motionLastHeartbeat=-Infinity;
+  const busy=!['command','stop'].includes(action);if(busy)motionBusy=true;
+  if(action==='stop'||action==='disconnect'){motionDriveEpoch++;motionDesired=[0,0,0];}
+  motionError='';motionRequestTimeout=null;renderMotion();const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),action==='connect'?20000:5000);
+  try{
+    const response=await fetch('/api/motion',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':snapshot.token},credentials:'same-origin',signal:abort.signal,body:JSON.stringify({action,page_generation:pageGeneration,generation,control_id:motionControlId,...extra})});
+    const result=await response.json();if(!response.ok)throw new Error(result.error||'运控请求失败');if(result.range_update_message)motionRangeUpdateMessage=result.range_update_message;
+    if(result?.action_receipt_protocol!==undefined){receiptAccepted=acceptMotionReceipt(result,receiptRequest);return;}
+    if(epoch!==motionActionEpoch&&['start','stop','capture-head-clearance'].includes(action))return;
+    if(motionPageGeneration()!==pageGeneration||motionPageGeneration(result)!==pageGeneration)throw new Error('页面会话已变化，旧运控响应未采用');
+    const deploymentReset=action==='connect'&&result.motion?.phase==='deploying'&&result.motion?.deployment==null;
+    if(deploymentReset||motionStateNotOlder(result.motion,snapshot.motion)){snapshotRevision++;acceptSnapshot(result,deploymentReset);if(action==='start'&&result.motion?.hardware?.mode===extra.mode)claimMotionControl(result);render();}
+  }catch(error){if(epoch===motionActionEpoch&&motionPageGeneration()===pageGeneration&&snapshot?.motion?.deployment?.archive_sha256===deploymentHash&&snapshot?.motion?.deployment?.started_monotonic===deploymentStarted){motionError=error.name==='AbortError'?(action==='connect'?'连接请求应答超时；正在通过状态反馈核对结果，不会重复连接或启动动作。':'运控请求超时；不会重发。请查看实际状态，连接超时会停止运动。'):error.message;if(error.name==='AbortError')motionRequestTimeout={action,message:motionError,pageGeneration,deploymentHash,deploymentStarted,connectionSequence,operationStamp};}}
+  finally{clearTimeout(timer);if(busy)motionBusy=false;if(receiptAccepted&&action==='start')motionHeartbeat();if(receiptAccepted){if(pollPromise)pollPromise.then(()=>refresh());else refresh();}renderMotion();}
+}
+function motionHeartbeatTick(){if(performance.now()-motionLastHeartbeat>=100)motionHeartbeat();}
+async function motionHeartbeat(){
+  const h=motionControlHardware();
+  // The browser lease proves that the controlling page is present. It does
+  // not certify sensor freshness: every backend control frame still enforces
+  // the actual 100ms UART/IMU gate. A delayed display poll must not stop an
+  // otherwise healthy controller by suppressing its page heartbeats.
+  if(localFilePage||motionBusy||motionIndependentHold()||!ownsMotionControl()||motionHeartbeatBusy||motionLastHeartbeat===Infinity||workspaceView!=='motion-models'||!motionConnectionEstablished()||motionTerminalReason()||!['shadow','hold','walk','getup','pick','roulade'].includes(h?.mode)||document.hidden&&h.mode!=='hold')return;
+  const generation=h.generation;
+  const pageGeneration=motionPageGeneration(),deploymentHash=snapshot.motion.deployment?.archive_sha256,deploymentStarted=snapshot.motion.deployment?.started_monotonic;
+  const background=document.hidden===true&&h.mode==='hold';
+  motionHeartbeatBusy=true;motionLastHeartbeat=performance.now();const began=motionLastHeartbeat,abort=new AbortController(),timer=setTimeout(()=>abort.abort(),background?1000:180);
+  let rejected=false,status=null,outcome='accepted',failureMessage=null;
+  try{const response=await fetch('/api/motion',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':snapshot.token},credentials:'same-origin',signal:abort.signal,body:JSON.stringify({action:'heartbeat',page_generation:motionPageGeneration(),generation,control_id:motionControlId,background})});status=response.status;if(!response.ok){rejected=true;const result=await response.json();throw new Error(result.error||'控制心跳未通过');}motionHeartbeatTransientError='';}
+  // A lost response must not occupy the sole request slot longer than the
+  // actual400ms backend lease. Only heartbeat renewals may run again at the
+  // next ordinary tick. Motion START/TARGET/command requests are never retried.
+  // An explicit backend rejection remains terminal, as do generation/owner,
+  // visibility, workspace and connection changes. No lease is extended here.
+  catch(error){failureMessage=error.message;outcome=rejected?'rejected':'transport-failure';if(!motionBusy&&motionPageGeneration()===pageGeneration&&snapshot?.motion?.deployment?.archive_sha256===deploymentHash&&snapshot?.motion?.deployment?.started_monotonic===deploymentStarted&&ownsMotionControl()&&motionControlHardware()?.generation===generation&&motionControlHardware()?.mode!=='off'&&!motionTerminalReason()){if(rejected){motionError=error.message;motionLastHeartbeat=Infinity;}else motionHeartbeatTransientError=error.message;}}
+  finally{motionHeartbeatAttempts.push({generation,started_ms:began,elapsed_ms:performance.now()-began,status,outcome,error:failureMessage});if(motionHeartbeatAttempts.length>64)motionHeartbeatAttempts.shift();clearTimeout(timer);motionHeartbeatBusy=false;if(background!==(document.hidden===true&&snapshot?.motion?.hardware?.mode==='hold')&&snapshot?.motion?.hardware?.generation===generation)motionHeartbeat();}
+}
+async function motionDriveCommand(value){
+  if(!ownsMotionControl()||!motionFresh()||snapshot?.motion?.hardware?.mode!=='walk'||!finiteVector(value))return;
+  motionDesired=value;motionDriveEpoch++;
+  if(motionCommandBusy)return;
+  motionCommandBusy=true;
+  try{let epoch;do{epoch=motionDriveEpoch;const [forward,side,yaw]=motionDesired;await runMotion('command',{forward,side,yaw});}while(epoch!==motionDriveEpoch&&motionFresh()&&snapshot.motion.hardware.mode==='walk');}
+  finally{motionCommandBusy=false;}
+}
+function finiteVector(value){return Array.isArray(value)&&value.length===3&&value.every(v=>typeof v==='number'&&Number.isFinite(v));}
+function encoder(value){return Number.isInteger(value)&&value>=0&&value<=4095;}
+function validMask(value){return Number.isInteger(value)&&value>=0&&value<=32767;}
+function validTimestamp(value){return Number.isInteger(value)&&value>=0&&value<=0xffffffff;}
+function kernelFaultMessage(value){
+  const prefix='New kernel fault; classifier result requires source review: ';
+  let evidence=value;
+  if(typeof value==='string'){
+    const index=value.indexOf(prefix);if(index<0){if(value.trimStart().startsWith('{'))try{return kernelFaultMessage(JSON.parse(value));}catch{}return '';}
+    try{evidence=JSON.parse(value.slice(index+prefix.length));}catch{return '板端日志记录了异常，当前连接检查尚未通过；展开「查看具体检查原因」可查看完整记录。';}
+  }else if(value&&typeof value==='object'){
+    evidence=value.new_kernel_fault_evidence||value.new_kernel_faults||(Array.isArray(value.faults)&&'new_fault_count' in value?value:null);
+    if(!evidence)return '';
+  }else return '';
+  const faults=evidence?.faults;
+  const onlyUsb=Array.isArray(faults)&&faults.length>0&&evidence.new_fault_count===faults.length&&evidence.fault_details_truncated===false&&faults.every(item=>item?.classifier_reason==='Kernel reported a USB disconnect/reset/error'||item?.reason==='Kernel reported a USB disconnect/reset/error');
+  return onlyUsb?'USB 连接曾中断或复位，当前连接检查尚未通过。已保存校准保留；展开「查看具体检查原因」可查看完整记录。':'板端日志记录了异常，当前连接检查尚未通过；展开「查看具体检查原因」可查看完整记录。';
+}
+function technicalErrorText(value){return typeof value==='string'?value:value&&typeof value==='object'?JSON.stringify(value,null,2):'';}
+function recoveryTechnicalText(){const s=snapshot?.session,check=s?.connection_check;return technicalErrorText(check?.phase==='failed'?(check.technical_reason||check.error||s?.error_details||s?.error):(s?.recovery_recheck?.technical_reason||s?.error_details||s?.error));}
+function feedbackErrorText(value,technical=null){
+  const kernelMessage=kernelFaultMessage(value)||kernelFaultMessage(technical);if(kernelMessage)return kernelMessage;
+  if(value&&typeof value==='object')return feedbackErrorText(value.message||value.error||'连接检查未通过；请展开「查看具体检查原因」。');
+  if(typeof value==='string'){
+    if(value.includes('Motion state changed; refresh before starting'))return '运控状态已变化，这条旧请求未执行；请查看当前状态后再操作。';
+    if(value.includes('Maintenance SSH output closed'))return 'X5 运控连接已结束，尚未收到完整关闭应答。请点击「检查断开并释放连接」，检查通过后再重新连接。';
+    if(value.includes('ESP32 USB serial device not found'))return '未找到 ESP32 的 COM 连接。请检查 COM 线已接到 X5，再点击连接；已保存校准保留。';
+    if(value.includes('Multiple matching CH340 USB serial devices'))return 'X5 上发现多个同型号 USB 串口，无法唯一识别 ESP32。请保留 ESP32 的 COM 连接并移除其他同型号串口，再点击连接。';
+    if(value.includes('Selected ESP32 USB serial device changed'))return '本次连接的 ESP32 串口已改变。请先断开当前会话，再重新连接；程序会重新查找当前 USB 口。';
+    if(value.includes('does not run the ESP32 motion protocol'))return '选中的 USB 串口未返回鸭子 ESP32 协议，连接已停止；请检查 COM 接线。';
+  }
+  if(typeof value!=='string'||!value.includes('Partial servo communication; reader will close'))return value;
+  const s=snapshot?.session,diagnostic=s?.fault_feedback;
+  const matchingFault=s?.status==='fault'&&String(s.error_details||s.error||'').includes('Partial servo communication; reader will close');
+  const mask=matchingFault&&validMask(diagnostic?.online_mask)?diagnostic.online_mask:null;
+  const missing=mask!==null&&mask!==0&&mask!==32767?motorIds.filter((_,i)=>!(mask&(1<<i))):[];
+  return missing.length?'舵机反馈中断，采集已停止；触发时未取得有效反馈的舵机 ID：'+missing.join('、')+'。这是停止时的记录，尚不能区分通信中断与位置数据异常。已保存校准保留。':'舵机反馈不完整，采集已停止；触发编号未确认。已保存校准保留。';
+}
+function savedAxes(value){return Array.isArray(value)&&value.length===3&&value.every(axis=>typeof axis==='string'&&/^-?[xyz]$/.test(axis))&&new Set(value.map(axis=>axis.slice(-1))).size===3;}
+function imuCalibrationSaved(){const imu=snapshot?.calibration?.imu;return imu?.axes_confirmed===true&&imu?.calibrated===true&&savedAxes(imu.axes)&&finiteVector(imu.bias_dps);}
+function calibrationJoint(id){const joints=snapshot?.calibration?.joints;return Array.isArray(joints)?joints.find(joint=>joint?.id===id):undefined;}
+function roundToEven(value){const lower=Math.floor(value);const fraction=value-lower;return fraction===.5?(lower%2===0?lower:lower+1):Math.round(value);}
+function jointSaved(id){const j=calibrationJoint(id);if(!j||!encoder(j.zero)||!encoder(j.min)||!encoder(j.max)||j.min>=j.max||j.min>j.zero||j.zero>j.max||j.direction_confirmed!==true||![-1,1].includes(j.sign))return false;const stand=roundToEven(j.zero+j.sign*jointDefaultDegrees[motorIds.indexOf(id)]*4095/360);return j.min<=stand&&stand<=j.max;}
+function jointSavedLabel(id){const j=calibrationJoint(id);return !j?'等待读取':jointSaved(id)?'✓ 已完成并保存':j.direction_confirmed===true&&encoder(j.min)&&encoder(j.max)?'已有记录，需复核':'待校准';}
+function jointDoneStage(stage){return ['complete','saved'].includes(stage);}
+function jointDraftActive(){const w=snapshot?.joint_wizard;return motorIds.includes(w?.id)&&!['idle','failed','cancelled','complete','saved'].includes(w.stage);}
+function zeroDraftActive(){const z=snapshot?.joint_zero;return motorIds.includes(z?.id)&&['sampling','ready'].includes(z.stage);}
+function zeroSamplingBusy(){return snapshot?.joint_zero?.busy===true||(requestBusy&&typeof requestAction==='string'&&requestAction.startsWith('zero:'));}
+function jointSamplingBusy(){return snapshot?.joint_wizard?.busy===true||(requestBusy&&typeof requestAction==='string'&&requestAction.startsWith('joint:'));}
+function resetPhysicalConfirmations(){for(const id of ['mountedConfirmed','supportConfirmed','jointSupportConfirmed','jointPositiveConfirmed','zeroSupportConfirmed','zeroReferenceConfirmed'])el(id).checked=false;}
+function resetMaintenanceConfirmations(){for(const id of ['servoIsolatedConfirmed','servoMappingConfirmed','servoSupportConfirmed'])el(id).checked=false;}
+function ageMs(){const age=snapshot?.session?.received_age_ms;const elapsed=receivedAt===null?Infinity:performance.now()-receivedAt;return typeof age==='number'&&Number.isFinite(age)&&age>=0&&elapsed>=0?age+elapsed:Infinity;}
+function recoveryPending(){return (requestBusy&&requestAction==='recover-feedback')||snapshot?.session?.recovery_pending===true||snapshot?.session?.connection_check?.phase==='checking'||(snapshot?.session?.status==='waiting'&&snapshot.session.feedback_recheck?.phase==='checking');}
+function dataFresh(){const f=snapshot?.feedback;return !fetchError&&!recoveryPending()&&!(requestBusy&&requestAction==='end-feedback')&&snapshot?.session?.status==='active'&&ageMs()<500&&!!f&&validTimestamp(f.sample_us)&&validTimestamp(f.imu_us)&&finiteVector(f.accel_ms2)&&finiteVector(f.gyro_dps);}
+function connectionTargetText(){
+  const target=snapshot?.connection_target;
+  if(!target||!['usb','wifi'].includes(target.kind)||typeof target.host!=='string')return '';
+  return target.native?'X5 独立工作台 · '+target.host+'；网页与后台在 X5 运行。':'X5 连接：'+(target.kind==='wifi'?'Wi-Fi':'USB 闪联')+' · '+target.host+'；网页由笔记本提供。';
+}
+function renderConnectionTarget(){
+  const text=connectionTargetText(),node=el('x5ConnectionTarget');
+  node.hidden=!text;
+  if(node.textContent!==text)node.textContent=text;
+}
+function renderWorkspaceNavigation(){
+  const route=workspaceRoutes.find(item=>item.key===workspaceView)||workspaceRoutes[0];
+  const zeroParent=el(workspaceView==='joint-steps'?'jointInlineZeroSlot':'zeroEditorHome');if(el('zeroEditor').parentElement!==zeroParent)zeroParent.append(el('zeroEditor'));
+  for(const item of workspaceRoutes){const active=item.key===route.key;el(item.nav).classList.toggle('active',active);el(item.nav).setAttribute('aria-current',active?'page':'false');for(const id of item.sections)el(id).hidden=!active;}
+  el('workspaceTitle').textContent=route.title;el('workspaceSubtitle').textContent=route.subtitle;
+  for(const id of ['recoverFeedback','endFeedback'])el(id).hidden=workspaceView==='motion-models';
+  el('recoverFeedbackNearFault').hidden=workspaceView==='motion-models';
+  el('workspaceInstructionsTitle').textContent=route.instructionTitle;el('workspaceInstructionsCopy').textContent=route.instructionCopy;
+}
+function selectWorkspace(hash){
+  const key=typeof hash==='string'?hash.replace(/^#/,''):'';
+  const next=workspaceRoutes.some(item=>item.key===key)?key:'device-status';
+  if(workspaceView==='motion-models'&&next!==workspaceView&&!motionIndependentHold()&&ownsMotionControl()&&motionControlHardware()?.mode!=='off'&&snapshot?.motion?.owns_connection)runMotion('stop',{stop_source:'workspace-leave'});
+  workspaceView=next;
+  renderRecovery();renderWorkspaceNavigation();renderZeroCalibration();renderMotion();
+}
+function renderHardwareOverview(){
+  const fromMotion=motionFresh(),h=snapshot?.motion?.hardware;
+  const mask=ids=>motorIds.reduce((bits,id,index)=>bits|((ids||[]).includes(id)?1<<index:0),0);
+  const f=fromMotion?{online_mask:mask(h.online_ids),fault_mask:mask(h.fault_ids),torque_mask:mask(h.torque_ids),torque_known_mask:h.torque_observation?mask(h.torque_observation.known_ids):32767,armed:h.armed===true,arm_cookie:h.armed?1:0,imu_ok:h.imu_ok===true,positions:motorIds.map(id=>h.rawdata?.find(row=>row.id===id)?.position)}:snapshot?.feedback;
+  const fresh=fromMotion||dataFresh()&&validMask(f?.online_mask)&&validMask(f?.fault_mask)&&validMask(f?.torque_mask)&&typeof f?.armed==='boolean';
+  const imuOnly=fresh&&f?.scope==='imu'&&f?.joint_feedback_valid===false;
+  const count=mask=>motorIds.filter((_,index)=>mask&(1<<index)).length;
+  el('statusServoCount').textContent=fresh?count(f.online_mask)+' / 15':'未确认';
+  el('statusServoCount').dataset.state=fresh&&f.online_mask===32767&&f.fault_mask===0?'good':'unknown';
+  el('statusFaultCount').textContent=imuOnly?'未确认 · 舵机断电':fresh?count(f.fault_mask)+' / 15':'未确认';
+  el('statusFaultCount').dataset.state=imuOnly?'unknown':fresh?(f.fault_mask===0?'good':'bad'):'unknown';
+  const allOff=fresh&&f.online_mask===32767&&f.fault_mask===0&&f.torque_mask===0&&f.armed===false&&(f.torque_known_mask??32767)===32767;
+  el('statusTorque').textContent=fresh&&f.torque_mask!==0?'有舵机开启':allOff?'全部关闭':'未确认';
+  el('statusTorque').dataset.state=fresh&&f.torque_mask!==0?'bad':allOff?'good':'unknown';
+  el('statusImu').textContent=fresh?(f.imu_ok===true?'已就绪':'未就绪'):'未确认';
+  el('statusImu').dataset.state=fresh?(f.imu_ok===true?'good':'bad'):'unknown';
+  el('statusController').textContent=fresh?'控制器 · '+(f.armed===true?'已使能':f.arm_cookie===0?'未使能':'状态异常'):'控制器未确认';
+  el('statusDataSource').textContent=fromMotion?'X5 运控的实时反馈；校准采集已关闭，串口由运控独占。':fresh?'实时反馈 · 约 '+Math.round(ageMs())+' ms 前采样':'当前没有新鲜反馈；在线、位置与扭矩尚未确认。已保存校准不代表当前硬件状态。';
+  const history=snapshot?.session?.held_diagnostic;
+  const showHistory=!fresh&&history?.scope==='historical_diagnostic'&&typeof history.message==='string'&&history.message.length>0;
+  el('statusHistory').hidden=!showHistory;el('statusHistoryText').textContent=showHistory?history.message:'';
+  for(const [index,id] of motorIds.entries()){
+    const cells=deviceElements.get(id),fault=fresh&&!!(f.fault_mask&(1<<index)),online=fresh&&!!(f.online_mask&(1<<index))&&!fault;
+    cells.state.textContent=!fresh?'未确认':imuOnly?'离线':fault?'故障':online?'在线':'离线';cells.state.dataset.state=imuOnly?'unknown':fault?'bad':online?'good':'unknown';
+    cells.position.textContent=online&&encoder(f.positions?.[index])?String(f.positions[index]):'—';
+    cells.torque.textContent=online&&((f.torque_known_mask??32767)&(1<<index))?(f.torque_mask&(1<<index)?'开启':'关闭'):'未确认';
+    cells.calibration.textContent=jointSavedLabel(id);
+  }
+  const selected=deviceElements.get(selectedServoId);el('servoSelect').value=selected?String(selectedServoId):'';
+  el('servoSelectedState').textContent=selected?.state.textContent||'未确认';el('servoSelectedPosition').textContent=selected?.position.textContent||'—';el('servoSelectedTorque').textContent=selected?.torque.textContent||'未确认';el('servoSelectedCalibration').textContent=selected?.calibration.textContent||'不在整机关节配置中';
+  renderMaintenance();
+}
+function maintenanceId(input){const value=String(el(input).value).trim();if(!/^\d{1,3}$/.test(value))return null;const id=Number(value);return Number.isInteger(id)&&id>=0&&id<=253?id:null;}
+function maintenanceTarget(){const value=String(el('servoTarget').value).trim();if(!/^\d{1,4}$/.test(value))return null;const target=Number(value);return encoder(target)?target:null;}
+function chooseMaintenanceServo(id,read=false){if(!Number.isInteger(id)||id<0||id>253||requestBusy||snapshot?.maintenance?.busy===true)return;selectedServoId=id;el('servoQueryId').value=String(id);resetMaintenanceConfirmations();renderHardwareOverview();if(read&&canMaintenance('read'))return runMaintenance('read');}
+function setMaintenanceTarget(value){const id=maintenanceId('servoQueryId');if(id===null)return;maintenanceTargets.set(id,String(value));el('servoTarget').value=String(value);el('servoSupportConfirmed').checked=false;renderMaintenance();}
+function maintenanceAge(){const age=snapshot?.maintenance?.received_age_ms;const elapsed=receivedAt===null?Infinity:performance.now()-receivedAt;return typeof age==='number'&&Number.isFinite(age)&&age>=0&&elapsed>=0?age+elapsed:Infinity;}
+function maintenanceFresh(){const m=snapshot?.maintenance;return !fetchError&&m?.connected===true&&m.compatible===true&&maintenanceAge()<500;}
+function canMaintenance(action){
+  const m=snapshot?.maintenance,s=snapshot?.session;
+  if(localFilePage||typeof snapshot?.token!=='string'||!snapshot.token||!Number.isInteger(s?.generation)||!m||m.phase==='unavailable')return false;
+  if(action==='exit')return !maintenanceExitBusy&&m.owns_connection===true;
+  if(requestBusy||fetchError||maintenanceExitBusy)return false;
+  if(action==='review')return m.fault_hold===true&&m.fault_review_allowed===true&&!m.fault_review_blocked_reason&&m.owns_connection===false&&m.busy===false&&(s.status==='closed'||snapshot?.native_access?.full_workbench===true&&s.status==='fault');
+  if(action==='enter')return !m.blocked_reason&&m.owns_connection===false&&m.busy===false&&s.status==='closed';
+  if(['scan','voltages'].includes(action)&&m.owns_connection===false)return !m.blocked_reason&&m.busy===false&&s.status==='closed';
+  if(m.connected!==true||m.compatible!==true||m.busy!==false)return false;
+  const id=maintenanceId('servoQueryId');
+  if(action==='release')return id!==null;
+  if(m.blocked_reason)return false;
+  if(['scan','voltages'].includes(action))return true;
+  if(id===null)return false;
+  if(action==='read')return true;
+  const row=m.servo;
+  if(!maintenanceFresh()||row?.id!==id||row.online!==true||row.error!==0||row.torque!==0)return false;
+  if(action==='rename'){const next=maintenanceId('servoNewId');return next!==null&&next!==id&&el('servoIsolatedConfirmed').checked&&el('servoMappingConfirmed').checked;}
+  if(action==='center'){const target=maintenanceTarget(),joint=calibrationJoint(id);return m.identity_changed!==true&&jointSaved(id)&&target!==null&&target>=joint.min&&target<=joint.max&&encoder(row.position)&&row.position>=joint.min&&row.position<=joint.max&&el('servoSupportConfirmed').checked;}
+  return false;
+}
+function renderServoVoltages(){
+  const m=snapshot?.maintenance,records=Array.isArray(m?.voltage_results)?m.voltage_results:[];
+  const valid=record=>record?.state===0&&record.error===0&&Number.isInteger(record.raw)&&record.raw>=0&&record.raw<=255&&typeof record.voltage_v==='number'&&Number.isFinite(record.voltage_v)&&record.voltage_v===record.raw/10;
+  const uniqueRecord=id=>{const matches=records.filter(record=>record?.id===id);return matches.length===1?matches[0]:null;};
+  const values=motorIds.map(uniqueRecord).filter(valid).map(record=>record.voltage_v);
+  el('servoVoltages').disabled=!canMaintenance('voltages');
+  el('servoVoltages').textContent=m?.busy&&m.action==='voltages'?'正在采集电压…':'采集舵机电压';
+  el('servoVoltageSummary').textContent=m?.voltage_supported===false?'ESP32 固件尚不支持电压采集，需要更新固件。':m?.busy&&m.action==='voltages'?'正在采集：'+records.length+' / 15。':values.length?'上次采样：'+values.length+' / 15 个有效读数，'+Math.min(...values).toFixed(1)+'–'+Math.max(...values).toFixed(1)+' V。':records.length?'没有有效电压读数；请查看各舵机的采样状态。':'尚未采集电压。';
+  const elapsed=receivedAt===null?Infinity:performance.now()-receivedAt;
+  const nodes=motorIds.map(id=>{
+    const record=uniqueRecord(id);
+    const tr=document.createElement('tr'),cells=Array.from({length:4},()=>document.createElement('td'));
+    const age=typeof record?.age_ms==='number'&&Number.isFinite(record.age_ms)&&record.age_ms>=0&&elapsed>=0?record.age_ms+elapsed:Infinity;
+    cells[0].textContent='ID '+id+' · '+jointSpecs.find(spec=>spec.id===id).name;
+    cells[1].textContent=valid(record)?record.voltage_v.toFixed(1)+' V':'—';
+    cells[2].textContent=!record?'未采集':valid(record)?'有效采样记录':record.state===1?'未响应 · 电压未知':record.state===2?'舵机报错 · 电压未知':record.state===3?'应答无效 · 电压未知':'数据无效';
+    cells[3].textContent=record&&Number.isFinite(age)?'约 '+Math.floor(age/1000)+' 秒前':'—';
+    tr.append(...cells);return tr;
+  });
+  el('servoVoltageRows').replaceChildren(...nodes);
+}
+function renderMaintenance(){
+  renderServoVoltages();
+  const m=snapshot?.maintenance,owns=m?.owns_connection===true,fresh=maintenanceFresh(),id=maintenanceId('servoQueryId'),row=m?.servo;
+  el('servoTarget').value=id===null?'':maintenanceTargets.get(id)??'2047';
+  const target=maintenanceTarget();
+  if(!fresh)resetMaintenanceConfirmations();
+  const ready=!localFilePage&&!fetchError&&!requestBusy&&m?.connected===true&&m.compatible===true&&m.busy===false&&!m.blocked_reason;
+  for(const [action,node] of [['enter','servoEnter'],['review','servoReview'],['exit','servoExit'],['scan','servoScan'],['read','servoRead'],['release','servoRelease'],['rename','servoRename'],['center','servoCenter']])el(node).disabled=!canMaintenance(action);
+  el('servoReview').hidden=m?.fault_hold!==true;
+  el('servoNewId').disabled=!ready;
+  for(const name of ['servoIsolatedConfirmed','servoMappingConfirmed','servoSupportConfirmed'])el(name).disabled=!ready;
+  el('servoSelect').disabled=el('servoQueryId').disabled=requestBusy||m?.busy===true;
+  const editingLocked=requestBusy||m?.busy===true||maintenanceExitBusy||id===null;
+  el('servoTarget').disabled=el('servoResetTarget').disabled=editingLocked;
+  el('servoUseZero').disabled=editingLocked||!encoder(calibrationJoint(id)?.zero);
+  const activeRow=fresh&&id!==null&&row?.id===id&&row.online===true&&row.error===0;
+  if(owns||m?.connected===true){el('servoSelectedState').textContent=activeRow?'在线':fresh&&row?.id===id&&row.error?'故障':'未确认';el('servoSelectedPosition').textContent=activeRow&&encoder(row.position)?String(row.position):'—';el('servoSelectedTorque').textContent=activeRow&&[0,1].includes(row.torque)?row.torque===0?'关闭':'开启':'未确认';}
+  const shownPosition=Number(el('servoSelectedPosition').textContent),positionKnown=encoder(shownPosition);
+  el('servoPositionCaption').textContent=id===null?'当前实际位置':'ID '+id+' · 当前实际位置';el('servoCurrentId').textContent=id===null?'—':String(id);
+  el('servoPositionDegrees').textContent=positionKnown?(shownPosition/4096*360).toFixed(1)+'°':'—';el('servoPositionArc').setAttribute('stroke-dashoffset',String(320.44*(1-(positionKnown?shownPosition:0)/4095)));
+  const positionAge=owns?maintenanceAge():ageMs();el('servoPositionReadTime').textContent=positionKnown&&Number.isFinite(positionAge)?'最近更新：约 '+Math.round(positionAge)+' ms 前 · 自动读取中':'尚未读到新鲜位置';
+  el('servoActualMarker').hidden=!positionKnown;el('servoActualMarker').setAttribute('style','left:'+(positionKnown?shownPosition/4095*100:0)+'%');el('servoTargetMarker').hidden=target===null;el('servoTargetMarker').setAttribute('style','left:'+(target===null?0:target/4095*100)+'%');
+  el('servoUseCurrent').disabled=editingLocked||!positionKnown;
+  el('servoCenter').textContent=m?.action==='center'&&m?.busy?'正在缓慢移动…':'回中到 '+(target===null?'…':target)+' ↗';
+  el('servoScan').textContent=m?.action==='scan'&&m?.busy?'正在扫描 ID 和位置…':'一键扫描 ID 和位置';
+  el('servoMaintenanceTitle').textContent=m?.compatible===false?'ESP32 固件不支持维护，需要更新':m?.busy?'维护操作进行中':m?.connected?'维护已连接':'维护尚未连接';
+  el('servoMaintenanceMessage').textContent=maintenanceError||m?.error||(m?.busy?m.message:null)||m?.blocked_reason||m?.message||'当前服务尚未加载维护接口。';
+  if(m?.fault_hold===true&&!m?.busy)el('servoMaintenanceMessage').textContent+=' 请点击「复查舵机反馈」；全部舵机在线、无故障且扭矩关闭后才能重新连接。';
+  el('servoMaintenanceProgress').hidden=m?.busy!==true;el('servoMaintenanceProgress').value=typeof m?.progress==='number'?Math.max(0,Math.min(100,m.progress)):0;
+  const rows=Array.isArray(m?.results)?m.results.filter(r=>Number.isInteger(r?.id)&&r.id>=0&&r.id<=253):[];
+  el('servoScanResult').textContent=rows.length?'扫描记录（不代表实时状态）：'+rows.map(r=>'ID '+r.id+' · '+(encoder(r.position)?r.position:'无位置')).join('；'):'尚无扫描结果。';
+  const scanSignature=JSON.stringify([rows,requestBusy||m?.busy===true]);
+  if(scanSignature!==lastServoScanSignature){lastServoScanSignature=scanSignature;const scanNodes=rows.map(r=>{const tr=document.createElement('tr'),cells=Array.from({length:4},()=>document.createElement('td')),button=document.createElement('button');button.type='button';button.className='button';button.textContent='选择 ID '+r.id;button.disabled=requestBusy||m?.busy===true;button.onclick=()=>chooseMaintenanceServo(r.id,true);cells[0].append(button);cells[1].textContent=encoder(r.position)?String(r.position):'读取失败';cells[2].textContent=encoder(r.position)?(r.position/4096*360).toFixed(2)+'°':'—';cells[3].textContent=r.torque===0?'关闭':r.torque===1?'开启':'未确认';tr.append(...cells);return tr;});el('servoScanRows').replaceChildren(...scanNodes);}
+  const joint=id===null?null:calibrationJoint(id);
+  el('servoCenterHint').textContent=m?.identity_changed?'编号对应关系待核对，暂不能按原校准回中。':id!==null&&jointSaved(id)?'已保存机械零点 '+joint.zero+'；安全范围 '+joint.min+'–'+joint.max+'。'+(activeRow&&(row.position<joint.min||row.position>joint.max)?'当前位置 '+row.position+' 超出安全范围，不能执行。':target===null?'请输入 0–4095 的整数目标。':target<joint.min||target>joint.max?'目标 '+target+' 超出安全范围，不能执行。':'本次回中到 '+target+'，不会修改零点校准。'):'当前关节尚无完整方向和安全范围，先完成关节校准。';
+  const message=el('servoMaintenanceMessage').textContent,signature=String(m?.phase)+'|'+String(m?.action)+'|'+message;
+  if(message&&signature!==lastMaintenanceLogSignature){lastMaintenanceLogSignature=signature;maintenanceLogs.unshift({time:new Date().toLocaleTimeString('zh-CN',{hour12:false}),message,error:!!(maintenanceError||m?.error)});maintenanceLogs.splice(40);const logNodes=maintenanceLogs.map(item=>{const div=document.createElement('div'),time=document.createElement('time'),copy=document.createElement('span');div.className='servo-log-item'+(item.error?' error':'');time.textContent=item.time;copy.textContent=item.message;div.append(time,copy);return div;});el('servoLogs').replaceChildren(...logNodes);}
+  if(owns){el('connectionLabel').textContent=m?.busy?'舵机维护 · 操作中':'舵机维护连接';el('endFeedback').disabled=!canMaintenance('exit');el('endFeedback').textContent='停止并退出维护';}
+}
+function recoveryPurpose(){return workspaceView==='imu-steps'?'imu':'joints';}
+function feedbackRecheckLabel(){return recoveryPurpose()==='imu'?'重新检查连接与 IMU':'重新检查连接与舵机';}
+function connectionCheckEligible(){const s=snapshot?.session;return s?.connection_check?.allowed===true&&['closure','trust'].includes(s?.recovery_recheck?.category);}
+function recoveryBlockedReason(){const s=snapshot?.session;
+  if(snapshot?.maintenance?.owns_connection===true)return '舵机维护正在占用连接，请先停止并退出维护。';
+  if(recoveryPending())return '正在检查恢复条件，请等待；不会重复提交。';
+  if(fetchError)return '页面状态读取中断，尚不能确认是否允许恢复。';
+  if(requestBusy)return '请等待当前请求完成。';
+  if(snapshot?.wizard?.busy===true||snapshot?.joint_wizard?.busy===true)return '本步仍在采样，不能同时恢复连接。';
+  const reason=typeof s?.recovery_blocked_reason==='string'?s.recovery_blocked_reason:'';
+  if(s?.status==='waiting')return reason||'正在等待连接与故障检查完成，暂时不能重复恢复。';
+  if(s?.status==='stopping')return reason||'旧采集连接正在关闭，确认关闭后才能恢复。';
+  if(!['fault','closed'].includes(s?.status))return reason||'当前采集尚未结束，恢复按钮暂不可用。';
+  if(typeof snapshot?.token!=='string'||!snapshot.token||!Number.isInteger(s.generation)||s.generation<0)return '等待有效的会话编号与校准服务状态。';
+  if(connectionCheckEligible())return typeof s.connection_check.blocked_reason==='string'?s.connection_check.blocked_reason:'';
+  if(s.recheck_allowed===true)return typeof s.recheck_blocked_reason==='string'?s.recheck_blocked_reason:'';
+  if(s.recovery_allowed!==true||reason)return (typeof s.recheck_blocked_reason==='string'&&s.recheck_blocked_reason)||reason||'当前会话未通过恢复条件检查，恢复按钮已锁住。';
+  return '';
+}
+function canRecoverFeedback(){return !recoveryBlockedReason();}
+function recoveryInfo(){const s=snapshot?.session;const pending=recoveryPending();const reason=recoveryBlockedReason();let text=reason,kind='idle';
+  if(pending){text=s?.connection_check?.phase==='checking'?'正在检查 X5 连接和旧串口占用；确认旧读取已结束后，再检查当前真实反馈…':s?.feedback_recheck?.phase==='checking'?'正在复查当前真实反馈，连续有效数据通过后才开放采集…':'恢复请求已提交，正在检查 X5 身份、故障历史与旧连接关闭状态…';kind='busy';}
+  else if(recoveryError){text='恢复采集未完成：'+feedbackErrorText(recoveryError);kind='error';}
+  else if(s?.connection_check?.phase==='failed'){text=feedbackErrorText(s.connection_check.error||reason||'未提供具体原因',recoveryTechnicalText());if(!kernelFaultMessage(recoveryTechnicalText())&&!kernelFaultMessage(s.connection_check.error))text='连接检查未通过：'+text;kind='error';}
+  else if(recoveryPhase==='failed'){text='恢复采集未通过：'+feedbackErrorText(reason||s?.error||'未提供具体原因',recoveryTechnicalText());kind='error';}
+  else if(s?.feedback_recheck?.phase==='passed'&&s?.status==='active'){text=dataFresh()?(s.feedback_recheck.purpose==='imu'?'✓ IMU 采集已恢复。按图确认安装和支撑，再点击第 1 步；舵机供电状态仍需单独复查。':'✓ 带电舵机反馈复查通过，关节采集已恢复。确认机身支撑后继续采样。'):'复查已通过，等待新鲜反馈；采样按钮仍保持锁定。';kind=dataFresh()?'success':'busy';}
+  else if(recoveryPhase==='ready'&&s?.status==='active'){text=dataFresh()?(workspaceView==='imu-steps'?'✓ 真实反馈已恢复。确认 IMU 安装和机身支撑，再点击第 1 步。':imuCalibrationSaved()?'✓ 真实反馈已恢复。请确认机身支撑，再手动开始逐关节采样。':'✓ 真实反馈已恢复。请重新确认 IMU 安装与机身支撑，再手动开始四步校准。'):'恢复检查已结束，正在等待新鲜的 IMU 反馈；采样按钮仍保持锁定。';kind=dataFresh()?'success':'busy';}
+  else if(!reason&&connectionCheckEligible()){text='连接中断后没有收到旧串口的关闭确认。点击「重新检查连接并继续」，页面会检查旧读取是否已结束，再启动当前页的采集。';}
+  else if(!reason&&s?.recheck_allowed===true){text=recoveryPurpose()==='imu'?'保持 URT2 电池断开，点击「重新检查连接与 IMU」；当前反馈检查通过后即可自行采样。':'舵机供电正常后，点击「重新检查连接与舵机」。15 个舵机全部在线、无故障且扭矩关闭后，就能继续当前关节。';}
+  else if(!reason){text='本次采集已结束。点击上方「继续采集」，检查通过后即可继续操作。';}
+  else if(['fault','closed'].includes(s?.status)){text='暂不能继续：'+feedbackErrorText(reason,recoveryTechnicalText());kind='error';}
+  return {pending,text,kind,visible:!!fetchError||!!recoveryError||recoveryPhase!=='idle'||['fault','closed','waiting','stopping'].includes(s?.status)};
+}
+function imuFaultFlagsAcceptable(f){return f?.fault_mask===0||snapshot?.native_access?.full_workbench===true&&f?.scope==='imu'&&f?.joint_feedback_valid===false&&f?.online_mask===0&&f?.fault_mask===32767;}
+function gateReason(){const s=snapshot?.session,f=snapshot?.feedback;
+  if(!snapshot||typeof snapshot.token!=='string'||!snapshot.token)return '等待校准服务连接。';
+  if(fetchError)return '页面状态读取中断，实时数值已隐藏；不会自动重连硬件。';
+  if(recoveryPending())return '正在恢复检查，等待新鲜反馈并重新确认安装与支撑后再采样。';
+  if(s?.status!=='active')return sessionEndInfo()?.title||s?.error||'真机反馈会话已暂停或结束；本页保留已保存校准。';
+  if(!Number.isInteger(s.generation)||s.generation<0)return '会话编号无效，请等待新状态。';
+  if(!dataFresh())return 'IMU 反馈超过 500 毫秒或数据缺失，请等待新状态。';
+  if(f.armed!==false||f.torque_mask!==0)return '需要确认控制器未使能、舵机扭矩关闭。';
+  if(!validMask(f.online_mask)||!validMask(f.fault_mask)||!imuFaultFlagsAcceptable(f))return '反馈报告故障或无效状态，采样按钮已锁住。';
+  if(f.imu_ok!==true)return 'IMU 尚未就绪，采样按钮已锁住。';
+  if(f.online_mask!==0)return '重做 IMU 四步前请先断开 URT2 电池；关节采样在上方关节区进行。';
+  if(!assetOk)return '等待原项目模型参考图加载。';
+  if(!el('mountedConfirmed').checked)return '先固定 IMU，再勾选安装确认。';
+  if(!el('supportConfirmed').checked)return '机身用稳固垫块或支架承重，再勾选支撑确认。';
+  return '';
+}
+function wizardStarted(){const stage=snapshot?.wizard?.stage;return typeof stage==='string'&&!['idle','complete'].includes(stage);}
+function canCancel(){const s=snapshot?.session,f=snapshot?.feedback;return !requestBusy&&typeof snapshot?.token==='string'&&!!snapshot.token&&s?.status==='active'&&Number.isInteger(s.generation)&&s.generation>=0&&dataFresh()&&f.armed===false&&f.torque_mask===0&&validMask(f.online_mask)&&imuFaultFlagsAcceptable(f)&&f.imu_ok===true&&(wizardStarted()||snapshot?.wizard?.busy===true);}
+function canEndFeedback(){const s=snapshot?.session;return !requestBusy&&!recoveryPending()&&typeof snapshot?.token==='string'&&!!snapshot.token&&Number.isInteger(s?.generation)&&s.generation>=0&&['waiting','active'].includes(s.status);}
+function canAction(action){const w=snapshot?.wizard;if(action==='cancel')return canCancel();if(requestBusy||gateReason())return false;if(w?.busy===true||jointSamplingBusy()||jointDraftActive()||zeroDraftActive())return false;return w?.expected_action===action||(action==='level'&&w?.stage==='complete');}
+function jointGateReason(includeSupport=true,includeDirectionAsset=true){const s=snapshot?.session,f=snapshot?.feedback,w=snapshot?.joint_wizard;
+  if(typeof snapshot?.token!=='string'||!snapshot.token||!Number.isInteger(s?.generation)||s.generation<0)return '等待有效的校准服务状态。';
+  if(fetchError)return '页面状态读取中断，实时数值已隐藏；不会自动重连或采样。';
+  if(recoveryPending())return '正在检查恢复条件，请等待新鲜反馈。';
+  if(s.status!=='active')return sessionEndInfo()?.title||s.error||'先接通 URT2 电池，等约 3 秒，再点击「继续采集」。';
+  if(s.feedback_recheck?.phase==='passed'&&s.feedback_recheck.purpose==='imu')return '当前只通过了 IMU 复查。结束采集后，在关节校准页面复查带电舵机反馈。';
+  if(!dataFresh())return '反馈超过 500 毫秒或数据缺失；实时数值已隐藏，重新就绪后需确认支撑。';
+  if(f.armed!==false||f.arm_cookie!==0||f.torque_mask!==0)return '实际扭矩尚未确认关闭或控制器已使能，不能手动摆动与采样。';
+  if(f.fault_mask!==0)return '反馈报告故障，关节采样已锁住。';
+  if(f.last_error!==undefined&&f.last_error!==0)return '控制器报告异常状态，关节采样已锁住。';
+  if(f.online_mask!==32767)return '需 15 个舵机全部在线，才可确认实际扭矩关闭；检查 URT2 电池并等待反馈。';
+  if(f.imu_ok!==true||!imuCalibrationSaved())return '需保留有效的 IMU 朝向和静止校准，再开始关节采样。';
+  if(!Array.isArray(f.positions)||f.positions.length!==15||!f.positions.every(encoder))return '真实编码器反馈无效，采样已锁住。';
+  if(!encoder(calibrationJoint(selectedJointId)?.zero))return '所选关节缺少已保存零点，请先核对零姿态。';
+  if(!w||typeof w.stage!=='string')return '关节采样服务尚未就绪。';
+  if(snapshot?.wizard?.busy===true)return 'IMU 正在采样，不能同时采集关节。';
+  if(includeDirectionAsset&&selectedJointId!==34&&!positiveAssetOk)return '等待原项目关节参考图加载，不可盲选方向。';
+  if(jointDraftActive()&&w.id!==selectedJointId)return '另一个关节有未保存步骤，请先取消该向导。';
+  if(includeSupport&&!el('jointSupportConfirmed').checked)return '确认机身由垫块或支撑承重，双脚不承重，再开始采样。';
+  return '';
+}
+function canJointCancel(){const s=snapshot?.session,w=snapshot?.joint_wizard;return !requestBusy&&typeof snapshot?.token==='string'&&!!snapshot.token&&Number.isInteger(s?.generation)&&s.generation>=0&&motorIds.includes(w?.id)&&!['idle','cancelled','complete','saved'].includes(w.stage);}
+function expectedJointAction(){const w=snapshot?.joint_wizard;if(!w)return null;if(w.id!==null&&w.id!==selectedJointId&&!['idle','failed','cancelled','complete','saved'].includes(w.stage))return null;return jointStageActions[w.stage]||null;}
+function canJointAction(action){if(action==='cancel')return canJointCancel();if(requestBusy||jointSamplingBusy()||zeroDraftActive()||jointGateReason())return false;const w=snapshot?.joint_wizard;if(action==='save-direction')return w?.id===selectedJointId&&w?.stage==='await-range-a'&&w?.direction_reuse_allowed===true&&jointSaved(selectedJointId)&&el('jointPositiveConfirmed').checked;const rangeRetry=w?.range_retry_allowed===true&&w?.id===selectedJointId&&w?.stage==='await-range-b'&&['range-a','range-b'].includes(action);if(expectedJointAction()!==action&&!rangeRetry)return false;if(['direction-end','save'].includes(action)&&!el('jointPositiveConfirmed').checked)return false;if(action==='save'&&w?.ready_to_save!==true)return false;return true;}
+function currentJointError(){const w=snapshot?.joint_wizard;return feedbackErrorText(typeof w?.error==='string'&&w.error?w.error:jointErrorGeneration===snapshot?.session?.generation&&jointErrorId===selectedJointId?jointError:'');}
+function nextUnfinishedJoint(){const start=motorIds.indexOf(selectedJointId);for(let n=1;n<=motorIds.length;n++){const id=motorIds[(start+n)%motorIds.length];if(!jointSaved(id))return id;}return null;}
+function chooseJoint(id){if(!motorIds.includes(id)||requestBusy||jointSamplingBusy()||jointDraftActive()||zeroDraftActive())return;selectedJointId=id;el('jointPositiveConfirmed').checked=false;el('zeroReferenceConfirmed').checked=false;zeroError='';zeroErrorGeneration=null;zeroErrorId=null;jointError='';jointErrorAction=null;jointErrorGeneration=null;jointErrorId=null;render();}
+function zeroGateReason(){
+  if(snapshot?.maintenance?.owns_connection===true)return '舵机维护占用连接，请先停止并退出维护。';
+  const basic=jointGateReason(false,false);if(basic)return basic;
+  if(!snapshot?.joint_zero||typeof snapshot.joint_zero.stage!=='string')return '机械零点采集服务正在更新，请稍后刷新页面。';
+  if(!assetOk)return '等待模型零姿态参考图加载。';
+  if(jointSamplingBusy()||jointDraftActive())return '当前有关节方向 / 范围步骤未保存。先点击「取消未保存方向 / 范围步骤」，再记零点；已保存校准保留。';
+  if(zeroDraftActive()&&snapshot.joint_zero.id!==selectedJointId)return '另一个关节的零点尚未保存，请先取消该预览。';
+  if(snapshot.feedback.last_error!==0)return '当前反馈缺少无故障状态，暂不能记零点。';
+  if(!el(zeroSupportId()).checked)return '请勾选本区「机身已由垫块或支架托稳，双脚不承重」。';
+  if(!el('zeroReferenceConfirmed').checked)return '先将所选关节摆到模型零姿态 q = 0，再勾选零姿态确认。';
+  return '';
+}
+function zeroSupportId(){return workspaceView==='joint-steps'?'jointSupportConfirmed':'zeroSupportConfirmed';}
+function canZeroAction(action){const z=snapshot?.joint_zero,s=snapshot?.session;
+  if(localFilePage||requestBusy||typeof snapshot?.token!=='string'||!snapshot.token||!Number.isInteger(s?.generation))return false;
+  if(action==='cancel')return motorIds.includes(z?.id)&&!['idle','saved','cancelled'].includes(z.stage);
+  if(zeroSamplingBusy()||zeroGateReason())return false;
+  if(action==='capture')return !zeroDraftActive();
+  return action==='save'&&z?.stage==='ready'&&z.id===selectedJointId&&encoder(z.candidate_zero)&&Math.abs(snapshot.feedback.positions[motorIds.indexOf(selectedJointId)]-z.candidate_zero)<=6;
+}
+function renderZeroCalibration(){const f=snapshot?.feedback,z=snapshot?.joint_zero,s=snapshot?.session;const spec=jointSpecs.find(item=>item.id===selectedJointId);const j=calibrationJoint(selectedJointId);const basic=!jointGateReason(false,false);const busy=zeroSamplingBusy();const draft=zeroDraftActive();const selected=z?.id===selectedJointId?z:null;
+  const inline=workspaceView==='joint-steps';el('zeroEditorTitle').textContent='记 ID '+selectedJointId+' · '+spec.name+' 的零点（可选）';el('zeroOldBox').hidden=inline;el('zeroLiveBox').hidden=inline;el('zeroReadings').hidden=inline&&!encoder(selected?.candidate_zero);
+  for(const id of motorIds){const cell=zeroElements.get(id),joint=calibrationJoint(id);cell.row.dataset.selected=String(id===selectedJointId);cell.live.textContent=basic?String(f.positions[motorIds.indexOf(id)]):'—';cell.saved.textContent=encoder(joint?.zero)?String(joint.zero):'—';cell.state.textContent=jointSavedLabel(id);cell.button.disabled=requestBusy||jointSamplingBusy()||jointDraftActive()||draft;}
+  el('zeroJointSelect').value=String(selectedJointId);el('zeroJointSelect').disabled=requestBusy||jointSamplingBusy()||jointDraftActive()||draft;
+  el('zeroSelectedLabel').textContent='只更新 ID '+selectedJointId+' · '+spec.name;
+  el('zeroHardwareStatus').textContent=basic?'当前反馈：15 / 15 舵机在线 · 实际扭矩关闭 · 控制器未使能':jointGateReason(false,false);
+  el('zeroSupportConfirmed').disabled=!basic||requestBusy||busy||jointSamplingBusy();el('zeroReferenceConfirmed').disabled=!basic||requestBusy||busy||jointDraftActive();
+  el('zeroReferenceLabel').textContent=selectedJointId===34?'已将嘴部轻合到闭合零点':'已将当前关节摆到'+(inline?'左图灰色':'模型')+'零姿态（q = 0）';
+  el('zeroOldReading').textContent=encoder(j?.zero)?String(j.zero):'—';el('zeroLiveReading').textContent=basic?String(f.positions[motorIds.indexOf(selectedJointId)]):'—';el('zeroCandidateReading').textContent=encoder(selected?.candidate_zero)?String(selected.candidate_zero):'—';
+  el('zeroCapture').disabled=!canZeroAction('capture');el('zeroCapture').textContent=busy?'采样中，保持静止…':'记零点';el('zeroSave').disabled=!canZeroAction('save');el('zeroSave').textContent=encoder(selected?.candidate_zero)?'保存零点 '+selected.candidate_zero:'保存零点';el('zeroCancel').disabled=!canZeroAction('cancel');
+  el('zeroCapture').title=busy?'正在采样，请保持静止。':zeroGateReason()||(draft?'已有未保存的零点预览，请先保存或取消。':'采集当前关节的静止零点，先预览再保存。');
+  el('zeroCancelJointDraft').hidden=!jointDraftActive();el('zeroCancelJointDraft').disabled=!canJointCancel();
+  el('zeroProgress').hidden=!busy;el('zeroProgress').value=typeof selected?.progress==='number'&&Number.isFinite(selected.progress)?Math.min(1,Math.max(0,selected.progress)):0;
+  const localError=zeroErrorGeneration===s?.generation&&zeroErrorId===selectedJointId?zeroError:'';const moved=selected?.stage==='ready'&&basic&&encoder(selected.candidate_zero)&&Math.abs(f.positions[motorIds.indexOf(selectedJointId)]-selected.candidate_zero)>6;
+  const missing=!draft&&selected?.stage!=='saved'&&zeroGateReason();
+  let text=localError||selected?.error||(missing?'还不能记零点：'+missing:'')||selected?.message||(inline?'已有零点正确可跳过。摆到灰色零姿态后记零点，采样完成再保存；只修改当前关节。':'选择关节、对照零姿态摆稳，勾选确认后点击「记零点」。采样只生成预览，点击保存后才修改零点。');
+  if(selected?.stage==='ready'&&!localError&&!selected.error)text=moved?'采样后该关节已经移动，请重新摆到零姿态并采样；旧零点尚未修改。':'已采到候选零点 '+selected.candidate_zero+'，旧零点 '+selected.old_zero+' 尚未修改。保持当前零姿态，再点击「确认保存」。只有此关节的方向和范围会重置。';
+  el('zeroResult').textContent=text;el('zeroResult').classList.toggle('error',!!localError||!!selected?.error||moved);
+  el('zeroGate').textContent=busy?'正在读取静止样本，请保持姿态。':zeroGateReason()||'当前条件通过；只记录编码器，不下发运动指令。';
+}
+function stepIndex(action){return steps.findIndex(step=>step[0]===action);}
+function completedBefore(w){return w?.stage==='complete'?4:stepIndex(w?.expected_action);}
+function sessionEndInfo(){
+  const s=snapshot?.session;if(!s)return null;
+  const saved=snapshot?.wizard?.stage==='complete';const message=typeof s.message==='string'?s.message:'';
+  if(s.status==='fault'){const reason=feedbackErrorText(s.error||message||'采集会话已停止，未提供具体原因',s.error_details);return {reason,title:(saved?'IMU 校准已保存；':'')+'采集会话已停止：'+reason+'。',fault:true};}
+  const pending=requestBusy&&requestAction==='end-feedback';
+  if(s.status!=='stopping'&&s.status!=='closed'&&!pending)return null;
+  const normalLimit=s.status==='closed'&&s.error==='Duration limit reached';
+  const completed=saved&&s.end_reason!=='manual'&&(s.end_reason==='completed'||['stopping','closed'].includes(s.status));
+  let reason='',title='';
+  if(completed){reason='四步校准已保存';title='✓ IMU 四步全部通过，校准已保存到笔记本。'+(s.status==='closed'?'采集已自动结束。':'正在自动结束采集…');}
+  else if(s.status==='stopping'||pending){reason='正在结束采集';title='正在结束本次采集，等待实时反馈关闭确认…';}
+  else if(s.end_reason==='manual'){reason='本次采集已手动结束';title=(saved?'✓ IMU 校准已保存。':'')+'本次采集已手动结束；已保存的校准保持不变。';}
+  else if(normalLimit){reason='本次采集时限已到';title='采集会话已结束：本次采集时限已到；恢复采集后再继续。';}
+  else{reason=message||(typeof s.error==='string'?s.error:'')||'本次采集已结束';title='采集会话已结束：'+reason+'。';}
+  return {normalLimit,reason,title,fault:false,saved:saved&&['stopping','closed'].includes(s.status),stopping:s.status==='stopping'||pending};
+}
+function currentWizardError(){const w=snapshot?.wizard;return feedbackErrorText(w?.error||(w?.stage==='failed'&&typeof w.message==='string'?w.message:'')||actionError||'');}
+function renderStepResults(){const w=snapshot?.wizard;const ended=sessionEndInfo();const recovering=recoveryInfo();const next=completedBefore(w);const busyAction=!ended&&!recovering.pending&&w?.busy===true?w.stage:null;const error=currentWizardError();const errorAction=w?.error||w?.stage==='failed'?w.expected_action:actionErrorAction;const count=Number.isInteger(w?.sample_count)&&w.sample_count>=0?w.sample_count:0;const required=Number.isInteger(w?.required_samples)&&w.required_samples>0?w.required_samples:100;const progress=typeof w?.progress==='number'&&Number.isFinite(w.progress)?Math.min(1,Math.max(0,w.progress)):0;
+  for(const [index,[action,buttonId]] of steps.entries()){const ui=stepResults.get(action);const passed=next>=0&&index<next;let text='尚未采样；请先完成前一步。',kind='idle';
+    if(passed){text=(ended?'上次采样结果：':'')+'✓ 本步采样通过。';kind='success';}
+    else if(error&&errorAction===action){text=(ended?'上次采样结果：':'')+'本步未通过：'+error;kind='error';}
+    else if(busyAction===action){text='采样中：'+count+' / '+required+' 个样本 · '+Math.round(progress*100)+'%。请保持静止。';kind='busy';}
+    else if(requestBusy&&requestAction===action){text='正在提交采样请求，等待确认…';kind='busy';}
+    else if(w?.expected_action===action){text='下一步：摆稳后点击上方按钮。';if(gateReason())text='本步尚未开始：'+gateReason();}
+    ui.status.textContent=text;ui.status.dataset.kind=kind;ui.progress.hidden=busyAction!==action;ui.progress.value=progress;
+    if(error&&errorAction===action&&!requestBusy)el(buttonId).textContent='重试 · '+steps[index][3];
+  }
+  let heading='尚未开始采样。先固定 IMU、确认支撑，再点击第 1 步。';
+  if(recovering.pending)heading=(w?.stage==='complete'?'✓ IMU 校准已保存。':'')+recovering.text;
+  else if(ended)heading=ended.title;
+  else if(error)heading='本步未通过：'+error;
+  else if(w?.stage==='complete')heading='✓ 四步全部通过，IMU 校准已保存到笔记本。';
+  else if(busyAction){const index=stepIndex(busyAction);heading='第 '+(index+1)+' 步正在采样，请保持当前姿态。';}
+  else if(endError)heading=endError;
+  else if(requestBusy&&stepIndex(requestAction)>=0&&!(next>stepIndex(requestAction)))heading='正在提交第 '+(stepIndex(requestAction)+1)+' 步，等待采样确认…';
+  else if(next>0){const instructions=['','抬高鸭嘴那端 20–40°，停稳后点击第 2 步。','回到水平，再抬高鸭子自己的左侧，停稳后点击第 3 步。','恢复水平并停稳，点击第 4 步保存校准。'];heading='✓ 第 '+next+' 步采样通过。下一步：'+instructions[next];}
+  el('wizardCurrentResult').textContent=heading;el('wizardCurrentResult').classList.toggle('error',recovering.pending?false:ended?ended.fault:!!error);
+  el('wizardSampleMeta').textContent=recovering.pending?'恢复检查不采集姿态；已保存校准保留，未完成的步骤将在新会话从第 1 步开始。':ended?.saved?'校准已保存，15 个关节零点保持不变；仍可导出 JSON 备份。':ended?'当前没有实时采集；下方保留的是上次采样结果，不能作为当前硬件状态。':busyAction?'当前已收到 '+count+' / '+required+' 个样本 · '+Math.round(progress*100)+'%；等待本步稳定性和姿态检查。':error?'后续步骤保持锁定。本步通过后才会开放下一步；失败原因也显示在对应按钮下方。':w?.stage==='complete'?'朝向与静止偏置已保存，15 个关节零点保持不变。':'每步至少 '+required+' 个有效样本；只有通过本步检查才会开放下一步。';
+}
+function showVector(prefix,vector,visible){for(const [i,axis] of ['X','Y','Z'].entries())el(prefix+axis).textContent=visible?vector[i].toFixed(2):'—';}
+function renderCalibration(){const c=snapshot?.calibration;const joints=Array.isArray(c?.joints)?c.joints:[];let zeros=0,directions=0,limits=0;
+  for(const id of motorIds){const joint=joints.find(j=>j&&j.id===id);const cells=jointElements.get(id);const zero=encoder(joint?.zero);const direction=joint?.direction_confirmed===true&&[-1,1].includes(joint?.sign);const range=encoder(joint?.min)&&encoder(joint?.max)&&joint.min<joint.max&&zero&&joint.min<=joint.zero&&joint.zero<=joint.max;zeros+=Number(zero);directions+=Number(direction);limits+=Number(range);cells[1].textContent=zero?String(joint.zero):'待采集';cells[2].textContent=direction?(joint.sign===1?'已核实 · +1':'已核实 · −1'):'待核实';cells[3].textContent=range?String(joint.min)+' – '+String(joint.max):'待采集';}
+  for(const [key,count] of [['zero',zeros],['direction',directions],['limits',limits]]){el(key+'Count').textContent=c?count+' / 15':'— / 15';el(key+'ProgressCard').classList.toggle('done',!!c&&count===15);}
+  const imu=c?.imu;const confirmed=imu?.axes_confirmed===true&&imu?.calibrated===true&&savedAxes(imu.axes)&&finiteVector(imu.bias_dps);el('imuSavedState').textContent=!c?'未读取':confirmed?'已保存':'待校准';el('imuProgressCard').classList.toggle('done',confirmed);
+  el('jointProgressSummary').textContent=c?'零点 '+zeros+' / 15 已保留；方向 '+directions+' / 15，安全范围 '+limits+' / 15。':'正在读取笔记本上保留的校准。';
+  const savedSpecs=jointSpecs.filter(spec=>jointSaved(spec.id));
+  el('jointSavedSummary').textContent=!Array.isArray(c?.joints)?'正在读取哪些关节已完成并保存。':savedSpecs.length?'已完成并保存（'+savedSpecs.length+' / 15）：'+savedSpecs.map(spec=>'ID '+spec.id+' · '+spec.name).join('；')+'。':'尚无完成并保存的关节。完成本关节 5 步并点击「保存本关节」后，这里会列出结果。';
+  for(const spec of jointSpecs)setMotionText(jointOptionElements.get(spec.id),'ID '+spec.id+' · '+spec.name+' · '+jointSavedLabel(spec.id));
+  if(confirmed){const axes=imu.axes.map(axis=>(axis.startsWith('-')?'−':'+')+axis.slice(-1).toUpperCase());el('savedMountingTitle').textContent='机身朝向已保存';el('savedMountingDetail').textContent='机身前 / 左 / 上 对应传感器 '+axes.join(' / ')+'；静止角速度偏置 '+imu.bias_dps.map(v=>v.toFixed(3)).join(' / ')+' °/s。校准已保存到笔记本，关节零点保持不变。';}else{el('savedMountingTitle').textContent='机身朝向：待识别';el('savedMountingDetail').textContent='完成四步后，网页会保存朝向和静止角速度偏置。15 个关节零点保持不变。';}
+}
+function renderJointAutomaticStatus(){const f=snapshot?.feedback;const fresh=dataFresh();const onlineKnown=fresh&&validMask(f?.online_mask);const online=onlineKnown?motorIds.filter((id,i)=>f.online_mask&(1<<i)).length:null;
+  const masksValid=onlineKnown&&validMask(f.fault_mask)&&validMask(f.torque_mask);const allVerifiedOff=masksValid&&f.online_mask===32767&&f.fault_mask===0&&f.torque_mask===0&&f.armed===false&&f.arm_cookie===0;
+  el('jointOnlineStatus').textContent=onlineKnown?online+' / 15':'— / 15';el('jointOnlineStatusCard').dataset.state=online===15&&f.fault_mask===0?'good':'unknown';
+  const torquePresent=fresh&&validMask(f?.torque_mask)&&f.torque_mask!==0;el('jointTorqueStatus').textContent=torquePresent?'有扭矩，禁止轻摆':allVerifiedOff?'已关闭':'未确认';el('jointTorqueStatusCard').dataset.state=torquePresent?'bad':allVerifiedOff?'good':'unknown';
+  const armed=fresh&&f?.armed===true;const disarmed=fresh&&f?.armed===false&&f.arm_cookie===0;el('jointControllerStatus').textContent=armed?'已使能，禁止轻摆':disarmed?'未使能':'未确认';el('jointControllerStatusCard').dataset.state=armed?'bad':disarmed?'good':'unknown';
+}
+function renderJointCalibration(){const s=snapshot?.session,w=snapshot?.joint_wizard,f=snapshot?.feedback;const spec=jointSpecs.find(item=>item.id===selectedJointId);const j=calibrationJoint(selectedJointId);const selectedWizard=w?.id===selectedJointId?w:null;const expected=expectedJointAction();const busy=jointSamplingBusy();const basic=!jointGateReason(false);const error=currentJointError();const recovering=recoveryInfo();const count=Number.isInteger(w?.completed_count)&&w.completed_count>=0&&w.completed_count<=15?w.completed_count:motorIds.filter(jointSaved).length;const saved=jointSaved(selectedJointId);const mouth=selectedJointId===34;
+  renderJointAutomaticStatus();
+  const draft=jointDraftActive();const step=jointSteps.findIndex(item=>item[0]===(w?.busy===true?w.stage:expected))+1;
+  if(el('jointSelect').value!==String(selectedJointId))el('jointSelect').value=String(selectedJointId);
+  el('jointSelect').disabled=requestBusy||busy||draft||zeroDraftActive();el('jointSelectedState').textContent=draft?(saved?'✓ 此前已完成并保存；本次重采未保存':'本次采样未保存')+' · 第 '+step+' / 5 步':jointSavedLabel(selectedJointId);el('jointCompletedCount').textContent=count+' / 15 完成';el('jointAllDone').hidden=count!==15;el('jointAllDone').textContent='15 个关节的方向和安全范围已保存，等待下一步受控实机检查；本页没有使能或模型运动按钮。';
+  el('jointSelectionHint').textContent=draft?'正在校准 ID '+selectedJointId+'（'+spec.name+'）。下面第 1–5 步都针对这个关节，参考图保持不变。'+(saved?'此前的校准继续保留，只有再次点击「保存本关节」才会更新。':'')+'保存本关节后点「下一个未完成关节」；若要中途换关节，先点「取消未保存步骤 / 重来」。':saved?'当前关节已完成并保存。可点「下一个未完成关节」继续；也可重采本关节，原结果保留到再次保存。':'先选择关节，再依次完成下面 5 步。第 2 步是当前关节的正方向采样；换到另一个关节时，参考图才会切换。';
+  el('jointOriginalZero').textContent=encoder(j?.zero)?String(j.zero):'—';el('jointLivePosition').textContent=basic&&!busy?String(f.positions[motorIds.indexOf(selectedJointId)]):'—';el('jointSavedRange').textContent=encoder(j?.min)&&encoder(j?.max)?String(j.min)+' – '+String(j.max):'待采集';
+  const rejection=selectedWizard?.last_range_rejection?.id===selectedJointId?selectedWizard.last_range_rejection:null;
+  const capturedA=encoder(selectedWizard?.range_a),capturedB=encoder(selectedWizard?.range_b);
+  const shownA=capturedA?selectedWizard.range_a:encoder(rejection?.range_a)?rejection.range_a:null;
+  const shownB=capturedB?selectedWizard.range_b:encoder(rejection?.range_b)?rejection.range_b:null;
+  el('jointRangeALabel').textContent=capturedA?'位置 A · 已采集':shownA!==null?'位置 A · 上次未通过':'位置 A · 尚未采集';
+  el('jointRangeBLabel').textContent=capturedB?'位置 B · 已采集':shownB!==null?'位置 B · 上次未通过，待重采':'位置 B · 尚未采集';
+  el('jointRangeAReading').textContent=shownA!==null?String(shownA):'—';el('jointRangeBReading').textContent=shownB!==null?String(shownB):'—';
+  const previewMin=capturedA&&capturedB&&!mouth?Math.min(shownA,shownB)+12:Number.isInteger(rejection?.trimmed_min)?rejection.trimmed_min:null;
+  const previewMax=capturedA&&capturedB&&!mouth?Math.max(shownA,shownB)-12:Number.isInteger(rejection?.trimmed_max)?rejection.trimmed_max:null;
+  el('jointRangePreview').textContent=previewMin!==null&&previewMax!==null?previewMin+' – '+previewMax:'—';
+  const zero=encoder(j?.zero)?j.zero:null,sign=selectedWizard?.inferred_sign;
+  const stand=zero!==null&&[-1,1].includes(sign)?roundToEven(zero+sign*jointDefaultDegrees[motorIds.indexOf(selectedJointId)]*4095/360):null;
+  let rangeGuide=mouth?'嘴部沿轻合、张开辨认，不能越过闭合端。':zero===null?'等待已保存零点。':'A、B 要包住原零点 '+zero+'；所选两端必须包含它，不会自动扩展或缩边。';
+  if(!mouth&&zero!==null&&stand!==null)rangeGuide+=' 本次固定站姿参照 '+stand+'。校验需要较小端 ≤ '+(Math.min(zero,stand)-12)+'，较大端 ≥ '+(Math.max(zero,stand)+12)+'，且预留后的范围不能缩成单点。';
+  if(selectedJointId===30)rangeGuide+=' 颈部固定站姿按已保存零位校验；低头会改变避让空间，两侧范围应在头部姿态不变且线束不受挤压时采集。';
+  if(!mouth)rangeGuide+=' 这是校验参照，不是动作目标；真实可动范围达不到时，先停下核对零点和装配，不要硬掰。';
+  el('jointRangeGuide').textContent=rangeGuide;
+  el('jointSupportConfirmed').disabled=!basic||busy||requestBusy;el('jointPositiveConfirmed').disabled=!basic||busy||requestBusy||!encoder(selectedWizard?.start_position);
+  const hipPositive=selectedJointId===12?'把腿小幅往鸭子身后摆':selectedJointId===22?'把腿小幅往鸭嘴方向摆':null;
+  const anklePositive=selectedJointId===14?'保持小腿不动，只把左脚脚尖轻轻放低、脚跟相对抬高':selectedJointId===24?'保持小腿不动，只把右脚脚尖轻轻抬高、脚跟相对放低':null;
+  const positiveInstruction=hipPositive||anklePositive;
+  el('jointPositiveLabel').textContent=mouth?'我确实沿张开嘴部的正方向轻摆了 ID 34':positiveInstruction?'我已按正方向轻摆 ID '+selectedJointId+'：'+positiveInstruction:'我确实沿图中绿色正方向轻摆了这个关节';
+  // SVGElement does not reflect the HTMLElement.hidden property. Toggle the
+  // actual attribute used by [hidden] CSS, so the previous joint cannot linger.
+  // Rendering also runs every 100 ms to age live readings. Reassigning an
+  // unchanged SVG viewBox invalidates its image rendering in browsers.
+  for(const [id,hidden] of [['jointDirectionDiagram',mouth],['jointMouthDiagram',!mouth]]){
+    const node=el(id),wasHidden=node.getAttribute('hidden')!==null;
+    if(hidden!==wasHidden){if(hidden)node.setAttribute('hidden','');else node.removeAttribute('hidden');}
+  }
+  if(spec.tile){const viewBox=(20+spec.tile[0]*316)+' '+(104+spec.tile[1]*387)+' 303 371';if(el('jointDirectionDiagram').getAttribute('viewBox')!==viewBox)el('jointDirectionDiagram').setAttribute('viewBox',viewBox);}
+  el('jointReferenceCopy').textContent=mouth?'ID 34 嘴部：轻合为零点，绿色嘴部张开为正方向。只需轻轻张开一些，停稳后采样；不能越过闭合端。':positiveInstruction?'灰色是模型零姿态，灰到绿说明正方向。第 2 步：'+positiveInstruction+'；'+(hipPositive?'保持躯干与膝、踝的相对姿态不变':'按小腿与脚掌的相对姿态核对灰色零姿态，不要在髋、膝任意弯曲时仅凭脚底贴桌面记零')+'，停稳后采样。第 1 步可从当前安全位置开始；第 2 步必须按这个方向。这一步确定转向，A/B 两端另采。':'灰色是模型零姿态，绿色是 '+spec.name+' 的正方向。只小幅朝绿色方向轻摆，不用达到图中 +10°。';
+  el('jointReferenceCaution').textContent=mouth?'开合动作示意。按实物辨认轻合、张开；示意图的角度不是机械限位。':'图只说明模型方向。结合本机实际装配辨认关节；不要盲选方向，也不要用图上的角度当机械限位。';
+  el('jointFullReferenceLink').hidden=mouth;
+  el('jointMarginNote').textContent=mouth?'嘴部只轻合、张开，不可越过闭合端。所选范围须包含原零点及沿已确认正方向张开的读数；保存所选两端，不自动缩边，原零点不改。':'这是其余关节保持参考姿态时采到的单关节范围，不代表所有关节组合都无碰撞。需自己留明显间隙；后台保存你选择的两端，不自动缩边；检查原零点和模型默认站姿在范围内。A/B 范围不设半圈跨度上限，按编码器较小值到较大值保存；跨 4095→0 的范围不支持。';
+  el('jointAssetError').hidden=mouth||positiveAssetOk;
+  const positions=[selectedWizard?.start_position,selectedWizard?.end_position,selectedWizard?.range_a,selectedWizard?.range_b];
+  const descriptions=['让所选关节停稳。这是方向比较的起点，不是重新采零点。',mouth?'轻轻张开一些，停稳并勾选张开方向确认。':'沿绿色方向小幅轻摆，停稳并勾选正方向确认。',mouth?'可先轻合到原闭合位置，停稳；不要越过闭合端。':'托住腿的自重，当前关节缓慢摆到一侧不擦碰、有明显间隙的位置，停稳。',mouth?'记录另一侧安全张开位置；不能顶机械限位。':'再记录另一侧不擦碰的位置；采样值显示在上方，不额外掰开其他关节来腾出范围。'];
+  for(const [i,id] of ['jointStartValue','jointEndValue','jointRangeAValue','jointRangeBValue'].entries())el(id).textContent=encoder(positions[i])?'已采集：'+positions[i]+' 刻度。':descriptions[i];
+  const delta=encoder(selectedWizard?.start_position)&&encoder(selectedWizard?.end_position)?selectedWizard.end_position-selectedWizard.start_position:null;
+  el('jointSaveValue').textContent=selectedWizard?.ready_to_save===true?'方向及安全两端检查通过。保存后原零点及 IMU 保持不变。':delta!==null?'正方向轻摆实测变化 '+(delta>0?'+':'')+delta+' 刻度。完成安全位置检查后再保存。':'方向和安全范围一并保存，原零点及 IMU 保持不变。';
+  const directionReuse=saved&&!mouth&&selectedWizard?.stage==='await-range-a'&&!busy&&encoder(selectedWizard?.end_position);
+  el('jointDirectionReuseRow').hidden=!directionReuse;el('jointReuseDirection').disabled=!canJointAction('save-direction');
+  el('jointDirectionReuseDetail').textContent=selectedWizard?.direction_reuse_reason||'本次方向 '+(sign===1?'+1':sign===-1?'−1':'待确认')+'；保存时复查实时反馈及站姿目标。沿用已保存范围 '+(j?.min??'—')+'–'+(j?.max??'—')+'，零点、IMU 和其他关节保留。';
+  for(const [i,[action,buttonId,rowId,label]] of jointSteps.entries()){el(buttonId).disabled=!canJointAction(action);const retryLabel=selectedWizard?.range_retry_allowed===true&&['range-a','range-b'].includes(action)?'重新记录位置 '+(action==='range-a'?'A':'B'):label;el(buttonId).textContent=requestAction==='joint:'+action||w?.busy===true&&w.stage===action?'采样处理中…':retryLabel;el(rowId).dataset.current=String(expected===action&&!busy);el(rowId).dataset.done=String(i<4?encoder(positions[i]):jointDoneStage(selectedWizard?.stage)&&saved);}
+  el('jointCancel').disabled=!canJointCancel();el('jointNext').disabled=requestBusy||busy||jointDraftActive()||zeroDraftActive()||!saved||nextUnfinishedJoint()===null;
+  const progress=typeof w?.progress==='number'&&Number.isFinite(w.progress)?Math.min(1,Math.max(0,w.progress)):0;const samples=Number.isInteger(w?.sample_count)&&w.sample_count>=0?w.sample_count:0;el('jointProgress').hidden=!basic||!busy;el('jointProgress').value=progress;
+  let result='选中 '+spec.name+'（ID '+spec.id+'），停稳后点击「记录当前位置」。',red=false;
+  if(recovering.pending)result=recovering.text;
+  else if(s?.status==='fault'){result='采集已停止：'+feedbackErrorText(s.error||'未提供具体原因')+'。已保存的零点、IMU 和关节校准保留。';red=true;}
+  else if(s?.status==='closed'||s?.status==='stopping'){result=(jointDoneStage(selectedWizard?.stage)&&saved?'✓ 本关节已保存。':'')+'采集已结束或正在结束；原零点及 IMU 保留。接通 URT2 电池，等约 3 秒，再点击本区「继续采集」。';}
+  else if(fetchError){result=fetchError;red=true;}
+  else if(!basic){result=jointGateReason(false);red=f?.armed!==false||f?.arm_cookie!==0||f?.torque_mask!==0||f?.fault_mask!==0;}
+  else if(error){result='本次步骤未通过：'+error+'。'+(selectedWizard?.range_retry_allowed===true?'方向采样已保留，只需重采位置 A 或 B；本关节尚未保存。':w?.stage==='failed'?'未保存步骤已清除，请从起点重新采集。':'已保存配置保持不变，请按下方当前步骤处理。');red=true;}
+  else if(busy){result='正在采集 '+spec.name+'，请保持该关节静止；已收到 '+samples+' 个样本 · '+Math.round(progress*100)+'%。';}
+  else if(jointDoneStage(selectedWizard?.stage)&&saved){result='✓ '+spec.name+' 的方向与安全范围已保存，原零点和 IMU 保持不变。'+(count===15?'15 个关节已完成，等待下一步受控实机检查。':'点击「下一个未完成关节」继续。');}
+  else if(selectedWizard?.message){result=selectedWizard.message;}
+  else if(expected==='direction-end')result=mouth?'起点已采集。轻轻张开嘴部，停稳、勾选张开方向确认，再记录。':'起点已采集。沿图中绿色方向轻摆，停稳、勾选正方向确认，再记录。';
+  else if(expected==='range-a')result='方向比较已通过。其余关节保持参考姿态，记录当前关节不擦碰、留有明显间隙的位置 A。';
+  else if(expected==='range-b')result='安全位置 A 已采集。其余关节保持原姿态，记录另一侧不擦碰、留有明显间隙的位置 B。';
+  else if(expected==='save')result='方向与安全位置检查通过。确认正向操作无误，再点击「保存本关节」。';
+  el('jointCurrentResult').textContent=result;el('jointCurrentResult').classList.toggle('error',red);el('jointSampleMeta').textContent=busy?'静止采样约 0.35–3 秒；页面不会自动采下一步。':'每次停稳后采集；方向变化至少 12、少于 1024 刻度。只有保存才会修改本关节配置。';
+  el('jointGate').textContent=jointGateReason()||(busy?'等待采样完成，暂时不要摆动。':['direction-end','save'].includes(expected)&&!el('jointPositiveConfirmed').checked?'请明确勾选：刚才确实沿参考正方向轻摆。':'实际扭矩已确认关闭；只用手轻摆，停稳后点击当前步骤。');
+}
+function renderRecovery(){const info=recoveryInfo();const disabled=!canRecoverFeedback();const s=snapshot?.session;const trustBlocked=disabled&&s?.recovery_recheck?.category==='trust';const label=info.pending?'连接检查中…':connectionCheckEligible()?'重新检查连接并继续':s?.status==='active'?'正在采集':s?.status==='stopping'?'等待连接关闭':trustBlocked?'需核对连接':s?.recheck_allowed===true?feedbackRecheckLabel():'继续采集';
+  for(const id of ['recoverFeedback','recoverFeedbackNearFault','recoverFeedbackInWizard','recoverFeedbackInJoints','recoverFeedbackInZeros']){el(id).disabled=disabled;el(id).textContent=label;el(id).title=disabled?feedbackErrorText(recoveryBlockedReason(),recoveryTechnicalText()):'检查条件并恢复一次真机反馈采集';}
+  el('recoveryHelp').textContent=trustBlocked?'本次连接校验未通过，采集入口已锁定。展开「查看具体检查原因」查看完整记录；处理并核对后才能恢复。已保存的校准保留。':workspaceView==='motion-models'?'展开「查看具体检查原因」查看完整记录；需要重新检查采集时，可前往「设备状态」。已保存的校准保留。':s?.connection_check?.allowed===true||s?.recheck_allowed===true?'设备状态、机械零点、关节校准和 IMU 页都可在这里重新检查，不需要在聊天里重开。检查通过后恢复当前页采集，不会开启扭矩或启动动作。失败会显示原因；已保存校准保留。':'没有收到新反馈时会暂停采集，避免记录过时读数。已保存的校准保留；重新开始所需条件和失败原因都显示在这里。';
+  const technical=recoveryTechnicalText();
+  el('recoveryDetails').hidden=!info.visible||info.pending||!technical;el('recoveryTechnicalReason').textContent=technical;
+  const panelVisible=info.visible&&(workspaceView!=='motion-models'||info.kind==='error'&&!el('recoveryDetails').hidden);
+  el('recoveryPanel').hidden=!panelVisible;el('recoveryPanel').dataset.kind=info.kind;el('recoveryStatus').textContent=info.text;
+  el('recoveryWizardControls').hidden=!info.visible;el('recoveryWizardStatus').textContent=info.text;el('recoveryWizardStatus').classList.toggle('error',info.kind==='error');
+  el('jointRecoveryControls').hidden=!info.visible;el('jointRecoveryStatus').textContent=info.text;el('jointRecoveryStatus').classList.toggle('error',info.kind==='error');
+  el('connectionStatusLink').disabled=!panelVisible;el('connectionStatusLink').title=panelVisible?(workspaceView==='motion-models'?'点击查看具体检查原因':'点击查看停止原因和继续采集入口'):'当前没有可查看的连接检查详情';
+  if(info.pending){el('connectionLabel').textContent='恢复检查中 · 实时读数已隐藏';el('liveNote').textContent='正在检查新的采集连接；旧实时数值已隐藏。恢复完成后，需要重新确认安装与支撑，再手动开始采样。';el('sessionTime').textContent='恢复检查中 · 不会自动重试';}
+}
+function render(){renderDisplayUpdates();const s=snapshot?.session,f=snapshot?.feedback,w=snapshot?.wizard;const fresh=dataFresh();const ended=sessionEndInfo();const reportedFault=s?.status==='fault';const alertText=fetchError||ended?.reason||s?.error||endError||'';el('sessionAlert').hidden=!alertText;el('sessionAlert').textContent=alertText;el('sessionAlert').classList.toggle('error',!!fetchError||(ended?ended.fault:!!s?.error||!!endError));el('connectionDot').className='dot'+(fresh?' live':reportedFault||fetchError?' fault':'');el('connectionLabel').textContent=ended?.stopping?'正在结束采集':fresh?'X5 真实反馈已连接':ended?.saved?'校准已保存 · 采集已结束':s?.status==='closed'?'采集已结束 · 可继续':reportedFault?'采集已暂停 · 查看原因与重开':fetchError?'状态读取中断':'等待新鲜反馈';el('endFeedback').disabled=!canEndFeedback();el('endFeedback').textContent=ended?.stopping?'结束中…':s?.status==='closed'?'采集已结束':'结束采集';el('liveNote').textContent=ended?.stopping?'采集正在结束，实时数值已隐藏；请等待关闭确认。':s?.status==='closed'?'采集已结束，当前没有实时数据；已保存校准仍可导出。':reportedFault?'采集已停止，实时数值已隐藏；实际原因见上方。':'超过 500 毫秒没有新反馈时，实时数值会隐藏。页面不会自动重新连接硬件。';
+  renderConnectionTarget();
+  showVector('acc',f?.accel_ms2,fresh);showVector('gyro',f?.gyro_dps,fresh);el('freshnessLabel').textContent=fresh?'约 '+Math.round(ageMs())+' ms 前采样':'实时读数已隐藏';el('sampleTimestamps').textContent=fresh?'STATE '+f.sample_us+' µs · IMU '+f.imu_us+' µs':'采样时间：—';
+  if(fresh&&f?.scope==='imu'&&f?.joint_feedback_valid===false){el('hardwareSummary').textContent='IMU 专用采集 · 舵机离线（断电预期），关节状态尚未确认';}else if(fresh&&validMask(f.online_mask)&&validMask(f.fault_mask)&&validMask(f.torque_mask)){const online=motorIds.filter((id,i)=>f.online_mask&(1<<i)).length;el('hardwareSummary').textContent='舵机在线 '+online+' / 15 · 故障 '+(f.fault_mask===0?'无':'已报告')+' · 控制器 '+(f.armed===false?'未使能':'已使能');}else el('hardwareSummary').textContent='舵机电池断开时，舵机离线是预期状态。';
+  const basic=fresh&&f?.armed===false&&f?.torque_mask===0&&imuFaultFlagsAcceptable(f)&&f?.imu_ok===true;const locked=requestBusy||w?.busy===true;el('mountedConfirmed').disabled=el('supportConfirmed').disabled=!basic||locked;
+  const current=requestAction||(w?.busy?w.stage:w?.expected_action);const next=w?.stage==='complete'?4:steps.findIndex(step=>step[0]===w?.expected_action);
+  for(const [index,[action,buttonId,poseId,label]] of steps.entries()){const button=el(buttonId);const completed=next>=0&&index<next;button.disabled=!canAction(action);button.textContent=!completed&&(requestBusy||w?.busy===true)&&action===current?'采样中，保持静止…':action==='level'&&w?.stage==='complete'?'重新校准 · 第 1 步':label;el(poseId).dataset.active=String(current===action);el(poseId).dataset.complete=String(completed);}
+  el('wizardCancel').disabled=!canAction('cancel');el('wizardCancel').textContent=requestAction==='cancel'?'正在取消…':'取消本次 / 重新开始';const error=currentWizardError();el('wizardResult').classList.toggle('error',ended?ended.fault:!!error);el('wizardResult').textContent=ended?.title||error||w?.message||'固定 IMU 并确认机身支撑后，从第 1 步开始。';el('sampleProgress').hidden=!!ended||recoveryPending()||w?.busy!==true;el('sampleProgress').value=typeof w?.progress==='number'&&Number.isFinite(w.progress)?Math.min(1,Math.max(0,w.progress)):0;el('wizardGate').textContent=gateReason()||(w?.busy===true?'等待本步采样完成，再调整姿态。':w?.stage==='complete'?'IMU 校准已保存。机身继续由支撑承重，无需手托。':'摆稳后点击下一步，每一步都由你开始。');
+  el('sessionTime').textContent=ended?.stopping?'采集结束中 · 等待关闭确认':s?.status==='closed'?'本次采集已结束 · 已保存校准可导出':reportedFault?'本次采集已停止 · 无自动重连':'采集由你手动结束 · 四步保存成功后自动结束';renderCalibration();renderRecovery();renderStepResults();renderJointCalibration();renderZeroCalibration();renderHardwareOverview();renderMotion();renderWorkspaceNavigation();
+}
+function acceptSnapshot(next,motionDeploymentReset=false){
+  if(!next||typeof next!=='object'||!next.session||typeof next.session!=='object'||!next.wizard||typeof next.wizard!=='object')throw new Error('状态数据格式无效');
+  if(next.motion?.snapshot_superseded===true)return;
+  const previousGeneration=snapshot?.session?.generation;
+  const previousMotionGeneration=motionPageGeneration();
+  const receiptSame=motionReceiptContextCurrent()&&motionPageGeneration(next)===motionReceipt.pageGeneration&&next.motion?.connection_sequence===motionReceipt.connectionSequence&&next.motion?.deployment?.archive_sha256===motionReceipt.deployment&&next.motion?.deployment?.started_monotonic===motionReceipt.deploymentStarted;
+  const nextMotionGeneration=next.motion?.hardware?.generation??next.motion?.last_hardware?.generation??0;
+  if(receiptSame&&nextMotionGeneration<motionReceipt.generation)return;
+  // Reject the whole obsolete package. Merging old motion into a new package
+  // would reset receivedAt and falsely rejuvenate its retained sensor frame.
+  if(!motionDeploymentReset&&previousMotionGeneration===motionPageGeneration(next)&&!motionStateNotOlder(next.motion,snapshot?.motion))return;
+  const motionDeploymentChanged=previousMotionGeneration!==motionPageGeneration(next)||!sameMotionDeployment(next.motion,snapshot?.motion);
+  snapshot=next;receivedAt=performance.now();fetchError='';if(['stopping','closed'].includes(next.session.status))endError='';
+  if(motionDeploymentChanged||motionReceipt&&!receiptSame){motionControl=null;motionReceipt=null;motionError='';motionRequestTimeout=null;motionLastHeartbeat=-Infinity;}
+  else if(receiptSame&&nextMotionGeneration>=motionReceipt.generation)motionReceipt=null;
+  if(previousGeneration!==undefined&&previousGeneration!==next.session.generation){resetPhysicalConfirmations();resetMaintenanceConfirmations();zeroError='';zeroErrorGeneration=null;zeroErrorId=null;maintenanceError='';actionError='';actionErrorAction=null;actionErrorGeneration=null;jointError='';jointErrorAction=null;jointErrorGeneration=null;jointErrorId=null;endError='';recoveryError='';if(recoveryPhase!=='idle')recoveryPhase='checking';}
+  else if(['closed','fault','stopping'].includes(next.session.status)||next.session.recovery_pending===true||next.feedback?.armed===true||next.feedback?.torque_mask>0||next.feedback?.fault_mask>0){resetPhysicalConfirmations();}
+  else if(actionErrorAction&&actionErrorGeneration===next.session.generation){const advanced=completedBefore(next.wizard)>stepIndex(actionErrorAction);const accepted=next.wizard.busy===true&&next.wizard.stage===actionErrorAction;if(advanced||accepted){actionError='';actionErrorAction=null;actionErrorGeneration=null;}}
+  if(next.session.recovery_pending===true||next.session.connection_check?.phase==='checking'){recoveryPhase='checking';recoveryError='';}
+  else if(next.session.recovery_pending===false&&Number.isInteger(recoveryAttemptGeneration)&&Number.isInteger(next.session.generation)&&next.session.generation!==recoveryAttemptGeneration&&['requested','checking','failed'].includes(recoveryPhase)){
+    if(next.session.status==='active'){recoveryPhase='ready';recoveryError='';}
+    else if(next.session.status==='fault'){recoveryPhase='failed';recoveryError='';}
+  }
+  else if(['requested','checking'].includes(recoveryPhase)){if(next.session.status==='active'&&recoveryAttemptGeneration===null)recoveryPhase='ready';else if(next.session.status==='fault')recoveryPhase='failed';}
+  else if(recoveryPhase==='ready'&&['fault','closed','stopping'].includes(next.session.status))recoveryPhase='idle';
+  if(!jointSelectionInitialized&&Array.isArray(next.calibration?.joints)){selectedJointId=motorIds.find(id=>!jointSaved(id))||10;jointSelectionInitialized=true;}
+  const jointWizard=next.joint_wizard;
+  if(jointDraftActive()&&motorIds.includes(jointWizard?.id)&&selectedJointId!==jointWizard.id){selectedJointId=jointWizard.id;el('jointPositiveConfirmed').checked=false;}
+  if(jointWizard?.stage==='failed')el('jointPositiveConfirmed').checked=false;
+  if(zeroDraftActive()&&selectedJointId!==next.joint_zero.id){selectedJointId=next.joint_zero.id;el('zeroReferenceConfirmed').checked=false;el('jointPositiveConfirmed').checked=false;}
+  if(jointErrorAction&&jointErrorGeneration===next.session.generation&&jointErrorId===jointWizard?.id){const fields={'direction-start':'start_position','direction-end':'end_position','range-a':'range_a','range-b':'range_b'};const accepted=jointWizard.busy===true&&jointWizard.stage===jointErrorAction;const captured=fields[jointErrorAction]&&encoder(jointWizard[fields[jointErrorAction]]);if(accepted||captured||jointErrorAction==='save'&&jointDoneStage(jointWizard.stage)){jointError='';jointErrorAction=null;jointErrorGeneration=null;jointErrorId=null;}}
+}
+function displayPollInterval(){return workspaceView==='motion-models'||['shadow','hold','walk','getup','pick','roulade'].includes(motionControlHardware()?.mode)?1000:['joint-zeros','joint-steps','imu-steps'].includes(workspaceView)?250:500;}
+function renderDisplayUpdates(){
+  el('displayUpdatesToggle').disabled=localFilePage;
+  setMotionText(el('displayUpdatesToggle'),displayUpdatesPaused?'恢复画面更新':'暂停画面更新');
+  el('displayUpdatesToggle').setAttribute('aria-pressed',String(displayUpdatesPaused));
+  setMotionText(el('displayUpdatesStatus'),displayUpdatesPaused?'画面更新已暂停；控制心跳和停止按钮保持独立，读数年龄继续增加。':document.hidden?'页面隐藏，暂停显示状态读取。':displayPollInterval()===1000?'画面每秒读取一次状态；控制心跳和停止按钮独立。':'画面异步更新；控制心跳和停止按钮独立。');
+}
+async function toggleDisplayUpdates(){
+  if(localFilePage)return;
+  displayUpdatesPaused=!displayUpdatesPaused;snapshotRevision++;
+  if(displayUpdatesPaused)displayPollAbort?.abort();
+  renderDisplayUpdates();
+  if(!displayUpdatesPaused){lastDisplayPoll=-Infinity;await refresh();}
+}
+function pollDisplay(){
+  if(localFilePage||displayUpdatesPaused||document.hidden||performance.now()-lastDisplayPoll<displayPollInterval())return;
+  return refresh();
+}
+async function refresh(){
+  if(localFilePage||displayUpdatesPaused||document.hidden)return;
+  if(pollPromise)return pollPromise;
+  pollBusy=true;lastDisplayPoll=performance.now();
+  const revision=snapshotRevision;
+  const operation=(async()=>{const abort=new AbortController();const timer=setTimeout(()=>abort.abort(),2000);
+    displayPollAbort=abort;
+    try{const response=await fetch('/api/status',{cache:'no-store',signal:abort.signal,credentials:'same-origin'});if(!response.ok)throw new Error('状态服务返回 '+response.status);const next=await response.json();if(revision===snapshotRevision&&!displayUpdatesPaused&&!document.hidden)acceptSnapshot(next);}
+    catch(error){if(revision===snapshotRevision&&!displayUpdatesPaused&&!document.hidden)fetchError=error.name==='AbortError'?'页面状态读取超时；实时读数已隐藏。':'页面状态读取失败：'+error.message;}
+    finally{clearTimeout(timer);if(displayPollAbort===abort)displayPollAbort=null;render();}
+  })();
+  pollPromise=operation;
+  try{await operation;}finally{if(pollPromise===operation){pollPromise=null;pollBusy=false;}}
+}
+async function run(action){
+  if(localFilePage)return;
+  if(!canAction(action))return;
+  const generation=snapshot.session.generation;const token=snapshot.token;
+  const body={action,generation,mounted_confirmed:el('mountedConfirmed').checked,support_confirmed:el('supportConfirmed').checked};
+  requestBusy=true;requestAction=action;actionError='';actionErrorAction=null;actionErrorGeneration=null;snapshotRevision+=1;render();
+  const abort=new AbortController();const timer=setTimeout(()=>abort.abort(),8000);
+  try{const response=await fetch('/api/imu-wizard',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':token},credentials:'same-origin',body:JSON.stringify(body),signal:abort.signal});let result;
+    try{result=await response.json();}catch{throw new Error('采样服务返回无效数据');}
+    if(!response.ok)throw new Error(typeof result?.error==='string'?result.error:'操作未完成（'+response.status+'）');
+    if(result?.error)throw new Error(String(result.error));
+    if(snapshot?.session?.generation!==generation||result?.session?.generation!==generation)throw new Error('采集会话已变化，旧采样结果未采用。');
+    snapshotRevision+=1;acceptSnapshot(result);render();
+    if(pollPromise)await pollPromise;
+    await refresh();
+  }catch(error){if(snapshot?.session?.generation===generation){actionError=error.name==='AbortError'?'请求超时，请查看本步状态后再操作；不会自动重新采样。':error.message;actionErrorAction=action==='cancel'?null:action;actionErrorGeneration=generation;}}
+  finally{clearTimeout(timer);requestBusy=false;requestAction=null;render();}
+}
+async function runZero(action){
+  if(!canZeroAction(action))return;
+  const generation=snapshot.session.generation,token=snapshot.token,id=action==='cancel'?snapshot.joint_zero.id:selectedJointId;
+  const body={generation,id,action,support_confirmed:el(zeroSupportId()).checked,zero_reference_confirmed:el('zeroReferenceConfirmed').checked};
+  requestBusy=true;requestAction='zero:'+action;zeroError='';zeroErrorGeneration=generation;zeroErrorId=id;snapshotRevision+=1;render();
+  const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),8000);
+  try{const response=await fetch('/api/joint-zero',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':token},credentials:'same-origin',body:JSON.stringify(body),signal:abort.signal});let result;
+    try{result=await response.json();}catch{throw new Error('零点采集服务返回无效数据');}
+    if(!response.ok||result?.error)throw new Error(typeof result?.error==='string'?result.error:'零点操作未完成（'+response.status+'）');
+    if(snapshot?.session?.generation!==generation||result?.session?.generation!==generation)return;
+    snapshotRevision+=1;acceptSnapshot(result);if(action==='save'){el('zeroReferenceConfirmed').checked=false;el('jointPositiveConfirmed').checked=false;}render();
+    if(pollPromise)await pollPromise;await refresh();
+  }catch(error){if(snapshot?.session?.generation===generation){zeroError=error.name==='AbortError'?'请求超时，请查看当前零点状态；不会自动重新采样或保存。':error.message;}}
+  finally{clearTimeout(timer);requestBusy=false;requestAction=null;render();}
+}
+async function endFeedback(){
+  if(localFilePage)return;
+  if(!canEndFeedback())return;
+  const generation=snapshot.session.generation;const token=snapshot.token;
+  requestBusy=true;requestAction='end-feedback';endError='';snapshotRevision+=1;render();
+  const abort=new AbortController();const timer=setTimeout(()=>abort.abort(),8000);
+  try{const response=await fetch('/api/end-feedback',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':token},credentials:'same-origin',body:JSON.stringify({generation}),signal:abort.signal});let result;
+    try{result=await response.json();}catch{throw new Error('结束采集服务返回无效数据');}
+    if(!response.ok)throw new Error(typeof result?.error==='string'?result.error:'操作未完成（'+response.status+'）');
+    if(result?.error)throw new Error(String(result.error));
+    if(snapshot?.session?.generation!==generation||result?.session?.generation!==generation)throw new Error('采集会话已变化，旧结束请求结果未采用。');
+    snapshotRevision+=1;acceptSnapshot(result);render();
+    if(pollPromise)await pollPromise;
+    await refresh();
+  }catch(error){if(snapshot?.session?.generation===generation)endError=error.name==='AbortError'?'尚未确认采集已结束，请查看当前状态；不会自动重试。':'尚未确认采集已结束：'+error.message;}
+  finally{clearTimeout(timer);requestBusy=false;requestAction=null;render();}
+}
+async function recoverFeedback(requestedPurpose=null){
+  if(localFilePage)return;
+  const purpose=['imu','joints'].includes(requestedPurpose)?requestedPurpose:recoveryPurpose();
+  const independentImu=requestedPurpose==='imu'&&nativeImuReaderSupported()&&snapshot?.session?.imu_read_requires_connection_check===true;
+  if(independentImu?!canMotionImuRead():!canRecoverFeedback())return;
+  const generation=snapshot.session.generation;const token=snapshot.token;const checkConnection=independentImu||connectionCheckEligible();const recheck=snapshot.session.recheck_allowed===true;const body=checkConnection||recheck||snapshot?.native_access?.full_workbench===true?{generation,purpose}:{generation};
+  requestBusy=true;requestAction='recover-feedback';recoveryError='';recoveryPhase='requested';recoveryAttemptGeneration=generation;snapshotRevision+=1;render();
+  const abort=new AbortController();const timer=setTimeout(()=>abort.abort(),8000);
+  try{const response=await fetch(checkConnection?'/api/check-connection':recheck?'/api/recheck-feedback':'/api/recover-feedback',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':token},credentials:'same-origin',body:JSON.stringify(body),signal:abort.signal});let result;
+    try{result=await response.json();}catch{throw new Error('恢复采集服务返回无效数据');}
+    if(!response.ok)throw new Error(typeof result?.error==='string'?result.error:'恢复请求未完成（'+response.status+'）');
+    if(result?.error)throw new Error(String(result.error));
+    if(snapshot?.session?.generation!==generation&&snapshot?.session?.generation!==result?.session?.generation)return;
+    snapshotRevision+=1;acceptSnapshot(result);
+  }catch(error){const current=snapshot?.session;const newerKnown=current?.generation!==generation&&current?.recovery_pending===false&&['active','fault'].includes(current?.status);if(newerKnown){recoveryPhase=current.status==='active'?'ready':'failed';recoveryError='';}else{recoveryPhase='failed';recoveryError=error.name==='AbortError'?'请求超时，尚未确认恢复结果。请查看当前会话状态；不会自动重试。':error.message;}}
+  finally{clearTimeout(timer);requestBusy=false;requestAction=null;render();}
+}
+async function runJoint(action){
+  if(localFilePage)return;
+  if(!canJointAction(action))return;
+  const generation=snapshot.session.generation,token=snapshot.token,id=action==='cancel'?snapshot.joint_wizard.id:selectedJointId;
+  if(action==='direction-start'||action==='cancel')el('jointPositiveConfirmed').checked=false;
+  const body={generation,action,id,support_confirmed:el('jointSupportConfirmed').checked,positive_confirmed:el('jointPositiveConfirmed').checked};
+  requestBusy=true;requestAction='joint:'+action;jointError='';jointErrorAction=null;jointErrorGeneration=null;jointErrorId=null;snapshotRevision+=1;render();
+  const abort=new AbortController();const timer=setTimeout(()=>abort.abort(),8000);
+  try{const response=await fetch('/api/joint-calibration',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':token},credentials:'same-origin',body:JSON.stringify(body),signal:abort.signal});let result;
+    try{result=await response.json();}catch{throw new Error('关节采样服务返回无效数据');}
+    if(!response.ok)throw new Error(typeof result?.error==='string'?result.error:'关节操作未完成（'+response.status+'）');
+    if(result?.error)throw new Error(String(result.error));
+    if(snapshot?.session?.generation!==generation||result?.session?.generation!==generation)throw new Error('采集会话已变化，旧请求结果未采用；请重新确认支撑。');
+    snapshotRevision+=1;acceptSnapshot(result);
+  }catch(error){if(snapshot?.session?.generation===generation){jointError=error.name==='AbortError'?'请求超时，尚未确认结果。请看当前步骤状态；不会自动重新采样或保存。':error.message;jointErrorAction=action;jointErrorGeneration=generation;jointErrorId=id;}}
+  finally{clearTimeout(timer);requestBusy=false;requestAction=null;render();}
+}
+async function runMaintenance(action){
+  if(!canMaintenance(action))return;
+  const exiting=action==='exit';
+  if(exiting)maintenanceOperationEpoch+=1;
+  const operationEpoch=maintenanceOperationEpoch;
+  const generation=snapshot.session.generation,token=snapshot.token,body={action,generation};
+  if(['read','rename','center','release'].includes(action))body.id=maintenanceId('servoQueryId');
+  if(action==='rename')Object.assign(body,{new_id:maintenanceId('servoNewId'),isolated_confirmed:el('servoIsolatedConfirmed').checked,mapping_acknowledged:el('servoMappingConfirmed').checked});
+  if(action==='center')Object.assign(body,{target:maintenanceTarget(),support_confirmed:el('servoSupportConfirmed').checked});
+  if(exiting)maintenanceExitBusy=true;else{requestBusy=true;requestAction='maintenance:'+action;}maintenanceError='';snapshotRevision+=1;render();
+  const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),2000);
+  try{
+    const response=await fetch('/api/servo-maintenance',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':token},credentials:'same-origin',body:JSON.stringify(body),signal:abort.signal});
+    let result;try{result=await response.json();}catch{throw new Error('维护服务响应无法解析');}
+    if(operationEpoch!==maintenanceOperationEpoch)return;
+    if(!response.ok)throw new Error(typeof result?.error==='string'?result.error:'维护请求失败 '+response.status);
+    if(snapshot?.session?.generation!==generation||result?.session?.generation!==generation)throw new Error('页面会话已变化，旧维护结果未采用。');
+    snapshotRevision+=1;acceptSnapshot(result);
+  }catch(error){if(operationEpoch===maintenanceOperationEpoch&&snapshot?.session?.generation===generation)maintenanceError=error.name==='AbortError'?'请求超时，结果尚未确认。请查看维护状态；不会自动重试。':error.message;}
+  finally{clearTimeout(timer);if(exiting)maintenanceExitBusy=false;else{requestBusy=false;requestAction=null;}if(['rename','center','exit'].includes(action))resetMaintenanceConfirmations();render();}
+}
+for(const [action,buttonId] of steps)el(buttonId).onclick=()=>run(action);el('wizardCancel').onclick=()=>run('cancel');el('endFeedback').onclick=()=>snapshot?.maintenance?.owns_connection===true?runMaintenance('exit'):endFeedback();for(const id of ['recoverFeedback','recoverFeedbackNearFault','recoverFeedbackInWizard','recoverFeedbackInJoints','recoverFeedbackInZeros'])el(id).onclick=recoverFeedback;for(const id of ['mountedConfirmed','supportConfirmed','jointSupportConfirmed','jointPositiveConfirmed','zeroSupportConfirmed','zeroReferenceConfirmed'])el(id).onchange=render;
+for(const [id,other] of [['zeroSupportConfirmed','jointSupportConfirmed'],['jointSupportConfirmed','zeroSupportConfirmed']])el(id).onchange=()=>{if(!el(id).disabled)el(other).checked=el(id).checked;render();};
+el('connectionStatusLink').onclick=()=>{if(!el('motionStopDetails').hidden){el('motionStopDetails').open=true;el('motionStopDetails').scrollIntoView({behavior:'smooth',block:'center'});el('motionStopDetailsSummary').focus();}else if(!el('recoveryPanel').hidden){el('recoveryPanel').scrollIntoView({behavior:'smooth',block:'center'});if(workspaceView==='motion-models'&&!el('recoveryDetails').hidden){el('recoveryDetails').open=true;el('recoveryDetailsSummary').focus();}else el('recoverFeedbackNearFault').focus();}};
+for(const action of ['capture','save','cancel'])el('zero'+action[0].toUpperCase()+action.slice(1)).onclick=()=>runZero(action);el('zeroJointSelect').onchange=()=>chooseJoint(Number(el('zeroJointSelect').value));el('zeroCancelJointDraft').onclick=()=>runJoint('cancel');
+for(const [action,buttonId] of jointSteps)el(buttonId).onclick=()=>runJoint(action);el('jointReuseDirection').onclick=()=>runJoint('save-direction');el('jointCancel').onclick=()=>runJoint('cancel');el('jointSelect').onchange=()=>chooseJoint(Number(el('jointSelect').value));el('jointNext').onclick=()=>{if(!el('jointNext').disabled)chooseJoint(nextUnfinishedJoint());};
+for(const route of workspaceRoutes)el(route.nav).onclick=()=>selectWorkspace('#'+route.key);
+globalThis.addEventListener?.('hashchange',()=>selectWorkspace(globalThis.location?.hash));
+el('servoQueryId').value=String(selectedServoId);
+el('servoSelect').onchange=()=>{const id=Number(el('servoSelect').value);if(motorIds.includes(id))return chooseMaintenanceServo(id,true);};
+el('servoQueryId').oninput=()=>{selectedServoId=maintenanceId('servoQueryId');resetMaintenanceConfirmations();renderHardwareOverview();};
+el('servoNewId').oninput=()=>{resetMaintenanceConfirmations();renderMaintenance();};
+el('servoTarget').oninput=()=>{const id=maintenanceId('servoQueryId');if(id!==null)maintenanceTargets.set(id,String(el('servoTarget').value));el('servoSupportConfirmed').checked=false;renderMaintenance();};
+el('servoResetTarget').onclick=()=>{if(!el('servoResetTarget').disabled)setMaintenanceTarget(2047);};
+el('servoUseZero').onclick=()=>{if(!el('servoUseZero').disabled)setMaintenanceTarget(calibrationJoint(maintenanceId('servoQueryId')).zero);};
+el('servoUseCurrent').onclick=()=>{if(!el('servoUseCurrent').disabled)setMaintenanceTarget(Number(el('servoSelectedPosition').textContent));};
+for(const id of ['servoIsolatedConfirmed','servoMappingConfirmed','servoSupportConfirmed'])el(id).onchange=renderMaintenance;
+for(const [action,id] of [['enter','servoEnter'],['review','servoReview'],['exit','servoExit'],['scan','servoScan'],['voltages','servoVoltages'],['read','servoRead'],['release','servoRelease'],['rename','servoRename'],['center','servoCenter']])el(id).onclick=()=>runMaintenance(action);
+el('motionConnect').onclick=()=>{motionLastHeartbeat=-Infinity;return runMotion('connect');};
+el('motionRecheck').onclick=recheckMotionFeedback;
+el('motionImuRead').onclick=readMotionImu;el('motionImuEnd').onclick=endMotionImu;
+el('motionShadow').onclick=()=>runMotion('start',{mode:'shadow',preview_model:el('motionPreviewModel').value||'walk'});
+el('motionStand').onclick=()=>runMotion('start',{mode:'hold'});
+el('motionPreviewModel').onchange=renderMotion;
+el('motionWalk').onclick=()=>runMotion('start',{mode:'walk'});
+for(const [id,mode] of [['motionGetup','getup'],['motionPick','pick'],['motionRoulade','roulade']])el(id).onclick=()=>runMotion('start',{mode,behavior_confirmed:el('motionBehaviorConfirmed').checked});
+el('motionBehaviorConfirmed').onchange=renderMotion;
+el('motionStop').onclick=()=>runMotion('stop',{stop_source:'button'});el('motionDisconnect').onclick=()=>runMotion('disconnect');
+for(const [id,values] of [['motionForward',[.1,0,0]],['motionBackward',[-.1,0,0]],['motionLeft',[0,0,.3]],['motionRight',[0,0,-.3]]]){
+  el(id).onpointerdown=event=>{if(el(id).disabled)return;event?.preventDefault?.();el(id).setPointerCapture?.(event.pointerId);return motionDriveCommand(values);};
+  el(id).onpointerup=el(id).onpointercancel=el(id).onlostpointercapture=()=>{if(motionFresh()&&snapshot.motion.hardware.mode==='walk')return motionDriveCommand([0,0,0]);};
+}
+globalThis.addEventListener?.('blur',()=>{if(motionFresh()&&ownsMotionControl()&&snapshot.motion.hardware.mode==='walk')motionDriveCommand([0,0,0]);});
+document.addEventListener?.('visibilitychange',()=>{if(motionIndependentHold()||!ownsMotionControl()||!snapshot?.motion?.owns_connection||motionControlHardware()?.mode==='off')return;if(document.hidden&&motionControlHardware()?.mode!=='hold')runMotion('stop',{stop_source:'page-hidden'});else if(workspaceView==='motion-models')motionHeartbeat();});
+document.addEventListener?.('visibilitychange',()=>{renderDisplayUpdates();if(document.hidden)displayPollAbort?.abort();else pollDisplay();});
+el('displayUpdatesToggle').onclick=toggleDisplayUpdates;
+el('saveRangeBoundaries').onclick=expandMotionRanges;
+globalThis.addEventListener?.('pagehide',()=>{if(!localFilePage&&!motionIndependentHold()&&ownsMotionControl()&&snapshot?.token&&snapshot?.motion?.owns_connection&&motionControlHardware()?.mode!=='off'){fetch('/api/motion',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':snapshot.token},credentials:'same-origin',keepalive:true,body:JSON.stringify({action:'stop',page_generation:motionPageGeneration(),generation:motionControl.generation,control_id:motionControlId,stop_source:'pagehide'})}).catch(()=>{});}});
+selectWorkspace(globalThis.location?.hash);
+if(localFilePage){
+  el('localFileNotice').hidden=false;el('exportCalibration').hidden=true;
+  fetchError='当前打开的是本地 HTML 文件，请点击上方「打开校准页面」。';
+  render();el('connectionLabel').textContent='本地文件 · 请打开校准服务';
+}else{
+  const reference=new Image();reference.onload=()=>{assetOk=true;el('referenceAssetError').hidden=true;render();};reference.onerror=()=>{assetOk=false;el('referenceAssetError').hidden=false;render();};reference.src='/assets/zero-reference.png';
+  const positiveReference=new Image();positiveReference.onload=()=>{positiveAssetOk=true;render();};positiveReference.onerror=()=>{positiveAssetOk=false;render();};positiveReference.src='/assets/positive-direction.png';
+  render();refresh();setInterval(pollDisplay,100);setInterval(()=>render(),100);setInterval(motionHeartbeatTick,100);
+}
+</script>
+</body>
+</html>

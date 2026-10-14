@@ -795,6 +795,33 @@ test('actual duck tile mapping switches to a dedicated mouth diagram using SVG a
   assert(!/href="[^"]*cal\/enter|\/api\/motion\/|\/api\/cal\/targets/.test(html));
 });
 
+test('live refresh leaves the selected reference and unchanged options untouched', () => {
+  const h=harness(),s=jointFixture();h.set(s);h.eval('chooseJoint(10)');
+  const writes=[];
+  for(const id of ['jointDirectionDiagram','jointMouthDiagram']){
+    const node=h.nodes.get(id);
+    for(const method of ['setAttribute','removeAttribute']){
+      const original=node[method];node[method]=function(...args){writes.push([id,method,...args]);return original.apply(this,args);};
+    }
+  }
+  function watchProperty(node,key,label){let value=node[key];Object.defineProperty(node,key,{get(){return value;},set(next){writes.push([label,key,next]);value=next;},configurable:true});}
+  watchProperty(h.nodes.get('jointSelect'),'value','select');
+  for(const option of h.nodes.get('jointSelect').children)watchProperty(option,'textContent','option-'+option.value);
+  for(let i=0;i<100;i++)h.eval('render()');
+  const next=clone(s);next.feedback.positions[0]=2058;h.set(next);
+  assert.equal(h.nodes.get('jointLivePosition').textContent,'2058');
+  assert.equal(writes.length,0,'status polling must not repaint the static diagram or option labels');
+  h.eval('chooseJoint(14)');
+  assert.equal(writes.filter(row=>row[1]==='setAttribute'&&row[2]==='viewBox').length,1);
+  assert.equal(h.nodes.get('jointSelect').value,'14');
+  writes.length=0;h.eval('chooseJoint(34)');
+  assert.equal(h.nodes.get('jointDirectionDiagram').getAttribute('hidden'),'');
+  assert.equal(h.nodes.get('jointMouthDiagram').getAttribute('hidden'),null);
+  assert.equal(writes.filter(row=>row[2]==='hidden').length,2);
+  writes.length=0;for(let i=0;i<100;i++)h.eval('render()');assert.equal(writes.length,0);
+  assert.equal(h.posts().length,0);
+});
+
 test('33 to 34 and back shows exactly one diagram and preserves calibration without requests',()=>{
   const h=harness(),s=jointFixture();h.set(s);const saved=JSON.stringify(s.calibration);
   const shown=id=>h.nodes.get(id).getAttribute('hidden')===null;

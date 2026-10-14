@@ -656,6 +656,27 @@ class NativeCalibrationTests(unittest.TestCase):
         self.assertEqual(self.controls, [b'END_FEEDBACK\n'])
         self.assertEqual(self.session.status, 'closed')
 
+    def test_range_wider_than_half_turn_saves_through_native_api(self):
+        self.start('joints')
+        for action, position in (('direction-start', 2000), ('direction-end', 2050),
+                                 ('range-a', 900)):
+            self.capture_joint(action, position)
+        for position in range(1000, 3500, 100):
+            self.positions[0] = position
+            self.feed()
+        self.capture_joint('range-b', 3500)
+        self.assertTrue(self.session.joint_wizard.value['ready_to_save'])
+        self.assertEqual(self.commits, [])
+        self.save_after_reader_close('/api/joint-calibration', self.joint_body('save'))
+        self.assertEqual(len(self.commits), 1)
+        saved = self.commits[0][0]
+        expected = copy.deepcopy(self.original)
+        expected['joints'][0].update(min=912, max=3488)
+        self.assertEqual(saved, expected)
+        self.assertEqual(json.loads((self.directory / 'calibration-latest.json').read_text()), saved)
+        self.assertEqual(self.controls, [b'END_FEEDBACK\n'])
+        self.assertEqual(self.session.status, 'closed')
+
     def test_zero_capture_is_preview_save_invalidates_only_selected_joint(self):
         self.start('joints')
         self.positions[0] = 2004
@@ -783,6 +804,75 @@ class NativeCalibrationTests(unittest.TestCase):
         self.assertEqual(self.service.end_for_motion(timeout=0), self.original)
         self.assertTrue(self.service.connection_closed())
         self.assertFalse(self.service.owns_connection)
+
+    def test_motion_switch_after_unopened_reader_preflight_keeps_original_fault(self):
+        reason = 'New kernel tail contains an untimestamped record'
+        self.session.status = 'fault'
+        self.session.error = reason
+        self.session.error_details = reason
+        self.session.recovery_recheck = dict(category='trust', message=reason,
+                                             technical_reason=reason)
+        self.session._paused_without_attempt = False
+        self.session._reader_preflight_failure_generation = self.session.generation
+        before = self.service.snapshot()['session']
+        self.assertTrue(self.service.connection_closed())
+
+        saved = self.service.end_for_motion(timeout=0)
+
+        self.assertEqual(saved, self.original)
+        saved['joints'][0]['min'] = 1
+        self.assertEqual(self.session.config, self.original)
+        self.assertEqual(self.service.snapshot()['session'], before)
+        self.assertIsNone(self.session.process)
+        self.assertIsNone(self.session.closed_proof)
+        self.assertFalse(self.session.end_request_attempted)
+        self.assertEqual(self.controls, [])
+        self.assertEqual(self.commits, [])
+
+    def test_motion_switch_cannot_infer_unopened_reader_from_missing_process(self):
+        self.session.status = 'fault'
+        self.session._paused_without_attempt = False
+        for marker in (None, self.session.generation - 1):
+            with self.subTest(preflight_generation=marker):
+                self.session._reader_preflight_failure_generation = marker
+                self.assertFalse(self.service.connection_closed())
+                with self.assertRaisesRegex(ValueError, '正常关闭证明'):
+                    self.service.end_for_motion(timeout=0)
+        self.assertEqual(self.controls, [])
+
+    def test_motion_switch_preflight_marker_cannot_bypass_started_reader_closure(self):
+        self.session._paused_without_attempt = False
+        self.session._reader_preflight_failure_generation = self.session.generation
+        self.session.process = Process()
+        valid = dict(generation=self.session.generation, normal=True, serial_closed=True)
+        cases = [('fault', 0, valid), ('closed', None, valid), ('closed', 1, valid),
+                 ('closed', 0, {}), ('closed', 0, dict(valid, normal=False)),
+                 ('closed', 0, dict(valid, serial_closed=False)),
+                 ('closed', 0, dict(valid, generation=self.session.generation - 1))]
+        for status, returncode, proof in cases:
+            with self.subTest(status=status, returncode=returncode, proof=proof):
+                self.session.status = status
+                self.session.process.returncode = returncode
+                self.session.closed_proof = proof
+                with self.assertRaisesRegex(ValueError, '正常关闭证明'):
+                    self.service.end_for_motion(timeout=0)
+        self.assertEqual(self.controls, [])
+
+    def test_motion_switch_unopened_preflight_still_waits_for_finished_attempt(self):
+        self.session.status = 'fault'
+        self.session._paused_without_attempt = False
+        self.session._reader_preflight_failure_generation = self.session.generation
+        for pending, transmitting in ((True, False), (False, True)):
+            with self.subTest(recovery_pending=pending, source_transmitting=transmitting):
+                self.session.recovery_pending = pending
+                self.session.source_transmitting = transmitting
+                with self.assertRaisesRegex(ValueError, '正常关闭证明'):
+                    self.service.end_for_motion(timeout=0)
+        self.session.recovery_pending = self.session.source_transmitting = False
+        self.session.connection_done.clear()
+        with self.assertRaisesRegex(ValueError, '关闭尚未确认'):
+            self.service.end_for_motion(timeout=0)
+        self.assertEqual(self.controls, [])
 
     def test_local_receipts_never_substitute_fake_ssh_exit_proof(self):
         proof = dict(kind='quiescent', generation=7, serial_path='/dev/ttyUSB0', serial_holders=[],

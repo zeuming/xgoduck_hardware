@@ -48,8 +48,6 @@ def safe_limits(a, b, zero, sign, degrees, sid=None):
     if sid is not None and (type(sid) is not int or sid not in IDS):
         raise ValueError('未知关节 ID')
     low, high = sorted((position(a), position(b)))
-    if high - low >= 2048:
-        raise ValueError('两侧范围过大或跨编码器零点，本关节未保存')
     position(zero)
     if (type(sign) is not int or sign not in (-1, 1) or
             type(degrees) not in (int, float) or not math.isfinite(degrees)):
@@ -59,7 +57,7 @@ def safe_limits(a, b, zero, sign, degrees, sid=None):
         closed, opened = sorted((a, b), key=lambda value: abs(value - zero))
         if abs(closed - zero) > 6:
             raise ValueError('嘴部闭合端与原零点相差超过 6 ticks，未保存；勿越过闭合位置')
-        if not 36 <= (opened - zero) * sign < 2048:
+        if (opened - zero) * sign < 36:
             raise ValueError('嘴部张开方向或范围不足，未保存；须沿已确认正方向张开至少 36 ticks')
         minimum, maximum = sorted((zero, opened - sign * MARGIN))
     else:
@@ -116,6 +114,16 @@ class JointWizard:
     def active(self):
         return self.value['id'] is not None and self.value['stage'] not in ('complete', 'failed', 'cancelled')
 
+    def pause_feedback(self, message='当前位置暂时不可读；摆回可读范围后继续，已记录步骤保留。'):
+        """Discard only an interrupted capture, retaining completed steps."""
+        if self.collection is not None:
+            stage = {'direction-start': 'idle', 'direction-end': 'await-positive',
+                     'range-a': 'await-range-a', 'range-b': 'await-range-b'}[self.collection['action']]
+            self.value.update(stage=stage, busy=False, sample_count=0, progress=0.)
+            self.collection = None
+        self.last_position = self.last_sample_us = None
+        self.value.update(error=None, message=message)
+
     def start(self, action, sid, state, now):
         if type(sid) is not int or sid not in IDS:
             raise ValueError('未知关节 ID')
@@ -131,9 +139,6 @@ class JointWizard:
                 self.value[requirements[action]] is None):
             raise ValueError('请按起点、正方向终点、两侧安全位置的顺序采集')
         raw = position(state['positions'][IDS.index(sid)])
-        if self.last_position is not None and abs(raw - self.last_position) >= 2048:
-            self.fail('编码器跨零点或大跳变，本关节未保存；请从起点重采')
-            raise ValueError(self.value['error'])
         self.last_position, self.last_sample_us = raw, state['sample_us']
         if action == 'direction-end':
             self.value.update(end_position=None, inferred_sign=None, range_a=None, range_b=None)
@@ -158,13 +163,14 @@ class JointWizard:
         sample = state['sample_us']
         if type(sample) is not int or not 0 <= sample <= 0xffffffff:
             raise ValueError('舵机采样时钟无效')
+        if self.last_sample_us is None:
+            self.last_sample_us, self.last_position = sample, raw
+            return
         delta = (sample - self.last_sample_us) & 0xffffffff
         if delta >= 0x80000000:
             raise ValueError('舵机采样时钟倒退，本关节未保存')
         if delta > 100000:
             raise ValueError('关节连续反馈中断超过 100 毫秒，本关节未保存')
-        if abs(raw - self.last_position) >= 2048:
-            raise ValueError('编码器跨零点或大跳变，本关节未保存；请从起点重采')
         if delta == 0:
             if raw != self.last_position:
                 raise ValueError('同一采样时间出现不同编码器值，本关节未保存')
@@ -243,7 +249,7 @@ class JointWizard:
         if joint['direction_confirmed'] is not True:
             raise ValueError('本关节尚无已完成的安全范围，请继续采集 A/B')
         low, high, zero = (position(joint[key]) for key in ('min', 'max', 'zero'))
-        if not low < high or high - low >= 2048 or not low <= zero <= high:
+        if not low < high or not low <= zero <= high:
             raise ValueError('已保存安全范围无效，不能沿用')
         stand = int(round(zero + sign * DEFAULT_DEG[IDS.index(sid)] * 4095. / 360.))
         if not low <= stand <= high:

@@ -62,7 +62,9 @@ class UpgradeTests(unittest.TestCase):
         before = app.unpack(app.unpack(current.read_bytes())['native-bundle.tar.gz'])
         after = app.unpack(app.unpack((directory / 'installation.tar.gz').read_bytes())['native-bundle.tar.gz'])
         self.assertEqual(set(report['changed_inner_members']), {
-            'service/bootstrap.py', 'service/native_workbench.py', 'service/native_process.py'})
+            'service/bootstrap.py', 'service/native_workbench.py', 'service/native_process.py',
+            'service/gamepad_web.py', 'service/gamepad_panel.html', 'service/native_gamepad.py',
+            'service/system_health.py', 'service/system_health_panel.html'})
         for name in ('service/native_runtime.py', 'service/worker-classes.py', 'policy/motion.py'):
             self.assertEqual(before[name], after[name], name)
 

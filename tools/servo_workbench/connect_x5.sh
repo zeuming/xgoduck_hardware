@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 # No stored password. SSH prompts normally, or uses the user's existing key.
-task_target="${1:-root@192.168.128.10}"
+task_target="${1:-${XGO_X5_TARGET:-root@192.168.1.11}}"
 if [ "$#" -gt 1 ]; then
   echo "用法: $0 [SSH用户名@X5地址]" >&2
   exit 2

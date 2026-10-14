@@ -225,7 +225,7 @@ class LauncherTests(unittest.TestCase):
     def run_fake_parent(self,packet):
         """Run the actual parent polling/hold loop with fake boot/network/process."""
         directory=self.root/'service';directory.mkdir()
-        for name,value in (('guard-runtime.py',''),('expected.json','{}'),
+        for name,value in (('guard-runtime.py',''),('system_health.py',''),('expected.json','{}'),
                            ('deployment.json','{"bind_host":"192.168.1.11","port":8767}'),
                            ('startup-snapshot.json','{}')):(directory/name).write_text(value)
         child=FakeChild();handlers={};urls=[]
@@ -236,6 +236,9 @@ class LauncherTests(unittest.TestCase):
             if isinstance(packet,Exception):raise packet
             return io.BytesIO(json.dumps(packet).encode())
         def namespace_exec(code,namespace):
+            if namespace.get('__name__') == 'x5_health_launcher':
+                namespace['HealthMonitor'] = mock.Mock()
+                return
             def no_serial(expected):raise ValueError('fake offline startup')
             namespace.update(boot_expected=lambda *args:{},classify_feedback_log=lambda *args:None,
                 validate_os=lambda *args:None,validate_kernel=lambda *args:None,
@@ -265,7 +268,7 @@ class LauncherTests(unittest.TestCase):
     def test_actual_parent_uses_compact_get_and_preserves_both_recovery_holds_without_tokens(self):
         urls=self.run_fake_parent(dict(maintenance=dict(fault_hold=True,identity_changed=True,error='review actual fault'),
                                        token='must not persist',motion=dict(hardware=None)))
-        self.assertEqual(urls,[('http://192.168.1.11:8767/',1),('http://192.168.1.11:8767/api/live-status',1)])
+        self.assertEqual(urls,[('http://127.0.0.1:8767/',1),('http://127.0.0.1:8767/api/live-status',1)])
         path=self.state/'recovery-holds.json';value=json.loads(path.read_text())
         holds=value['native_recovery_holds'];self.assertEqual(set(holds),{'maintenance-fault-hold.json','maintenance-identity-hold.json'})
         self.assertEqual(holds['maintenance-fault-hold.json']['reason'],'review actual fault')

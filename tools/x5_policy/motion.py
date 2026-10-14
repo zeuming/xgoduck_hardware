@@ -7,6 +7,7 @@ Calibration is local JSON; no servo ID, EEPROM or persistent gains are written.
 from __future__ import annotations
 
 import collections
+import binascii
 import copy
 import json
 import math
@@ -19,6 +20,8 @@ import threading
 import time
 
 import numpy as np
+from async_policy import AsyncPolicyMixin
+from policy_worker import PolicyWorkerError
 
 from rl_core import (ACTION_ALPHA, ACTION_ALPHA_HEAD, DEFAULT_DEG, FIXED_STANCE_OVERRIDES, ImuFilter,
                      MOTOR_IDS, State, action_to_deg, build_obs, policy_profile,
@@ -122,13 +125,16 @@ class MotionError(ValueError):
     pass
 
 
+class FeedbackExpired(MotionError):
+    """No command may use this feedback; distinct from a device fault."""
+    pass
+
+
 def crc16(data: bytes) -> int:
-    crc = 0xffff
-    for byte in data:
-        crc ^= byte << 8
-        for _ in range(8):
-            crc = ((crc << 1) ^ (0x1021 if crc & 0x8000 else 0)) & 0xffff
-    return crc
+    # CRC-16/CCITT-FALSE: polynomial 0x1021, initial 0xffff, no reflection
+    # or xor-out. The C implementation preserves every wire byte while
+    # avoiding eight interpreted iterations per feedback byte at 50 Hz.
+    return binascii.crc_hqx(data, 0xffff)
 
 
 def encode_frame(kind: int, seq: int, payload: bytes = b'') -> bytes:
@@ -364,7 +370,7 @@ def _joint_ready(joint):
             and joint.get('direction_confirmed') is True)
 
 
-class MotionController:
+class MotionController(AsyncPolicyMixin):
     def __init__(self, sessions, config_path=None, port='/dev/ttyUSB0', *,
                  transport_factory=None, clock=time.monotonic, require_head_clearance=False,
                  allow_fixed_head_walk=False, hold_hip_pitch_bias_deg=0):
@@ -374,6 +380,9 @@ class MotionController:
             raise MotionError('固定 HOLD 髋偏置必须为 -3 至 3° 的有限数值')
         self._hold_hip_pitch_bias_deg = float(hold_hip_pitch_bias_deg)
         self.sessions = sessions
+        self._policy_worker = None
+        self._policy_job = None
+        self._command_revision = 0
         try:
             self._policy_profiles = {name: policy_profile(session) for name, session in sessions.items()}
         except (TypeError, ValueError, AttributeError) as error:
@@ -400,6 +409,8 @@ class MotionController:
         self._voltage_received = None
         self._last_sample = None
         self._sample_received = None
+        self._late_policy_frames = 0
+        self._last_late_policy_frame = None
         self._filter = ImuFilter()
         self._filtered = None
         self._config = _default_config()
@@ -579,6 +590,7 @@ class MotionController:
 
     def _disconnect(self, exc):
         with self._lock:
+            self._cancel_policy_job()
             self._generation += 1
             self._mode = 'off'
             self._connected = False
@@ -686,7 +698,7 @@ class MotionController:
         if not self._connected or self._state is None:
             raise MotionError('ESP32 运动固件尚未连接')
         if self._age_locked() >= FRESH_SECONDS:
-            raise MotionError('舵机反馈已过期')
+            raise FeedbackExpired('舵机反馈已过期')
 
     def capture(self, sid, field):
         if field not in ('zero', 'min', 'max'):
@@ -971,8 +983,6 @@ class MotionController:
                 if expected_generation is not None and (type(expected_generation) is not int or
                                                         expected_generation != self._generation):
                     raise MotionError('状态已变更；旧的启动请求已取消，请重新检查后启动')
-                if support_confirmed is not True:
-                    raise MotionError('启动动作前需要明确确认鸭子已获得安全支撑')
                 if mode in ('getup', 'roulade') and behavior_confirmed is not True:
                     raise MotionError('起身或翻滚需要确认动作区域清空并已有防跌保护')
                 self._model_gate_locked(mode)
@@ -1002,8 +1012,6 @@ class MotionController:
                 if preview_model not in MODEL_MODES or preview_model not in self.sessions:
                     raise MotionError('所选预览模型未加载')
             else:
-                if support_confirmed is not True:
-                    raise MotionError('启动动作前需要明确确认鸭子已获得安全支撑')
                 if mode in ('getup', 'roulade') and behavior_confirmed is not True:
                     raise MotionError('起身或翻滚需要确认动作区域清空并已有防跌保护')
                 self._motion_gate_locked(mode)
@@ -1076,6 +1084,7 @@ class MotionController:
             if (self._mode == 'walk' and self._fixed_head_walk_ready_locked()
                     and any(v != 0 for v in values)):
                 raise MotionError('固定头颈实验目前仅允许零速度站立平衡；行走尚未验证')
+            self._command_revision += 1
             self._command[:] = np.clip(values, [-.2, -.1, -.5], [.2, .1, .5])
         return self.status()
 
@@ -1099,6 +1108,7 @@ class MotionController:
         return self.status()
 
     def _stop_locked(self, reason=None):
+        self._cancel_policy_job()
         self._generation += 1
         self._mode = 'off'
         self._cookie = 0
@@ -1172,7 +1182,7 @@ class MotionController:
                 return
         self._control_once()
 
-    def _infer_policy_target(self, selected, st, previous, command, smooth, elapsed, *,
+    def _prepare_policy_observation(self, selected, st, previous, command, elapsed, *,
                              head_command=None):
         session = self.sessions.get(selected)
         if session is None:
@@ -1180,11 +1190,9 @@ class MotionController:
         profile = self._policy_profiles.get(selected)
         if profile is None:
             raise MotionError(MODEL_LABELS[selected] + '模型元数据尚未验证')
-        mouth = 0.
         if selected == 'pick':
             phase = elapsed / EPISODE_SECONDS['pick']
             command = np.array([math.cos(2*math.pi*phase), math.sin(2*math.pi*phase), 0.], np.float32)
-            mouth = 30. if phase < .4 else 0.
         elif selected != 'walk':
             command = np.zeros(3, np.float32)
         head = np.zeros(4, np.float32) if head_command is None else np.asarray(head_command, dtype=np.float32)
@@ -1192,9 +1200,11 @@ class MotionController:
             raise MotionError('头部指令需要四个有限弧度值')
         obs = build_obs(st, previous, command, head,
                         home_rad=profile['home_rad']).reshape(1, 61)
-        began = time.perf_counter()
-        action = np.asarray(session.run(None, {session.get_inputs()[0].name: obs})[0])
-        inference_ms = (time.perf_counter() - began) * 1000
+        return obs
+
+    def _decode_policy_action(self, selected, action, previous, smooth, elapsed, inference_ms):
+        profile = self._policy_profiles[selected]
+        mouth = 30. if selected == 'pick' and elapsed / EPISODE_SECONDS['pick'] < .4 else 0.
         if action.shape != (1, 14) or not np.isfinite(action).all():
             raise MotionError(MODEL_LABELS[selected] + '策略输出无效，已停止')
         action = action.reshape(14)
@@ -1208,10 +1218,20 @@ class MotionController:
         return action_to_deg(smooth, mouth_deg=mouth, home_rad=profile['home_rad'],
                              action_scale=profile['scale']), action, smooth, inference_ms
 
+    def _infer_policy_target(self, selected, st, previous, command, smooth, elapsed, *,
+                             head_command=None):
+        obs = self._prepare_policy_observation(selected, st, previous, command, elapsed,
+                                              head_command=head_command)
+        action, inference_ms = self._run_policy_inference(selected, obs)
+        return self._decode_policy_action(selected, action, previous, smooth, elapsed, inference_ms)
+
     def _control_once(self):
         with self._lock:
             generation, mode = self._generation, self._mode
+            if self._policy_job is not None and self._policy_job["context"] != self._policy_context_locked():
+                self._cancel_policy_job()
             if mode == 'off':
+                self._cancel_policy_job()
                 return
             if mode == 'shadow' and (not self._calibrated_locked() or self._filtered is None):
                 self._last_action = None
@@ -1219,6 +1239,12 @@ class MotionController:
                 return
             if self._filtered is None:
                 return
+            # Record the actual observation's age, not inference completion.
+            # Initially stale data still takes the original stop path.
+            if mode == 'walk':
+                self._require_feedback_locked()
+            observation_received = min(self._sample_received, self._clock()-self._imu_age_locked())
+            observation_sample = self._last_sample
             elapsed = self._clock() - self._episode_started if self._episode_started is not None else 0.
             if mode in EPISODE_SECONDS:
                 finished = elapsed >= EPISODE_SECONDS[mode]
@@ -1250,6 +1276,11 @@ class MotionController:
                 target = list(self._stand_deg)
             else:
                 target = None
+            context = self._policy_context_locked()
+            latest_frame = dict(generation=generation, mode=mode, context=context,
+                selected=selected, st=st, previous=previous, command=command, smooth=smooth,
+                elapsed=elapsed if mode != 'shadow' else 0., head_command=head_command,
+                observation_received=observation_received, observation_sample=observation_sample)
         inference_ms, action = None, None
         if selected in MODEL_MODES and target is None:
             session = self.sessions.get(selected)
@@ -1259,26 +1290,66 @@ class MotionController:
                         self._stop_locked(MODEL_LABELS[selected] + '模型未加载')
                         self._service_stop_locked()
                 return
-            target, action, smooth, inference_ms = self._infer_policy_target(
-                selected, st, previous, command, smooth, elapsed if mode != 'shadow' else 0.,
-                head_command=head_command)
+            if self._policy_worker is not None:
+                try:
+                    ready = self._async_policy_step(latest_frame, FRESH_SECONDS)
+                except PolicyWorkerError as error:
+                    with self._lock:
+                        if context != self._policy_context_locked():
+                            return
+                    raise MotionError(str(error)) from error
+                if ready is None:
+                    return
+                frame, target, action, smooth, inference_ms = ready
+                generation, mode, context = frame['generation'], frame['mode'], frame['context']
+                observation_received, observation_sample = frame['observation_received'], frame['observation_sample']
+            else:
+                target, action, smooth, inference_ms = self._infer_policy_target(
+                    selected, st, previous, command, smooth, elapsed if mode != 'shadow' else 0.,
+                    head_command=head_command)
         with self._lock:
             # STOP or any mode change arriving during inference discards the
             # obsolete result before obtaining the serial transmit lock.
-            if generation != self._generation or mode != self._mode:
+            if generation != self._generation or mode != self._mode or context != self._policy_context_locked():
                 return
             if self._heartbeat_expired_locked():
                 self._stop_locked('网页控制心跳超时，已停止')
                 self._service_stop_locked()
                 return
-            self._require_feedback_locked()
             preview_error = None
-            if action is not None:
-                self._record_policy_target_locked(target)
+            try:
+                self._require_feedback_locked()
+                if ((mode == 'walk' or self._policy_worker is not None) and action is not None and
+                        self._clock() - observation_received >= FRESH_SECONDS):
+                    raise FeedbackExpired('模型输入反馈已过期')
+                if action is not None:
+                    self._record_policy_target_locked(target)
+                if mode != 'shadow':
+                    self._motion_gate_locked()
+                    execution_target = self._execution_target_locked(selected, target)
+                    raw = self._raw_targets_locked(execution_target)
+                    # Gate/target validation can also be descheduled. Recheck
+                    # before transmitting; never freshen and reuse an old action.
+                    self._require_feedback_locked()
+                    if ((mode == 'walk' or self._policy_worker is not None) and action is not None and
+                            self._clock() - observation_received >= FRESH_SECONDS):
+                        raise FeedbackExpired('模型输入反馈已过期')
+            except FeedbackExpired:
+                if (mode != 'walk' and self._policy_worker is None) or action is None:
+                    raise
+                # No TARGET, STATE, ARM or heartbeat is sent here. Leave the
+                # sample/lease timestamps and recurrent action state untouched.
+                # The next normal cycle must read advancing, valid feedback
+                # before another inference. Frozen/faulty feedback still stops
+                # there; the MCU's unchanged target watchdog bounds support if
+                # the host repeatedly fails to produce a timely command.
+                self._late_policy_frames += 1
+                self._last_late_policy_frame = dict(
+                    generation=generation, sample_us=observation_sample,
+                    observation_age_ms=(self._clock()-observation_received)*1000,
+                    recorded_monotonic=self._clock(), target_sent=False)
+                return
             if mode != 'shadow':
-                self._motion_gate_locked()
-                execution_target = self._execution_target_locked(selected, target)
-                raw = self._raw_targets_locked(execution_target)
                 self._request(TARGET, struct.pack('<I15H', self._cookie, *raw))
                 self._last_executed_target = [float(v) for v in execution_target]
                 self._target_times.append(self._clock())
@@ -1293,6 +1364,14 @@ class MotionController:
             self._last_action = [float(v) for v in target]
             self._last_inference_ms = inference_ms
             self._error = preview_error
+        if self._policy_worker is not None and action is not None:
+            # Pipeline the next inference from this cycle's latest sensor state,
+            # using only the recurrence that was actually committed above.
+            latest_frame.update(previous=action.copy(), smooth=smooth.copy())
+            try:
+                self._submit_policy_frame(latest_frame)
+            except PolicyWorkerError as error:
+                raise MotionError(str(error)) from error
 
     @staticmethod
     def _cadence_summary(times, total, now):
@@ -1425,6 +1504,10 @@ class MotionController:
                         imu_us=state['imu_us'] if state else None,
                         state_request_sequence=self._state_request_sequence,
                         timing=self._timing_summary_locked(),
+                        inference_worker=self._policy_worker.status() if self._policy_worker is not None else None,
+                        policy_deadline=dict(discarded_frames=self._late_policy_frames,
+                            last_discard=copy.deepcopy(self._last_late_policy_frame),
+                            observation_limit_ms=FRESH_SECONDS*1000),
                         rates=dict(state_hz=rate(self._state_times), control_hz=rate(self._target_times)),
                         background_hold=self._mode == 'hold' and self._background_hold,
                         hold_control_protocol=2, page_heartbeat_required=self._mode != 'hold',

@@ -1,0 +1,299 @@
+--- a/service/native_runtime.py
++++ b/service/native_runtime.py
+@@ -399,6 +399,8 @@
+                         for transport in namespace['opened_transports']))
+ 
+     def _owns_locked(self):
++        if getattr(self, '_release_transport', None) is not None:
++            return True
+         return bool(self._controller is not None and self._namespace is not None
+                     and not self._serial_closed(self._controller, self._namespace))
+ 
+@@ -798,6 +800,82 @@
+         if not already_closed:
+             reason = getattr(controller, '_terminal_error', None) or namespace['health_error'] or '运控连接已结束'
+             self._finish(controller, namespace, reason, fault=True)
++
++    def release_torque(self):
++        """Explicit STOP-only recovery after closure. Does not load/configure/arm."""
++        from stop_release import confirm_release, ReleaseUnconfirmed
++        with self._lifecycle:
++            with self.lock:
++                if self._closed or self.phase == 'deploying' or self._owns_locked():
++                    raise ValueError('现有串口尚未关闭；请先用停止按钮，不会抢占连接')
++                if self._controller is not None and (self._namespace is None or
++                        not self._serial_closed(self._controller, self._namespace)):
++                    raise ValueError('旧串口关闭尚未确认，不能另开释放连接')
++                prior = copy.deepcopy({k: v for k, v in (self.closed_proof or {}).items() if k != 'previous_close_proof'})
++                prior_error = self.error
++                self.phase = 'deploying'
++                self._connection_sequence += 1
++                self.last_operation = dict(action='release-torque', state='running')
++            namespace, transport, verification, error = None, None, None, None
++            try:
++                namespace = self._new_namespace()
++                if callable(namespace.get('bind_serial')):
++                    namespace['bind_serial'](namespace['EXPECTED'])
++                namespace['ram_health']()
++                node, _ = namespace['serial_proof'](namespace['EXPECTED'])
++                if namespace['_holders'](node.st_rdev, time.monotonic() + .2):
++                    raise ValueError('UART already has an owner')
++                transport = namespace['ReviewedTransport'](namespace['serial_path'](namespace['EXPECTED']))
++                with self.lock:
++                    self._release_transport = transport
++                transport.open()
++                if transport.request(self.motion.HELLO) != b'XGODUCK_MOTION_1':
++                    raise ValueError('串口不是已验证的运动固件，未发送释放命令')
++                verification = confirm_release(
++                    lambda: transport.request(self.motion.STOP),
++                    lambda: self.motion.decode_state(transport.request(self.motion.STATE)),
++                    self.motion.MOTOR_IDS, fresh_seconds=self.motion.FRESH_SECONDS)
++            except Exception as exc:
++                error = str(exc) or type(exc).__name__
++                if isinstance(exc, ReleaseUnconfirmed):
++                    verification = exc.report
++            finally:
++                if transport is not None:
++                    try:
++                        transport.close()
++                    except Exception as exc:
++                        error = error or str(exc)
++                serial_closed = transport is None or getattr(transport, 'serial', None) is None
++                with self.lock:
++                    if serial_closed:
++                        self._release_transport = None
++                    confirmed = bool(verification and verification['release_confirmed'])
++                    measured = (verification or {}).get('last_state') or {}
++                    after = dict(connected=False, mode='off', release_confirmed=confirmed,
++                        generation=self._generation_floor, armed=measured.get('armed'),
++                        online_ids=[sid for sid in self.motion.MOTOR_IDS if sid not in measured.get('missing_ids', self.motion.MOTOR_IDS)],
++                        torque_ids=[sid for i, sid in enumerate(self.motion.MOTOR_IDS) if measured.get('torque_mask', 0) & (1 << i)] if measured else None,
++                        fault_ids=[sid for i, sid in enumerate(self.motion.MOTOR_IDS) if measured.get('fault_mask', 0) & (1 << i)] if measured else None, error=error)
++                    self.closed_proof = dict(serial_closed=serial_closed,
++                        release_confirmed=confirmed, before=(prior or {}).get('after'), after=after,
++                        prior_fault=prior_error, previous_close_proof={k: v for k, v in (prior or {}).items() if k in ('reason','serial_closed','release_confirmed','request_counts')},
++                        verification=verification, reason=error, stop_error=error,
++                        request_counts=dict(namespace['request_counts']) if namespace else {},
++                        serial_open_attempts=namespace['serial_open_attempts'] if namespace else 0,
++                        no_uart_opened=not namespace or namespace['serial_open_attempts'] == 0)
++                    self.phase = 'closed' if confirmed and serial_closed and not error else 'fault'
++                    self.error = error
++                    self._hardware_snapshot = self._hardware_snapshot_at = None
++                    self._hardware_snapshot_sequence = None
++                    self._hardware_version += 1
++                    self.last_operation = dict(action='release-torque',
++                        state='complete' if confirmed and serial_closed and not error else 'failed',
++                        error=error, release_confirmed=confirmed, serial_closed=serial_closed)
++                self._record('release-%d.json' % self._connection_sequence, self.closed_proof)
++                self._persist()
++            if error or not serial_closed or not confirmed:
++                raise ValueError(error or '释放或串口关闭未确认；请保持支撑，必要时断开舵机电池')
++            return self.snapshot()
+ 
+     def disconnect(self):
+         with self._lifecycle:
+--- a/service/official_runtime_ui.js
++++ b/service/official_runtime_ui.js
+@@ -63,3 +63,30 @@
+   // on the normal controller. Keep the rest of the existing workbench intact.
+   const panel = el('trackingProbePanel'); if (panel) panel.hidden = true;
+ };
++
++// Closed UART is not proof of torque release. An explicit retry opens only a
++// guarded STOP/STATE connection and closes it; it cannot ARM or send targets.
++const stopRecoveryOriginalClick = el('motionStop').onclick;
++el('motionStop').onclick = function (...args) {
++  if (!snapshot?.motion?.owns_connection) {
++    motionActionEpoch++; motionDriveEpoch++; motionDesired=[0,0,0];
++    return runMotion('release-torque');
++  }
++  return stopRecoveryOriginalClick.apply(this, args);
++};
++const stopRecoveryRender = renderMotion;
++renderMotion = function () {
++  stopRecoveryRender();
++  const m = snapshot?.motion;
++  const needsRelease = m && !m.owns_connection && m.closed_proof?.release_confirmed !== true;
++  if (needsRelease) {
++    el('motionStop').disabled = !!motionBusy || !!requestBusy;
++    el('motionStop').textContent = '重新连接并释放扭矩 · 不启动';
++    el('motionStop').title = '请先托稳机身；只发送停止并核对实际扭矩，随后关闭串口';
++  } else {
++    el('motionStop').textContent = '停止运动 · 释放扭矩';
++  }
++  if (m?.error && !m.owns_connection) {
++    el('motionWalkGateStatus').textContent = '连接因故障关闭：' + m.error;
++  }
++};
+--- a/service/worker-classes.py
++++ b/service/worker-classes.py
+@@ -69,17 +69,21 @@
+ 
+     def _service_stop_locked(self):
+         if self._pending_stop and self._connected:
+-            self._request(motion.STOP)
+-            state = self._read_state()
+-            self._accept_state_locked(state)
+-            if state['online_mask'] != motion.ALL_MASK or state['fault_mask'] or state['armed'] or state['cookie'] or state['torque_mask']:
+-                message = '停止已发送，但全部舵机扭矩关闭尚未确认'
+-                if self._error:
+-                    message = self._error if message in self._error else self._error + '；' + message
++            from stop_release import confirm_release, ReleaseUnconfirmed
++            try:
++                confirm_release(lambda: self._request(motion.STOP), self._read_state,
++                    motion.MOTOR_IDS, accept_state=self._accept_state_locked,
++                    fresh_seconds=motion.FRESH_SECONDS)
++            except ReleaseUnconfirmed as error:
++                message = str(error)
++                if self._error and self._error not in message:
++                    message = self._error + '；' + message
+                 diagnostic = getattr(self, '_last_stop_diagnostic', None)
+-                if diagnostic is not None and 'verification_failure' not in diagnostic:
+-                    self._last_stop_diagnostic = dict(diagnostic, verification_failure=dict(reason=message, recorded_monotonic=self._clock(), after=super().status()))
+-                raise motion.MotionError(message)
++                if diagnostic is not None:
++                    self._last_stop_diagnostic = dict(diagnostic, verification_failure=dict(
++                        reason=message, recorded_monotonic=self._clock(),
++                        verification=error.report, after=super().status()))
++                raise motion.MotionError(message) from error
+             self._pending_stop = False
+ 
+     def _run(self):
+--- a/service/native_workbench.py
++++ b/service/native_workbench.py
+@@ -717,7 +717,7 @@
+   if(id==='motionImuEnd')return '当前没有可结束的独立 IMU 读取会话。';
+   if(id==='motionRecheck')return motionRecoveryInfo();
+   if(id.startsWith('motion')||id==='walkModelPreview'){
+-    if(id==='motionStop'||id==='motionDisconnect')return '当前没有由本工作台占用的运控连接；无需重复停止或断开。';
++    if(id==='motionStop'||id==='motionDisconnect')return snapshot?.motion?.closed_proof?.release_confirmed===true?'最近回读已确认扭矩关闭；连接已结束。':'连接已断开，但释放扭矩尚未确认；请托稳后点击专用释放按钮。';
+     if(button.title)return button.title;
+     if(!motionConnectionEstablished())return '运控尚未连接，先连接并载入模型。';
+     return h?.error||h?.start_blocked_reason||'当前模型、头颈或实时反馈条件尚未通过。';
+@@ -742,7 +742,7 @@
+ }
+ runMotion=nativeWrapButtonOperation(runMotion,()=>motionError,(action,extra={})=>el(action==='start'
+   ?{hold:'motionStand',walk:'motionWalk',shadow:'motionShadow',getup:'motionGetup',pick:'motionPick',roulade:'motionRoulade'}[extra.mode]
+-  :{connect:'motionConnect',disconnect:'motionDisconnect',stop:'motionStop','forward-trial':'walkModelForwardLocked','tracking-probe':'trackingProbeStart','capture-head-clearance':'motionHeadCapture'}[action]||'motionConnect'));
++  :{connect:'motionConnect',disconnect:'motionDisconnect',stop:'motionStop','release-torque':'motionStop','forward-trial':'walkModelForwardLocked','tracking-probe':'trackingProbeStart','capture-head-clearance':'motionHeadCapture'}[action]||'motionConnect'));
+ runMaintenance=nativeWrapButtonOperation(runMaintenance,()=>maintenanceError);
+ run=nativeWrapButtonOperation(run,()=>actionError);
+ runZero=nativeWrapButtonOperation(runZero,()=>zeroError);
+@@ -997,7 +997,7 @@
+         extras = dict(start={'mode', 'support_confirmed', 'behavior_confirmed', 'preview_model', 'joint_follow', 'clearance_confirmed'},
+                       command={'forward', 'side', 'yaw'}, heartbeat={'background'},
+                       **{'joint-target': {'joint_id', 'angle_deg', 'sequence'}},
+-                      stop={'stop_source'}, connect=set(), disconnect=set(),
++                      stop={'stop_source'}, connect=set(), disconnect=set(), **{'release-torque': set()},
+                       **{'capture-head-clearance': {'clearance_confirmed'}, 'forward-trial': {'support_confirmed'}, 'tracking-probe': {'support_confirmed', 'joint_id'}, 'current-pose-probe': {'support_confirmed', 'clearance_confirmed'}})
+         if action not in extras or set(body) - fields - extras[action]:
+             raise ValueError('未知运控操作或参数')
+@@ -1084,7 +1084,7 @@
+                 if action == 'stop' and hardware.get('mode') == 'hold' and not hardware.get('joint_follow', {}).get('active') and (
+                         body['stop_source'] == 'page-hidden' or hardware.get('hold_control_protocol') == 2):
+                     raise ValueError('固定站姿由 X5 独立保持；请使用停止按钮结束站姿')
+-            audited = action in ('start', 'stop', 'disconnect', 'connect', 'capture-head-clearance', 'forward-trial', 'tracking-probe', 'current-pose-probe')
++            audited = action in ('start', 'stop', 'release-torque', 'disconnect', 'connect', 'capture-head-clearance', 'forward-trial', 'tracking-probe', 'current-pose-probe')
+             operation = None
+             if audited:
+                 with self.lock:
+@@ -1112,6 +1112,13 @@
+                             raise ValueError('舵机维护占用连接；先停止并退出维护，等待串口关闭。')
+                         self.calibration_service.end_for_motion()
+                     result = self.runtime.connect()
++                elif action == 'release-torque':
++                    if self.calibration_service is not None:
++                        cs = self.calibration_service.session
++                        if (cs.recovery_pending or cs.source_transmitting or
++                                cs.maintenance is not None and cs.maintenance.owns_connection):
++                            raise ValueError('采集或舵机维护仍占用串口；专用释放不会抢占连接')
++                    result = self.runtime.release_torque()
+                 elif action == 'disconnect':
+                     result = self.runtime.disconnect()
+                 else:
+@@ -1156,7 +1163,7 @@
+                         raise ValueError('动作已被更新状态取代；旧确认未采用')
+                     if action == 'start' and current_operation and after.get('connected') is True and after.get('mode') == body['mode'] and after.get('generation') == latest.get('generation'):
+                         self.control_owner = dict(id=client, generation=after['generation'], principal=principal)
+-                    elif action in ('stop', 'disconnect', 'connect', 'capture-head-clearance') and current_operation:
++                    elif action in ('stop', 'release-torque', 'disconnect', 'connect', 'capture-head-clearance') and current_operation:
+                         self.control_owner = None
+                     if audited:
+                         operation.update(state='complete', after=copy.deepcopy(after))
+--- a/policy/stop_release.py
++++ b/policy/stop_release.py
+@@ -0,0 +1,74 @@
++"""Bounded STOP confirmation. Never enables torque or writes position targets."""
++import time
++
++
++class ReleaseUnconfirmed(RuntimeError):
++    def __init__(self, report):
++        self.report = report
++        state = report.get('last_state') or {}
++        missing = state.get('missing_ids', [])
++        detail = ('；尚未获得有效反馈：ID ' + ', '.join(map(str, missing))) if missing else ''
++        if report.get('last_error'):
++            detail += '；' + report['last_error']
++        super().__init__('停止已发送，释放扭矩仍未确认' + detail + '；请保持支撑，必要时断开舵机电池')
++
++
++def confirm_release(send_stop, read_state, motor_ids, *, accept_state=None,
++                    clock=time.monotonic, sleep=time.sleep, budget=1.0, fresh_seconds=.15):
++    """Send STOP once; accept two progressing OFF samples, never an ACK alone.
++
++    The 1 s confirmation budget covers two 250 ms torque refresh periods plus
++    their interleaved read batches. It is NOT a motion freshness extension:
++    every accepted response must arrive inside fresh_seconds. No ARM, TARGET,
++    CONFIG, automatic STOP retry, or sensor timestamp mutation is performed.
++    """
++    report = dict(stop_sent=False, stop_acknowledged=False, release_confirmed=False,
++                  samples=0, distinct_off_samples=0, last_state=None, last_error=None)
++    start = clock()
++    try:
++        report['stop_sent'] = True
++        send_stop()
++        report['stop_acknowledged'] = True
++    except Exception as error:
++        # A lost ACK is not proof that STOP was not delivered. Only fresh
++        # subsequent measured OFF state may confirm release; do not resend.
++        report['stop_error'] = str(error)
++    deadline = clock() + budget
++    previous = None
++    all_mask = (1 << len(motor_ids)) - 1
++    while clock() < deadline:
++        began = clock()
++        try:
++            state = read_state()
++            elapsed = clock() - began
++            if accept_state is not None:
++                accept_state(state)
++            report['samples'] += 1
++            report['last_state'] = dict(sample_us=state['sample_us'],
++                missing_ids=[sid for i, sid in enumerate(motor_ids) if not state['online_mask'] & (1 << i)],
++                fault_mask=state['fault_mask'], torque_mask=state['torque_mask'],
++                armed=state['armed'], cookie=state['cookie'])
++            healthy = (elapsed < fresh_seconds and clock() <= deadline and
++                state['online_mask'] == all_mask and not state['fault_mask'] and
++                not state['torque_mask'] and not state['armed'] and not state['cookie'])
++            sample = state['sample_us']
++            delta = ((sample - previous) & 0xffffffff) if previous is not None else None
++            if not healthy or delta is not None and delta >= 0x80000000:
++                previous = None
++                report['distinct_off_samples'] = 0
++            elif previous is None:
++                previous = sample
++                report['distinct_off_samples'] = 1
++            elif delta:
++                report['distinct_off_samples'] += 1
++                previous = sample
++            if report['distinct_off_samples'] >= 2:
++                report.update(release_confirmed=True, elapsed_ms=round((clock()-start)*1000, 3))
++                return report
++        except Exception as error:
++            report['last_error'] = str(error)
++            previous = None
++            report['distinct_off_samples'] = 0
++        sleep(min(.02, max(0., deadline - clock())))
++    report['elapsed_ms'] = round((clock()-start)*1000, 3)
++    raise ReleaseUnconfirmed(report)

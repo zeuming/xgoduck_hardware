@@ -1017,7 +1017,10 @@ class CalibrationSession:
         return dict(id=None, stage=stage, busy=False, old_zero=None, candidate_zero=None,
                     sample_count=0, progress=0., error=error, message=message)
 
-    def _fail_joint_zero(self, error):
+    def _fail_joint_zero(self, error, *, preserve_ready=False):
+        if preserve_ready and self.joint_zero['stage'] == 'ready':
+            self.joint_zero.update(error=None, message='已采到零点，数值已固定，可直接保存。')
+            return
         if self.joint_zero['stage'] not in ('sampling', 'ready'):
             return
         self.zero_collection = None
@@ -1102,7 +1105,7 @@ class CalibrationSession:
                     self.message = '校准已保存；反馈关闭尚未确认。'
                 self.feedback = None
                 self.joint_wizard.fail(self.error)
-                self._fail_joint_zero(self.error)
+                self._fail_joint_zero(self.error, preserve_ready=True)
                 self._send_end_once()
 
     def _send_end_once(self):
@@ -1521,7 +1524,7 @@ class CalibrationSession:
                                              message='本次反馈复查已取消；已保存校准保持不变。')
             self.status, self.feedback = 'stopping', None
             self.joint_wizard.cancel()
-            self._fail_joint_zero('采集会话已结束，未保存的零点预览已取消。')
+            self._fail_joint_zero('采集会话已结束，未保存的零点预览已取消。', preserve_ready=True)
             self.message = ('四步校准已保存，正在结束反馈。' if reason == 'completed'
                             else '正在手动结束反馈；已保存校准保持不变。')
             if reason == 'manual' and self.wizard['stage'] != 'complete':
@@ -1652,22 +1655,23 @@ class CalibrationSession:
                 self.joint_zero = self._empty_joint_zero('cancelled', '未保存的零点预览已取消；已保存校准保持不变。')
                 self.zero_collection = None
                 return self.snapshot()
-            if body['support_confirmed'] is not True or body['zero_reference_confirmed'] is not True:
+            if action == 'capture' and (body['support_confirmed'] is not True or body['zero_reference_confirmed'] is not True):
                 raise ValueError('请确认机身由稳固支撑承重，所选关节已按零姿态图摆稳')
             if self.collection is not None or self.wizard['busy']:
                 raise ValueError('IMU 正在采样，请先完成或取消')
             if self.joint_wizard.active():
                 raise ValueError('请先取消未保存的方向与范围采集，再重新采集零点')
-            state = self._require_joint_zero_feedback()
-            raw = joint_calibration.position(state['positions'][joint_calibration.IDS.index(sid)])
             if action == 'capture':
                 if self._joint_zero_pending():
                     raise ValueError('已有未保存的零点采样或预览，请先保存或取消')
-                self.joint_zero = dict(self._empty_joint_zero(), id=sid, stage='sampling', busy=True,
+                state = self._require_joint_zero_feedback()
+                raw = joint_calibration.position(state['positions'][joint_calibration.IDS.index(sid)])
+                self.joint_zero = dict(self._empty_joint_zero(), id=sid, stage='ready', busy=False,
                                        old_zero=self.config['joints'][joint_calibration.IDS.index(sid)]['zero'],
-                                       message='正在只读采样，请保持该关节的零姿态静止；采完后先预览。')
-                self.zero_collection = dict(generation=self.generation, begin=self.clock(), samples=[],
-                                            first_sample_us=None, first_imu_us=None,
+                                       candidate_zero=raw, sample_count=1, progress=1.,
+                                       message=f'已记录零点 {raw}，数值已固定，点击保存即可。')
+                self.zero_collection = dict(generation=self.generation, begin=self.clock(), samples=[raw],
+                                            first_sample_us=state['sample_us'], first_imu_us=state['imu_us'],
                                             last_sample_us=state['sample_us'], last_imu_us=state['imu_us'],
                                             last_position=raw, before=copy.deepcopy(self.config))
             else:
@@ -1677,9 +1681,6 @@ class CalibrationSession:
                     raise ValueError('所选关节尚无稳定采集的零点预览')
                 if self.config != capture['before']:
                     self._fail_joint_zero('采集后校准配置已改变，请重新采集零点')
-                    raise ValueError(self.joint_zero['error'])
-                if abs(raw - draft['candidate_zero']) > 6:
-                    self._fail_joint_zero('关节已离开刚才采集的零姿态，未保存；摆稳后重新采集')
                     raise ValueError(self.joint_zero['error'])
                 updated = copy.deepcopy(self.config)
                 updated['joints'][joint_calibration.IDS.index(sid)].update(
@@ -1714,6 +1715,8 @@ class CalibrationSession:
             return self.snapshot()
 
     def _tick_joint_zero(self):
+        if self.joint_zero['stage'] == 'ready':
+            return  # A captured value is an immutable save draft, not live feedback.
         if not self._joint_zero_pending():
             return
         try:
@@ -1972,7 +1975,7 @@ class CalibrationSession:
                 self.record_fault_feedback(message)
                 self.closed_proof = message
                 self.feedback = None
-                self._fail_joint_zero('采集连接已关闭，未保存的零点预览已取消。')
+                self._fail_joint_zero('采集连接已关闭，未保存的零点预览已取消。', preserve_ready=True)
                 if self.feedback_recheck is not None and message.get('serial_closed') is not True:
                     self.fault('复查连接的串口关闭未获确认')
                 if self.status != 'fault':

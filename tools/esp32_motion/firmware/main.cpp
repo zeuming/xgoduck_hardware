@@ -142,8 +142,8 @@ bool writeTorque(bool enabled) {
 }
 bool writeGoals(const uint16_t* goals) {
   // SCS synchronous WRITE, goal-position register 42, six bytes per motor.
-  // Goal position + zero duration + zero speed; configured RAM slew limits
-  // the goal changes. No ID/EPROM writes exist in this firmware.
+  // Goal position + zero duration + zero speed, as in upstream scs_bus.h.
+  // Interlock selects legacy pose slew or explicitly requested policy goals.
   uint8_t data[107]; data[0] = 42; data[1] = 6;
   for (size_t i = 0; i < 15; ++i) {
     const size_t offset = 2 + i * 7;
@@ -566,7 +566,8 @@ void respond(uint8_t type, uint32_t seq, const uint8_t* data, size_t size) {
   host.write(out, count);
 }
 void ack(const motion::Frame& frame, motion::Error error) {
-  if (frame.type == motion::Target && error == motion::BadState && frame.length == 34 &&
+  if (frame.type == motion::Target && error == motion::BadState &&
+      (frame.length == 34 || (frame.length == 35 && frame.payload[34] == motion::kPolicyPositionProfile)) &&
       !lock.armed && safetyDiagnostic.seen &&
       motion::u32(frame.payload) == safetyDiagnostic.cookie) {
     // Optional version-1 TARGET failure detail, bound to the stopped cookie.
@@ -760,6 +761,11 @@ void command(const motion::Frame& frame) {
       respond(0x94, frame.sequence, reinterpret_cast<const uint8_t*>(capability), sizeof(capability) - 1);
     }
     return;
+  }
+  if (frame.type == motion::PolicyPositionCaps) {
+    // Read-only capability: ACK[24,0] means TARGET accepts profile byte 1.
+    // Does not select a profile, change torque, or renew a motion watchdog.
+    ack(frame, frame.length ? motion::BadPacket : motion::Ok); return;
   }
   if (frame.type == motion::FaultDetails) {
     if (frame.length) ack(frame, lock.record(motion::BadPacket)); else faultDetails(frame.sequence);

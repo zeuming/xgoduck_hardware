@@ -156,9 +156,15 @@ def build_bundle(snapshot, calibration, zero_provenance, *, expected,
                    automatic_motor_start=False,
                    persistent_model_writes=False, automatic_reconnect=False)
     additions = {
+        'policy/joint_follow.py': (HERE.parent / 'x5_policy/joint_follow.py').read_bytes(),
         'service/native_runtime.py': (HERE.parent / 'x5_policy/native_runtime.py').read_bytes(),
         'service/native_workbench.py': (HERE.parent / 'x5_policy/native_workbench.py').read_bytes(),
         'service/native_process.py': (HERE.parent / 'x5_policy/native_process.py').read_bytes(),
+        'service/system_health.py': (HERE.parent / 'x5_policy/system_health.py').read_bytes(),
+        'service/system_health_panel.html': (HERE.parent / 'x5_policy/system_health_panel.html').read_bytes(),
+        'service/gamepad_web.py': (HERE.parent / 'x5_policy/gamepad_web.py').read_bytes(),
+        'service/native_gamepad.py': (HERE.parent / 'x5_policy/native_gamepad.py').read_bytes(),
+        'service/gamepad_panel.html': (HERE.parent / 'x5_policy/gamepad_panel.html').read_bytes(),
         'service/guard-runtime.py': feedback_stream.runtime_source().encode('utf-8'),
         'service/worker-classes.py': _classes_source().encode('utf-8'),
         'service/expected.json': _json_bytes(canonical),
@@ -331,14 +337,23 @@ def connection_guard_factory(initial=False, usb_recovery=False):
     connection_source=guard_source
     if recovery is not None:
         connection_source=native_transports.install_usb_recovery(namespace,guard_source,recovery)
-    # Model loading occurs between the bootstrap review and the runtime's
-    # first connect. That first gate still requires the quiescence identity;
-    # the bootstrap-only initial check does not consume it.
-    if (initial or initial_connection_gate_pending and not (usb_recovery and recovery is not None)) and (connection_path!=deployment['serial_path_review'] or
-            dict(zip(('dev','ino','rdev'),connection_node))!=pin['serial_node_posix']):
-        raise namespace['ProbeError']('Native initial UART differs from quiescence review')
+    # Ownership is actionable even when offline startup captured no UART pin.
     if namespace['_holders'](node.st_rdev,time.monotonic()+.20):
         raise namespace['ProbeError']('UART already has an owner')
+    # A metadata-only startup may lack a node because another process owned it.
+    # Only an explicit recovery check may establish that missing baseline. The
+    # board, kernel, RAM, calibration and final owner checks below still run;
+    # no UART allowance is published until every check succeeds.
+    missing_offline_pin = (not initial and usb_recovery
+        and deployment.get('startup_mode') == 'metadata_only_fault_page'
+        and pin.get('serial_node_posix') is None
+        and isinstance(pin.get('startup_fault'), dict)
+        and pin['startup_fault'].get('hardware_gate_passed') is False
+        and pin['startup_fault'].get('serial_open_attempts') == 0)
+    if (initial or initial_connection_gate_pending and not (usb_recovery and recovery is not None)
+            and not missing_offline_pin) and (connection_path!=deployment['serial_path_review'] or
+            dict(zip(('dev','ino','rdev'),connection_node))!=pin['serial_node_posix']):
+        raise namespace['ProbeError']('Native initial UART differs from quiescence review')
     def ram_health():
         # Retain this connection's exact snapshot. Later USB faults still fail;
         # only an explicit reconnect can reconcile a complete unplug/replug.

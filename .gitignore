@@ -22,3 +22,9 @@ __pycache__/
 **/.pio/
 **/.venv/
 .DS_Store
+
+# Downloaded models and device-local runtime configuration.
+*.onnx
+/tools/x5_policy/runtime_current/source/service/deployment.json
+/tools/x5_policy/runtime_current/source/policy/calibration.json
+**/access-secret.json

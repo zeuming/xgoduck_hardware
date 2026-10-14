@@ -24,6 +24,7 @@ from pathlib import Path
 import sys
 
 import numpy as np
+from model_adaptation_contract import load_gain_manifest
 
 from rl_core import (ACTION_ALPHA, ACTION_ALPHA_HEAD, FIXED_STANCE_OVERRIDES,
                      MOTOR_IDS, POLICY_IDS, POLICY_INDEX, POLICY_JOINT_NAMES,
@@ -33,6 +34,92 @@ from rl_core import (ACTION_ALPHA, ACTION_ALPHA_HEAD, FIXED_STANCE_OVERRIDES,
 
 ROOT = Path(__file__).resolve().parents[2]
 REFERENCE = ROOT / 'output/xgoduck_rl_reference'
+
+# Copied from the audited official sources, not fitted to make a rollout pass:
+# vendor/bam/bam/mjlab.py::_set_friction_stiffness, and
+# src/mjlab_microduck/robot/xgoduck_constants.py::XGODUCK_COLLISION.
+OFFICIAL_FRICTION_SOLREF = (-5.0e4, -2.0e2)
+OFFICIAL_FRICTION_SOLIMP = (.99, .9999, .001, .5, 2.)
+
+
+def apply_official_contact_contract(spec):
+    """Match named collision settings and disable unnamed collision meshes.
+
+    This reproduces only the referenced spec edits. It does not claim parity
+    with the GPU solver, domain randomization or an unidentified checkpoint.
+    """
+    for geom in spec.geoms:
+        if not geom.name:
+            geom.contype = geom.conaffinity = 0
+        elif geom.name.endswith('_collision'):
+            head_or_base = geom.name in ('trunk_collision', 'head_collision')
+            foot = geom.name in ('left_foot_collision', 'right_foot_collision')
+            geom.contype = 3 if head_or_base else 1
+            geom.conaffinity = 2 if head_or_base else 0
+            geom.condim = 3 if foot else 1
+            if foot:
+                geom.priority = 1
+                geom.friction[0] = 1.
+
+
+def smooth_action(previous_smooth, action, leg_alpha, head_alpha):
+    """Runtime EMA, separate from raw previous-action policy observations."""
+    for alpha in (leg_alpha, head_alpha):
+        if not math.isfinite(alpha) or not 0 <= alpha < 1:
+            raise ValueError('Action EMA alpha must be finite and within [0, 1)')
+    result = np.asarray(previous_smooth, dtype=np.float32).copy()
+    if result.shape != (14,) or np.asarray(action).shape != (14,):
+        raise ValueError('Action EMA requires 14 policy joints')
+    for sl, alpha in ((slice(0, 5), leg_alpha), (slice(5, 9), head_alpha),
+                      (slice(9, 14), leg_alpha)):
+        result[sl] = alpha * result[sl] + (1 - alpha) * action[sl]
+    return result
+
+
+def scheduled_command(at, speed, warmup, pulse, ramp):
+    elapsed = at - warmup
+    if elapsed < 0 or (pulse is not None and elapsed >= pulse):
+        return 0.
+    fraction = 1. if ramp == 0 else min(1., elapsed / ramp)
+    if pulse is not None and ramp:
+        fraction = min(fraction, (pulse - elapsed) / ramp)
+    return speed * max(0., fraction)
+
+
+def command_distance(end, speed, warmup, pulse, ramp):
+    """Integral of the requested trapezoidal velocity, including partial runs."""
+    t = max(0., end - warmup)
+    if pulse is not None:
+        t = min(t, pulse)
+    if ramp == 0:
+        return speed * t
+    area = t*t/(2*ramp) if t < ramp else t-ramp/2
+    if pulse is not None:
+        area -= max(0., t-(pulse-ramp))**2/(2*ramp)
+    return speed * area
+
+
+def execution_action(raw, profile, cfg, decoder):
+    """Frozen deployed roll adapter for A/B screening; never edits saved bounds.
+
+    Previous-action observations must still use the ORIGINAL raw actor output.
+    This is compared against the deployed decoder before interpreting results.
+    """
+    if decoder == 'metadata':
+        return raw.copy()
+    result = raw.copy()
+    by_id = {j['id']: j for j in cfg['joints']}
+    for sid, index in ((11, 1), (21, 10)):
+        row = by_id[sid]
+        lo, hi = sorted((tick-row['zero'])*360/4095*row['sign']
+                        for tick in (row['min']+3, row['max']-3))
+        if not lo < -16 < 16 < hi:
+            raise ValueError('Deployed roll map cannot fit saved bounds')
+        angle = math.degrees(profile['home_rad'][index] + profile['scale']*.95*float(raw[index]))
+        mapped = (lo+(-16-lo)*math.exp((angle+16)/(-16-lo)) if angle < -16 else
+                  hi-(hi-16)*math.exp(-(angle-16)/(hi-16)) if angle > 16 else angle)
+        result[index] = (math.radians(mapped)-profile['home_rad'][index])/profile['scale']
+    return result
 
 
 def digest(path):
@@ -47,6 +134,8 @@ def assess_result(result):
     requested, applied or measured mechanical range violation.
     """
     failures = []
+    if result.get('range_ignoring_counterfactual'):
+        failures.append('range_ignoring_counterfactual_not_a_release_candidate')
     if result['ended']['reason'] != 'duration':
         failures.append('did_not_complete_duration')
     if result['max_tilt_deg'] >= 15:
@@ -71,12 +160,16 @@ def assess_result(result):
         task = 'walking'
         if any(n < 2 for n in completed.values()):
             failures.append('fewer_than_two_supported_completed_lifts_per_foot')
-        if math.copysign(1., speed) * result['displacement_m'][0] < .15:
-            failures.append('command_direction_progress_less_than_15_cm')
+        progress = result.get('command_progress')
+        if progress is None or progress['origin_at_s'] is None:
+            failures.append('command_window_progress_not_measured')
+        elif progress['direction_progress_m'] <= 0:
+            failures.append('no_positive_progress_in_command_direction')
     return dict(task=task, offline_screen_passed=not failures,
                 failures=failures, completed_supported_lifts=completed,
                 physical_standing_verified=False, physical_walking_verified=False,
                 deployment_authorized=False,
+                progress_rule='Positive displacement after zero warmup, plus two supported landed lifts per foot; velocity tracking error is reported separately, with no invented hardware acceptance tolerance.',
                 interpretation='Offline screening only; physical reference, model fidelity and attended acceptance remain required.')
 
 
@@ -235,12 +328,13 @@ class FootMotionTrace:
             if foot['lifted']:
                 if row['active_lift'] is None:
                     row['active_lift'] = dict(start_s=float(at), max_clearance_m=height,
-                                              opposite_contact_s=0.)
+                                              clearance_s=0., opposite_contact_s=0.)
                 lift = row['active_lift']
+                lift['clearance_s'] += self.dt
                 lift['max_clearance_m'] = max(lift['max_clearance_m'], height)
                 if measured['right' if side == 'left' else 'left']['contact']:
                     lift['opposite_contact_s'] += self.dt
-            elif row['active_lift'] is not None:
+            elif foot['contact'] and row['active_lift'] is not None:
                 self._end_lift(row, at, completed=True)
 
     def _end_lift(self, row, at, *, completed):
@@ -253,7 +347,7 @@ class FootMotionTrace:
         for side, row in self.rows.items():
             if row['active_lift'] is not None:
                 self._end_lift(row, at, completed=False)
-            lifts = [lift for lift in row['lift_intervals'] if lift['duration_s'] >= .05 - 1e-9]
+            lifts = [lift for lift in row['lift_intervals'] if lift['clearance_s'] >= .05 - 1e-9]
             result[side] = dict(contact_fraction=row['contact_samples']/max(1, row['samples']),
                 contact_changes=row['contact_changes'], qualifying_lift_intervals=lifts,
                 min_mesh_height_m=row['min_clearance_m'], max_mesh_height_m=row['max_clearance_m'],
@@ -280,11 +374,18 @@ def load_dependencies(bam_root):
 
 def make_sim(args, mj, load_model, controller_type):
     spec = mj.MjSpec.from_file(str(args.xml))
+    official_contract = getattr(args, 'physics_contract', 'official-bam') == 'official-bam'
+    if official_contract:
+        apply_official_contact_contract(spec)
     spec.worldbody.add_geom(name='policy_audit_floor', type=mj.mjtGeom.mjGEOM_PLANE,
                             size=[0, 0, .05], contype=1, conaffinity=1,
                             friction=[1, .005, .0001])
     bam = load_model(str(args.bam_params))
-    bam.actuator.kp, bam.actuator.vin = args.kp, args.voltage
+    gain_path = getattr(args, 'kp_by_id', None)
+    gains = load_gain_manifest(gain_path) if gain_path else None
+    bam.actuator.kp = (np.asarray([gains['kp_by_id'][str(sid)] for sid in POLICY_IDS], dtype=float)
+                       if gains else args.kp)
+    bam.actuator.vin = args.voltage
     if len(spec.actuators) != len(POLICY_JOINT_NAMES):
         raise ValueError('This audit requires exactly the 14 policy actuators in the MJCF')
     torque_limit = args.voltage * bam.kt.value / bam.R.value
@@ -297,6 +398,9 @@ def make_sim(args, mj, load_model, controller_type):
         if joint.name in POLICY_JOINT_NAMES:
             joint.damping = np.zeros((3, 1))
             joint.frictionloss, joint.armature = 0., bam.armature.value
+            if official_contract:
+                joint.solref_friction = OFFICIAL_FRICTION_SOLREF
+                joint.solimp_friction = OFFICIAL_FRICTION_SOLIMP
     model = spec.compile()
     model.opt.timestep = args.physics_dt_ms / 1000
     cad_mass = float(model.body_mass.sum())
@@ -320,7 +424,10 @@ def rollout(args, dependencies, session, profile, cfg, hardware, snapshot_angles
     model, data, bam, controller, qi, vi, trunk, root_joint, cad_mass = make_sim(
         args, mj, load_model, controller_type)
     home = profile['home_rad']
-    if args.head_source == 'captured':
+    original_metadata_home = policy_profile(session)['home_rad']
+    if args.head_source == 'metadata-home':
+        head_deg = np.rad2deg(home[5:9])
+    elif args.head_source == 'captured':
         captured = hardware.get('hold_head_deg')
         if not isinstance(captured, dict) or any(str(sid) not in captured for sid in (30, 31, 32, 33)):
             raise ValueError('Selected snapshot has no complete captured hold_head_deg; choose --head-source snapshot')
@@ -387,7 +494,8 @@ def rollout(args, dependencies, session, profile, cfg, hardware, snapshot_angles
         return State(sensor_acc, sensor_gyro, angles.tolist(), vels.tolist(),
                      gravity.tolist(), velocity[:3].tolist())
 
-    traces = {name: Trace(cfg) for name in ('onnx_unfiltered_target', 'policy_smoothed_target',
+    traces = {name: Trace(cfg) for name in ('onnx_unfiltered_target', 'retargeted_unfiltered_target',
+              'adapted_pre_ema_target', 'policy_smoothed_target',
               'requested_execution_target', 'mcu_applied_goal', 'actual_joint')}
     state_history = deque([current_state() for _ in range(feedback_steps + 1)], maxlen=feedback_steps + 1)
     initial_gravity = current_state().grav
@@ -403,7 +511,12 @@ def rollout(args, dependencies, session, profile, cfg, hardware, snapshot_angles
     frames, motion_frames, ended = [], [], None
     foot_trace = FootMotionTrace(mj, model, observed, dt)
     total_steps = math.ceil(args.duration_s / dt)
+    progress_origin = None
+    progress_origin_at = None
     for step in range(total_steps):
+        if progress_origin is None and data.time + 1e-9 >= args.zero_warmup_s:
+            progress_origin = float(data.qpos[root_adr])
+            progress_origin_at = float(data.time)
         st = current_state()
         tilt = math.degrees(math.acos(float(np.clip(-st.grav[2], -1, 1))))
         feet = foot_trace.measure()
@@ -420,8 +533,8 @@ def rollout(args, dependencies, session, profile, cfg, hardware, snapshot_angles
         if data.time + 1e-9 >= next_control_at:
             control_times.append(float(data.time))
             next_control_at += 1 / args.hz
-            fraction = 1. if args.ramp_seconds == 0 else min(1., data.time / args.ramp_seconds)
-            command = np.array([speed * fraction, 0., 0.], np.float32)
+            command = np.array([scheduled_command(data.time, speed,
+                getattr(args, 'zero_warmup_s', 0.), getattr(args, 'pulse_s', None), args.ramp_seconds), 0., 0.], np.float32)
             policy_state = state_history[0]
             if observation_filter is not None:
                 # One new feedback sample per control cycle; mutating a deque
@@ -436,17 +549,20 @@ def rollout(args, dependencies, session, profile, cfg, hardware, snapshot_angles
             if action.shape != (1, 14) or not np.isfinite(action).all():
                 raise ValueError('ONNX emitted invalid output')
             action = action[0]
+            adapted = execution_action(action, profile, cfg, getattr(args, 'decoder', 'metadata'))
             action_min = action.copy() if action_min is None else np.minimum(action_min, action)
             action_max = action.copy() if action_max is None else np.maximum(action_max, action)
-            for sl, alpha in ((slice(0, 5), ACTION_ALPHA), (slice(5, 9), ACTION_ALPHA_HEAD),
-                              (slice(9, 14), ACTION_ALPHA)):
-                smooth[sl] = alpha * smooth[sl] + (1 - alpha) * action[sl]
-            raw_target = action_to_deg(action, home_rad=home, action_scale=profile['scale'])
+            smooth = smooth_action(smooth, adapted, args.action_alpha, args.head_action_alpha)
+            raw_target = action_to_deg(action, home_rad=original_metadata_home, action_scale=profile['scale'])
+            retargeted = action_to_deg(action, home_rad=home, action_scale=profile['scale'])
+            before_ema = action_to_deg(adapted, home_rad=home, action_scale=profile['scale'])
             target = action_to_deg(smooth, home_rad=home, action_scale=profile['scale'])
             requested = np.asarray(target)
             if executor == 'fixed-head':
                 requested[10:14] = head_deg
             traces['onnx_unfiltered_target'].add(raw_target, data.time)
+            traces['retargeted_unfiltered_target'].add(retargeted, data.time)
+            traces['adapted_pre_ema_target'].add(before_ema, data.time)
             traces['policy_smoothed_target'].add(target, data.time)
             requested_bad = traces['requested_execution_target'].add(requested, data.time)
             if args.include_frames:
@@ -498,6 +614,7 @@ def rollout(args, dependencies, session, profile, cfg, hardware, snapshot_angles
                             mean_hz=float(1/intervals.mean()) if intervals.size else None,
                             physics_grid_ms=args.physics_dt_ms)
     result = dict(speed_m_s=speed, executor=executor, simulated_s=float(data.time),
+                  range_ignoring_counterfactual=bool(args.continue_after_range_violation),
                   ended=ended or dict(reason='duration', time_s=float(data.time)),
                   cad_mass_kg=cad_mass, simulated_mass_kg=float(model.body_mass.sum()),
                   initial_joint_deg=initial.tolist(), head_command_rad=head_command.tolist(),
@@ -513,6 +630,16 @@ def rollout(args, dependencies, session, profile, cfg, hardware, snapshot_angles
                   onnx_action_min=None if action_min is None else action_min.tolist(),
                   onnx_action_max=None if action_max is None else action_max.tolist(),
                   outputs={name: trace.report() for name, trace in traces.items()})
+    planned = command_distance(args.duration_s, speed, args.zero_warmup_s, args.pulse_s, args.ramp_seconds)
+    observed = command_distance(float(data.time), speed, args.zero_warmup_s, args.pulse_s, args.ramp_seconds)
+    progress = float(data.qpos[root_adr]) - progress_origin if progress_origin is not None else None
+    result['command_progress'] = dict(origin_at_s=progress_origin_at,
+        origin_x_m=progress_origin, planned_distance_m=planned,
+        scheduled_distance_before_stop_m=observed, displacement_after_warmup_m=progress,
+        direction_progress_m=math.copysign(1., speed)*progress if progress is not None else None,
+        distance_tracking_error_m=progress-observed if progress is not None else None,
+        achieved_fraction_of_planned=progress/planned if progress is not None and planned else None,
+        scope='Simulated root displacement from warmup end through recovery; excludes initial standing drift. Not an odometry or physical gait acceptance test.')
     if args.include_frames:
         result['frames'] = frames
         result['actual_motion_frames'] = motion_frames
@@ -527,22 +654,35 @@ def parser():
     p.add_argument('--xml', type=Path, default=REFERENCE / 'src/mjlab_microduck/robot/xgoduck/robot_walk.xml')
     p.add_argument('--bam-root', type=Path, default=REFERENCE / 'vendor/bam')
     p.add_argument('--bam-params', type=Path, help='1910_m6.json file or directory containing it; default: XML sibling params/')
-    p.add_argument('--head-source', choices=('snapshot', 'captured'), default='snapshot')
+    p.add_argument('--head-source', choices=('snapshot', 'captured', 'metadata-home'), default='snapshot')
     p.add_argument('--initial-pose', choices=('hold', 'snapshot'), default='hold')
     p.add_argument('--speeds', type=float, nargs='+', default=[0., .2])
     p.add_argument('--executors', choices=('policy', 'fixed-head'), nargs='+', default=['fixed-head'])
     p.add_argument('--duration-s', type=float, default=6.)
     p.add_argument('--hz', type=float, default=50.)
     p.add_argument('--physics-dt-ms', type=float, default=5.)
+    p.add_argument('--physics-contract', choices=('official-bam', 'legacy-cpu'), default='official-bam',
+                   help='official-bam matches audited friction/contact spec settings; legacy-cpu exists only for reproducible A/B comparisons')
     p.add_argument('--feedback-delay-ms', type=float, default=40.)
     p.add_argument('--execution-delay-ms', type=float, default=40.)
     p.add_argument('--observation-filter', choices=('truth', 'host'), default='truth',
                    help='truth uses exact simulated gravity/velocities; host applies native ImuFilter to simulated IMU specific force and rates at the control cadence')
     p.add_argument('--slew-ticks-per-second', type=float, default=0., help='0 disables MCU slew; 600 models present firmware goal slew')
+    p.add_argument('--action-alpha', type=float, default=ACTION_ALPHA,
+                   help='Leg/yaw action EMA alpha: 0 applies actor actions directly; .45 is the audited hardware-runtime value')
+    p.add_argument('--head-action-alpha', type=float, default=ACTION_ALPHA_HEAD,
+                   help='Head action EMA alpha, policy indices 5:9; head freezing remains a separate executor setting')
     p.add_argument('--ramp-seconds', type=float, default=0.)
+    p.add_argument('--zero-warmup-s', type=float, default=0.)
+    p.add_argument('--pulse-s', type=float, help='Bounded forward duration, followed by zero command')
+    p.add_argument('--decoder', choices=('metadata', 'homeprime-roll95'), default='metadata',
+                   help='Compare original metadata with the frozen currently deployed HOME/roll adapter')
     p.add_argument('--mass-kg', type=float, default=.873, help='Uniform CAD mass/inertia scaling; a hypothesis about mass distribution')
     p.add_argument('--voltage', type=float, default=7.7)
-    p.add_argument('--kp', type=float, default=5.)
+    gain_group = p.add_mutually_exclusive_group()
+    gain_group.add_argument('--kp', type=float, default=5., help='Uniform KP hypothesis, not a hardware register measurement')
+    gain_group.add_argument('--kp-by-id', type=Path,
+        help='Source-verified per-ID gain manifest; maps 15 saved IDs to the 14 simulated policy actuators')
     p.add_argument('--root-height-m', type=float, default=.14)
     p.add_argument('--initial-roll-deg', type=float, default=0.)
     p.add_argument('--initial-pitch-deg', type=float, default=0.)
@@ -568,6 +708,12 @@ def main(argv=None):
             raise ValueError('At most 8 cases; each speed must be finite and within ±0.5 m/s')
         if any(not 0 <= v <= 1000 for v in (args.feedback_delay_ms, args.execution_delay_ms)) or not 0 <= args.slew_ticks_per_second <= 10000 or not 0 <= args.ramp_seconds <= 30:
             raise ValueError('Delays/slew/ramp must be nonnegative and bounded')
+        if any(not 0 <= v < 1 for v in (args.action_alpha, args.head_action_alpha)):
+            raise ValueError('Action EMA alpha must be within [0, 1)')
+        if not 0 <= args.zero_warmup_s < args.duration_s or (args.pulse_s is not None and
+                (not 0 < args.pulse_s <= 30 or args.ramp_seconds*2 > args.pulse_s
+                 or args.zero_warmup_s + args.pulse_s >= args.duration_s)):
+            raise ValueError('Pulse needs a valid ramp and a post-pulse zero observation window')
         dt = args.physics_dt_ms / 1000
         if args.hz * dt > 1 + 1e-9:
             raise ValueError('Control frequency cannot exceed the physics grid frequency')
@@ -585,12 +731,17 @@ def main(argv=None):
             raise ValueError('--output must not overwrite an input file')
         snapshot = json.loads(args.snapshot.read_text())
         cfg, hardware, hardware_source, angles = validate_snapshot(snapshot)
+        gain_manifest = load_gain_manifest(args.kp_by_id) if args.kp_by_id else None
         dependencies = load_dependencies(args.bam_root)
         mj, ort, _, _ = dependencies
         opts = ort.SessionOptions()
         opts.intra_op_num_threads = opts.inter_op_num_threads = 1
         session = ort.InferenceSession(str(args.model), sess_options=opts, providers=['CPUExecutionProvider'])
         profile = policy_profile(session)
+        if args.decoder == 'homeprime-roll95':
+            profile = dict(profile, home_rad=profile['home_rad'].copy())
+            for sid, offset in {12:-1.,14:-1.,22:1.,24:1.}.items():
+                profile['home_rad'][POLICY_IDS.index(sid)] += math.radians(offset)
         report = dict(kind='bounded_cpu_onnx_bam_audit_not_hardware_validation',
                       uart_opens=0, motor_commands=0, calibration_writes=0,
                       snapshot=str(args.snapshot), hardware_sample_source=hardware_source,
@@ -605,20 +756,40 @@ def main(argv=None):
                           ('rl_core',Path(__file__).with_name('rl_core.py')),
                           ('bam_model',args.bam_root / 'bam/model.py'),
                           ('bam_mujoco',args.bam_root / 'bam/mujoco.py'),
+                          ('bam_mjlab_spec_contract',REFERENCE / 'vendor/bam/bam/mjlab.py'),
+                          ('training_robot_spec_contract',REFERENCE / 'src/mjlab_microduck/robot/xgoduck_constants.py'),
                           ('bam_actuator',args.bam_root / 'bam/actuator.py'),
                           ('bam_feetech_actuator',args.bam_root / 'bam/feetech/actuator.py'))},
                       calibration_sha256=hashlib.sha256(json.dumps(cfg, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
                       calibration=cfg, motor_order=MOTOR_IDS, policy_order=POLICY_IDS,
                       snapshot_joint_deg_recomputed_from_raw_ticks=angles.tolist(),
                       versions=dict(mujoco=mj.__version__, onnxruntime=ort.__version__),
+                      actuator_gain_contract=(dict(gain_manifest,
+                          manifest_sha256=digest(args.kp_by_id), simulated_policy_order=POLICY_IDS,
+                          simulated_kp=[gain_manifest['kp_by_id'][str(sid)] for sid in POLICY_IDS],
+                          firmware_kd_independently_modeled=False, mouth_actuator_simulated=False)
+                          if gain_manifest else dict(kind='uniform_kp_hypothesis', kp=args.kp,
+                              current_servo_registers_measured=False,
+                              firmware_kd_independently_modeled=False,
+                              interpretation='Scalar historical/experimental assumption, not the installed gain configuration')),
+                      source_contract=dict(
+                          physics=args.physics_contract,
+                          official_friction_solref=list(OFFICIAL_FRICTION_SOLREF) if args.physics_contract == 'official-bam' else None,
+                          official_friction_solimp=list(OFFICIAL_FRICTION_SOLIMP) if args.physics_contract == 'official-bam' else None,
+                          hardware_runtime_ema=dict(leg=ACTION_ALPHA, head=ACTION_ALPHA_HEAD),
+                          selected_ema=dict(leg=args.action_alpha, head=args.head_action_alpha),
+                          full_training_environment_reproduced=False,
+                          deployed=False),
                       settings={k:str(v) if isinstance(v,Path) else v for k,v in vars(args).items() if k != 'output'},
                       limitations=[
                           'CPU MuJoCo/vendor NumPy BAM is not the exact GPU checkpoint training environment.',
+                          'official-bam matches the audited source friction/contact edits only; checkpoint provenance, domain randomization and solver parity remain unverified.',
                           'The selected calibration is preserved; this audit does not independently establish physical zero/sign or IMU-to-CAD correspondence.',
                           'HOLD initialization uses metadata legs plus current fixed-stance overrides; snapshot initialization uses raw ticks. Neither infers support, ground contact or trunk height from hardware.',
                           'Initial trunk attitude is an explicit CLI assumption; snapshot IMU tilt is not silently cancelled or treated as CAD truth.',
                           'Control deadlines are quantized upward to the physics grid; reported intervals describe this discretization, not measured host or UART jitter.',
                           'Uniform total mass scaling assumes CAD mass distribution; X5 battery/harness mass locations and collisions are not measured.',
+                          'BAM KP may use a scalar hypothesis or source-derived per-ID vector; neither is a current register readback or complete identification of firmware KD and loaded actuator response.',
                           ('Feedback uses delayed MuJoCo IMU specific force/rates through the native ImuFilter at the control cadence.'
                            if args.observation_filter == 'host' else
                            'Feedback contains ideal delayed gravity/angular/joint states; native IMU/velocity filtering is omitted.'),

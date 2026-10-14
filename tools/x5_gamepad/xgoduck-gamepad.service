@@ -1,0 +1,23 @@
+[Unit]
+Description=Xgoduck read-only USB gamepad input
+After=systemd-udevd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -I -B /opt/xgoduck-gamepad/reader.py
+Restart=on-failure
+RestartSec=2
+RuntimeDirectory=xgoduck-gamepad
+RuntimeDirectoryMode=0755
+UMask=0022
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/run/xgoduck-gamepad
+DevicePolicy=closed
+DeviceAllow=char-input r
+RestrictAddressFamilies=AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

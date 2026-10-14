@@ -213,6 +213,25 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(parser.feed(b'boot noise' + encoded[:5]), [])
         self.assertEqual(parser.feed(encoded[5:]), [(STATE_REPLY, 19, b'abc')])
 
+    def test_crc_c_implementation_matches_firmware_for_all_packet_lengths(self):
+        # Independent bitwise reference retained from the firmware contract.
+        def firmware_crc(data):
+            crc = 0xffff
+            for byte in data:
+                crc ^= byte << 8
+                for _ in range(8):
+                    crc = ((crc << 1) ^ (0x1021 if crc & 0x8000 else 0)) & 0xffff
+            return crc
+        rng = np.random.default_rng(1971)
+        for length in range(HEADER.size + 257):
+            data = rng.bytes(length)
+            self.assertEqual(crc16(data), firmware_crc(data))
+        frame = encode_frame(STATE_REPLY, 18, rng.bytes(220))
+        for position in range(len(frame)):
+            damaged = bytearray(frame)
+            damaged[position] ^= 1
+            self.assertEqual(FrameParser().feed(damaged), [])
+
     def test_invalid_crc_version_and_length_are_not_delivered(self):
         valid = encode_frame(ACK, 9, bytes([STOP, 0]))
         corrupt = bytearray(valid)

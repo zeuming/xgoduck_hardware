@@ -1,0 +1,11 @@
+{
+  "base": "output/x5_gait_trial/20261008/operator-retest-after-window-fix/mcu-goal-load-diagnostics/neck-id33-kp12-candidate/firmware-source",
+  "historically_installed_app_sha256": "c27cfd6fcdf8128f53b24d21a6b34c3a1689d8119fad40dc4f6b928acb8d64ce",
+  "source_files": {
+    "firmware/maintenance_impl.h": "2b98c934de90360779fa08baf06624ead142b8f574eaf0c18c7b0f5175d354fe",
+    "firmware/motion_protocol.h": "08cc5add283ef338910b46e4df70d25285a8bb7a9db99740664c96fbc620de28",
+    "firmware/off_register_details.h": "1b02cedaa669fc9e13889eedae253de6b9fae99396f319bffb160e0acfa3c482",
+    "firmware/main.cpp": "ec708cd1fbebbac7c0d5be1efa4d8b20968c0e89a1ad3dac65df8125f3d4f7f3"
+  },
+  "flashed": false
+}

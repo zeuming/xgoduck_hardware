@@ -215,14 +215,14 @@ class NativeDeploymentTests(unittest.TestCase):
                         allow_fixed_head_walk=False, hold_hip_pitch_bias_deg=-2.0)
                     self.assertIs(namespace['runtime'], constructor.return_value)
 
-    def test_fixed_head_opt_in_is_deployment_only_and_native_clearance_stays_required(self):
+    def test_walk_opt_in_is_deployment_only_and_manual_head_capture_is_not_required(self):
         for constructor in (native_runtime.NativeRuntime, motion.MotionController):
             with self.subTest(constructor=constructor.__name__):
                 self.assertIs(inspect.signature(constructor).parameters['allow_fixed_head_walk'].default,
                               False)
                 self.assertEqual(inspect.signature(constructor).parameters['hold_hip_pitch_bias_deg'].default, 0)
         self.assertIs(inspect.signature(native_runtime.NativeRuntime).parameters[
-            'require_head_clearance'].default, True)
+            'require_head_clearance'].default, False)
 
     def test_bad_or_stale_quiescence_is_rejected_before_packaging(self):
         for change in ({'generation': self.expected['generation'] + 1}, {'serial_holders': [99]},

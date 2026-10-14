@@ -1,0 +1,95 @@
+--- a/firmware/main.cpp
++++ b/firmware/main.cpp
+@@ -312,6 +312,28 @@
+   }
+ } positionReadEvidence[motion::kMotorCount];
+ 
++// Candidate: one extra position READ per complete cycle, only after pure
++// silence while already armed. All old freshness/watchdog limits still run
++// inside readServo(). Never retry ARM, writes, torque reads, or hard errors.
++struct PositionRetryDiagnostic {
++  uint8_t id = 255, firstOutcome = 0, retryOutcome = 0;
++  uint32_t attempts = 0, recovered = 0, failed = 0;
++  uint32_t atUs = 0, firstElapsedUs = 0, retryElapsedUs = 0;
++} positionRetryDiagnostic;
++void incrementRetryCounter(uint32_t& value) { if (value != UINT32_MAX) ++value; }
++bool canRetryPosition(const ServoReply& reply, bool used, uint32_t now) {
++  return !used && lock.armed && !maintenanceMode && !preparingArm &&
++    !verifyingTorque && !disablePending && !torqueVerifyPending &&
++    !reply.found && !reply.invalidReplySeen && !reply.error &&
++    reply.outcome == motion::NoValidReplyByDeadline &&
++    lastServoReadTrace.receivedCount == 0 && lastServoReadTrace.drainedCount == 0 &&
++    lastServoReadTrace.errorsBefore == lastServoReadTrace.errorsAfter &&
++    feedback.fresh(now) && feedback.torqueMask == motion::kAllMotors &&
++    uint32_t(now - feedback.sampleUs) <= motion::kStateFreshUs - kServoDeadlineUs &&
++    uint32_t(now - feedback.imuUs) <= motion::kStateFreshUs - kServoDeadlineUs &&
++    uint32_t(now - lock.lastCommandUs) <= motion::kWatchdogUs - kServoDeadlineUs;
++}
++
+ ServoReply readServo(uint8_t id, uint8_t address, uint8_t size) {
+   ServoReply reply;
+   const uint32_t start = micros();
+@@ -787,6 +809,18 @@
+     else state(frame.sequence, frame.type == motion::VoltageState, evidence);
+     return;
+   }
++  if (frame.type == motion::PositionRetryDetails) {
++    if (frame.length) { ack(frame, motion::BadPacket); return; }
++    uint8_t data[28] = {1, positionRetryDiagnostic.id,
++      positionRetryDiagnostic.firstOutcome, positionRetryDiagnostic.retryOutcome};
++    motion::put32(data + 4, positionRetryDiagnostic.attempts);
++    motion::put32(data + 8, positionRetryDiagnostic.recovered);
++    motion::put32(data + 12, positionRetryDiagnostic.failed);
++    motion::put32(data + 16, positionRetryDiagnostic.atUs);
++    motion::put32(data + 20, positionRetryDiagnostic.firstElapsedUs);
++    motion::put32(data + 24, positionRetryDiagnostic.retryElapsedUs);
++    respond(0x9a, frame.sequence, data, sizeof(data)); return;
++  }
+   if (frame.type == motion::MotionEvidenceCaps) {
+     if (frame.length) ack(frame, lock.record(motion::BadPacket));
+     else {
+@@ -894,10 +928,31 @@
+   const uint32_t startingSequence = servoSampleSequence;
+   uint16_t positions[15] = {}, loads[15] = {}; int16_t speeds[15] = {};
+   uint16_t cycleOnline = 0, cycleFaults = 0;
++  bool positionRetryUsed = false;
+   for (size_t i = 0; i < 15; ++i) {
+     const uint16_t bit = uint16_t(1u << i);
+-    const uint32_t attemptUs = micros();
+-    const ServoReply reply = readServo(motion::kMotorIds[i], 56, 6);
++    uint32_t attemptUs = micros();
++    ServoReply reply = readServo(motion::kMotorIds[i], 56, 6);
++    if (canRetryPosition(reply, positionRetryUsed, micros())) {
++      positionRetryUsed = true;
++      positionRetryDiagnostic.id = motion::kMotorIds[i];
++      positionRetryDiagnostic.firstOutcome = uint8_t(reply.outcome);
++      positionRetryDiagnostic.firstElapsedUs = lastServoReadTrace.elapsedUs;
++      positionRetryDiagnostic.atUs = micros();
++      incrementRetryCounter(positionRetryDiagnostic.attempts);
++      // Keep the previous complete sample timestamp and masks. A retry
++      // cannot renew sensor freshness, the host lease, or the ARM cookie.
++      attemptUs = micros();
++      reply = readServo(motion::kMotorIds[i], 56, 6);
++      positionRetryDiagnostic.retryOutcome = uint8_t(reply.outcome);
++      if (reply.outcome == motion::ValidNormalReply &&
++          (!reply.found || reply.error || reply.size != 6 || motion::u16(reply.data) > 4095))
++        positionRetryDiagnostic.retryOutcome = uint8_t(motion::InvalidRegisterReply);
++      positionRetryDiagnostic.retryElapsedUs = lastServoReadTrace.elapsedUs;
++      const bool recovered = lock.armed && reply.found && !reply.error &&
++        reply.size == 6 && motion::u16(reply.data) <= 4095;
++      incrementRetryCounter(recovered ? positionRetryDiagnostic.recovered : positionRetryDiagnostic.failed);
++    }
+     positionReadEvidence[i].record(reply,
+       reply.found && reply.error == 0 && reply.size == 6 && motion::u16(reply.data) <= 4095, attemptUs);
+     presentHistory.record(i, reply, reply.found && reply.error == 0 && reply.size == 6 && motion::u16(reply.data) <= 4095);
+--- a/firmware/motion_protocol.h
++++ b/firmware/motion_protocol.h
+@@ -41,7 +41,7 @@
+   MaintenanceRelease = 14, MaintenanceExit = 15, MaintenanceCenterCheck = 16,
+   MaintenanceVoltageCaps = 17, MaintenanceVoltageRead = 18,
+   VoltageState = 19, TelemetryCaps = 20, PositionReadDetails = 21, GoalReadDetails = 22,
+-  OffRegisterDetails = 23, MotionEvidenceCaps = 25
++  OffRegisterDetails = 23, MotionEvidenceCaps = 25, PositionRetryDetails = 26
+ };
+ enum Error : uint8_t {
+   Ok = 0, BadPacket = 1, BadState = 2, BadConfig = 3, Stale = 4, Range = 5,

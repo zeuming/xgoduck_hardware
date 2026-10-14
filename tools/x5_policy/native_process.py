@@ -31,8 +31,17 @@ if __name__ == '__main__':
     # Isolated Python deliberately omits the script directory from sys.path.
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 import native_workbench as web
+import gamepad_web
+import system_health
+from native_gamepad import GamepadControl, ControlMonitor
+try:
+    import sim_web
+except ModuleNotFoundError as error:
+    if error.name != 'sim_web':
+        raise
+    sim_web = None
 
-STATE_PERIOD = .2
+STATE_PERIOD = .1
 MAX_PACKET = web.MAX_RESPONSE
 MAX_COMMAND = 8192
 LANES = ('command', 'heartbeat', 'stop')
@@ -130,9 +139,15 @@ def age_snapshot(snapshot, elapsed_ms):
                    value.get('hardware'), value.get('session'), value.get('feedback')):
         age(record)
     hardware = motion.get('hardware')
-    if hardware and max(hardware.get('age_ms') or 0, hardware.get('imu_age_ms') or 0) >= 500:
+    if hardware and (hardware.get('age_ms') or 0) >= 500:
         motion['hardware'] = None
         value['hardware'] = None
+        value['body_imu'] = None
+    elif hardware and (hardware.get('imu_age_ms') or 0) >= 500:
+        # IMU freshness and serial/joint feedback are separate facts. Keep
+        # current connection/torque/position evidence visible while refusing
+        # to present the stale attitude. Model admission still checks IMU on
+        # the live controller, independently of this display projection.
         value['body_imu'] = None
     session = value.get('session') or {}
     if (session.get('received_age_ms') or 0) >= 500:
@@ -151,35 +166,69 @@ class CommandClient:
         self.sockets = sockets
         self.locks = {name: threading.Lock() for name in LANES}
 
+    CALL_SECONDS = 10.
+    REPLY_DRAIN_SECONDS = 30.
+
     def call(self, path, body, principal):
         action = body.get('action') if type(body) is dict else None
         lane = action if path == '/api/motion' and action in ('heartbeat', 'stop') else 'command'
-        if not self.locks[lane].acquire(blocking=False):
+        if lane == 'heartbeat':
+            return self.heartbeat(path, body, principal)
+        return self._exchange(path, body, principal, lane,
+            self.CALL_SECONDS, self.REPLY_DRAIN_SECONDS,
+            '操作回复延迟；正在核对原请求，执行结果尚未确认；操作不会重发')
+
+    def heartbeat(self, path, body, principal):
+        return self._exchange(path, body, principal, 'heartbeat', .15, 2.,
+            '心跳回复延迟；正在核对原请求，未重发')
+
+    def _exchange(self, path, body, principal, lane, wait_seconds, drain_seconds, late_message):
+        lock, sock = self.locks[lane], self.sockets[lane]
+        if not lock.acquire(blocking=False):
             raise ValueError('当前操作尚未完成；请求未排队、未重发')
-        sock = self.sockets[lane]
-        timeout = .15 if lane == 'heartbeat' else 10.
-        try:
-            request_id = secrets.token_hex(16)
-            sock.settimeout(timeout)
+        done, outcome = threading.Event(), {}
+        request_id = secrets.token_hex(16)
+        request = dict(id=request_id, path=path, body=body, principal=principal,
+                       deadline=time.monotonic() + wait_seconds)
+
+        def exchange():
             try:
-                send(sock, dict(id=request_id, path=path, body=body, principal=principal,
-                                deadline=time.monotonic() + timeout), MAX_COMMAND)
+                # A caller timeout must not abandon a partial IPC frame or
+                # close the peer while a slow disconnect exports evidence.
+                # One reader retains the lane and consumes only this reply.
+                # The original dispatch deadline, motor watchdog and lease
+                # are unchanged. No request or motor action is retried.
+                sock.settimeout(drain_seconds)
+                send(sock, request, MAX_COMMAND)
                 reply = receive(sock, MAX_PACKET)
-                if type(reply) is not dict or reply.get('id') != request_id or type(reply.get('ok')) is not bool:
+                if (type(reply) is not dict or reply.get('id') != request_id
+                        or type(reply.get('ok')) is not bool):
                     raise ValueError('Controller IPC response identity changed')
-            except ValueError:
+                if reply['ok']:
+                    outcome['result'] = reply['result']
+                else:
+                    outcome['error'] = ValueError(reply.get('error') or '控制进程拒绝操作')
+            except (OSError, EOFError, ValueError, KeyError) as error:
                 sock.close()
-                raise
-            if reply.get('ok') is not True:
-                raise ValueError(reply.get('error') or '控制进程拒绝操作')
-            return reply['result']
-        except (OSError, EOFError) as error:
-            # A late reply must never confirm a later operation. This lane is
-            # permanently closed until the service is explicitly restarted.
-            sock.close()
-            raise ValueError('控制进程通信中断，执行结果未确认；操作不会重发') from error
-        finally:
-            self.locks[lane].release()
+                outcome['error'] = ValueError('控制进程通信中断，执行结果未确认；操作不会重发')
+                outcome['error'].__cause__ = error
+            finally:
+                lock.release()
+                done.set()
+
+        thread = threading.Thread(target=exchange, name=lane+'-ipc', daemon=True)
+        try:
+            thread.start()
+        except BaseException:
+            lock.release()
+            raise
+        if not done.wait(wait_seconds):
+            # A late result is never returned to this caller or attributed to
+            # its next operation. The reader still drains the exact old frame.
+            raise ValueError(late_message)
+        if 'error' in outcome:
+            raise outcome['error']
+        return outcome['result']
 
 
 class ControllerBridge:
@@ -188,10 +237,25 @@ class ControllerBridge:
         self.stop = threading.Event()
         self.failure = None
         self.threads = []
+        self.control_monitor = ControlMonitor()
+        self.gamepad = GamepadControl(workbench, monitor=self.control_monitor)
+        self.monitor_store = None
+        self.monitor_error = None
+        self.last_monitor_write = None
+        if isinstance(store, SnapshotFile):
+            directory = store.path.parent / 'native-evidence'
+            try:
+                directory.mkdir(mode=0o700, exist_ok=True)
+                self.monitor_store = SnapshotFile(directory / 'control-source.json')
+            except OSError as error:
+                self.monitor_error = str(error)
 
     def publish(self):
         began = time.monotonic()
         live = self.workbench.snapshot(live=True)
+        live['motion']['gamepad_control'] = self.gamepad.status()
+        live['motion']['control_monitor'] = self.control_monitor.snapshot(compact=True)
+        live['motion']['control_monitor']['recording_error'] = self.monitor_error
         maintenance = live.get('maintenance') or {}
         session = live.get('session') or {}
         idle = (not live['motion'].get('owns_connection')
@@ -200,11 +264,27 @@ class ControllerBridge:
         # Large historical diagnostics are generated only after hardware
         # connections close, never in response to /api/status while moving.
         full = self.workbench.snapshot() if idle else None
+        if full is not None:
+            full['motion']['gamepad_control'] = self.gamepad.status()
+            full['motion']['control_monitor'] = self.control_monitor.snapshot()
+            full['motion']['control_monitor']['recording_error'] = self.monitor_error
         self.store.publish(dict(protocol=1, published_at=began,
             metadata=dict(token=self.workbench.token, generation=self.workbench.generation,
                           authentication_required=self.workbench.authentication_required,
                           full_workbench=self.workbench.calibration_service is not None),
             snapshot=live, full_snapshot=full))
+        if self.monitor_store is not None and (self.last_monitor_write is None or began-self.last_monitor_write >= 1.):
+            # Diagnostic serialization belongs to this publisher, never input
+            # polling or the controller's latency-sensitive heartbeat path.
+            try:
+                self.monitor_store.publish(dict(control_monitor=self.control_monitor.snapshot(),
+                    gamepad=self.gamepad.status(), recorded_monotonic=began))
+                self.monitor_error = None
+            except (OSError, ValueError) as error:
+                # A monitoring-file failure must not introduce a new motor
+                # stop path. Control/audit safety remains in the runtime.
+                self.monitor_error = str(error)[:240]
+            self.last_monitor_write = began
 
     def dispatch(self, lane, request):
         if (type(request) is not dict or set(request) != {'id', 'path', 'body', 'principal', 'deadline'}
@@ -220,7 +300,11 @@ class ControllerBridge:
         if lane != expected_lane:
             raise ValueError('IPC command lane differs; not executed')
         if path == '/api/motion':
-            return self.workbench.motion_action(body, principal=request['principal'], live=True)
+            def invoke():
+                if action in ('gamepad-enable', 'gamepad-disable'):
+                    return self.gamepad.request(body, request['principal'])
+                return self.workbench.motion_action(body, principal=request['principal'], live=True)
+            return self.control_monitor.call('browser', body, invoke)
         if path not in ('/api/imu-wizard', '/api/joint-calibration', '/api/joint-zero',
                         '/api/end-feedback', '/api/recover-feedback', '/api/recheck-feedback',
                         '/api/check-connection', '/api/servo-maintenance'):
@@ -263,6 +347,7 @@ class ControllerBridge:
             self.start_commands()
 
     def start_commands(self):
+        self.gamepad.start()
         for name in LANES:
             thread = threading.Thread(target=self._commands, args=(name,), daemon=True)
             self.threads.append(thread)
@@ -270,6 +355,7 @@ class ControllerBridge:
 
     def close(self):
         self.stop.set()
+        self.gamepad.close()
         for sock in self.sockets.values():
             try:
                 sock.shutdown(socket.SHUT_RDWR)
@@ -295,6 +381,11 @@ class FrontendWorkbench(web.NativeWorkbench):
             authentication_required=self.authentication_required, full_workbench=metadata['full_workbench'])
         self.logs = LogReader(self.web_root.parent / 'native-evidence')
         self.page = log_toolbar(self.page)
+        self.page = gamepad_web.toolbar(self.page)
+        if metadata['full_workbench']:
+            self.page = system_health.toolbar(self.page)
+        if sim_web is not None:
+            self.page = sim_web.toolbar(self.page)
 
     def snapshot(self, *, live=False):
         packet = self.store.read()
@@ -302,6 +393,7 @@ class FrontendWorkbench(web.NativeWorkbench):
         result = age_snapshot(snapshot, max(0., time.monotonic() - packet['published_at']) * 1000)
         if not live and packet.get('full_snapshot') is None:
             result['diagnostics_deferred_until_disconnected'] = True
+        result['system_health'] = system_health.snapshot(self.web_root.parent)
         return result
 
     def motion_action(self, body, *, principal=None, live=False):
@@ -610,7 +702,30 @@ class LogReader:
 
 def frontend_handler_for(frontend):
     class Handler(web.handler_for(frontend)):
+        def do_POST(self):
+            if sim_web is not None and sim_web.route(self, frontend, web, post=True):
+                return
+            return super().do_POST()
+
         def do_GET(self):
+            if sim_web is not None and sim_web.route(self, frontend, web):
+                return
+            if self.path == '/api/system-health/history':
+                try:
+                    self.framing()
+                    if not frontend.authenticated(self.headers.get('Cookie')):
+                        return self.reply(401, dict(error=web.access_message(frontend)))
+                    return self.reply(200, system_health.read_json(frontend.web_root.parent / 'system-health-history.json'))
+                except (OSError, ValueError) as error:
+                    return self.reply(409, dict(error='监控记录暂不可用：' + str(error)))
+            if self.path == '/api/gamepad':
+                try:
+                    self.framing()
+                    if not frontend.authenticated(self.headers.get('Cookie')):
+                        return self.reply(401, dict(error=web.access_message(frontend)))
+                    return self.reply(200, gamepad_web.snapshot())
+                except (OSError, ValueError) as error:
+                    return self.reply(409, dict(error=str(error)))
             if not self.path.startswith('/api/logs/'):
                 return super().do_GET()
             try:

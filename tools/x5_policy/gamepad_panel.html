@@ -1,0 +1,83 @@
+<style>
+#x5GamepadPanel{margin:16px 0;padding:20px;border:1px solid var(--line,#ddd);border-radius:16px;background:var(--paper,#fff)}
+#x5GamepadPanel h3{margin:0 0 10px;font-size:16px}#x5GamepadPanel p{font-size:13px;line-height:1.7;margin:8px 0}
+#x5GamepadValues{font:12px/1.7 monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+#x5GamepadError{color:#b43123;min-height:1.7em}#x5GamepadPanel button{margin:8px 8px 8px 0}
+</style>
+<section id="x5GamepadPanel" hidden>
+<h3>无线手柄 · X5 本地控制</h3>
+<p id="x5GamepadStatus" role="status">读取接收器状态…</p>
+<p id="x5GamepadControl" role="status">网页与手柄按钮共用；开机直接监听，不需要接管。</p>
+<p id="x5GamepadError" role="alert"></p>
+<p>X5 开机后直接监听手柄，无需打开网页、连接或勾选接管。网页与手柄操作同一个当前模型，可以交替使用。首次按 A、X 或单次模型动作键会按现有检查连接并启动对应模式；模型已运行时可以直接按 Y 前进、B 回零。操作前做好防跌准备。</p>
+<h4>页面按钮与手柄单键对照</h4>
+<div style="overflow-x:auto"><table style="width:100%;font-size:13px;line-height:1.7;text-align:left;border-collapse:collapse">
+<thead><tr><th>页面操作</th><th>手柄按钮</th><th>作用与条件</th></tr></thead>
+<tbody>
+<tr><td>加载模型 · 连接并载入模型</td><td>L1 · 编号 6</td><td>单按一次，执行与网页相同的连接检查；保持扭矩关闭，不自动站立或行走。A／X 也可自动完成连接，无需先按 L1。</td></tr>
+<tr><td>卸载模型 · 停止并断开运控</td><td>R1 · 编号 7</td><td>单按一次，按网页相同流程停止、释放扭矩并断开串口；请先托稳机身。模型文件保留。</td></tr>
+<tr><td>进入默认站姿</td><td>A · 编号 0</td><td>单按一次，进入固定站姿；保留校准、关节范围和实时反馈检查，等待实际关节到位。</td></tr>
+<tr><td>零速保持</td><td>X · 编号 3</td><td>单按一次，启动行走模型的零速度平衡；模型已运行时则请求回零速。可能小幅踏步，按现有控制逻辑持续保持。</td></tr>
+<tr><td>前进</td><td>Y · 编号 4</td><td>行走模型运行时单按一次，持续前进 0.30 m/s；再次按 Y 或按 B 回零速，与页面的前进／回零按钮一致。</td></tr>
+<tr><td>取消前进 · 回零速</td><td>B · 编号 1</td><td>单按一次立即请求取消前进，回到零速保持，不释放扭矩；继续由手柄控制。</td></tr>
+<tr><td>起身模型 · 单次</td><td>L2 · 编号 8</td><td>单按一次运行起身模型，最多 8 秒；结束后停止卸力。动作键确认本轮区域与防跌准备。</td></tr>
+<tr><td>俯身 / 抓取模型 · 单次</td><td>R2 · 编号 9</td><td>单按一次运行俯身模型 4 秒，包含嘴部开合；结束后停止卸力。</td></tr>
+<tr><td>翻滚模型 · 单次</td><td>右摇杆按下 · 编号 14</td><td>单按一次运行翻滚模型约 1.9 秒；结束后停止卸力。保护装置须允许机身翻转。</td></tr>
+<tr><td>回到默认站姿</td><td>START · 编号 11</td><td>单按一次回到默认站姿；网页和手柄都能继续操作。</td></tr>
+<tr><td>停止运动 · 卸力</td><td>SELECT · 编号 10</td><td>单按一次请求停止并释放扭矩，请先托稳机身；以工作台实际扭矩反馈确认停止。</td></tr>
+</tbody></table></div>
+<p>每项操作只需单个按钮。按住按钮不会重复触发；同一批输入有停止键时优先停止，多个操作键同时按下时不执行。摇杆、十字键及其他未映射按钮只显示输入。新增键的物理标注请结合下方实时按钮编号核对；编号 8、9、14 分别对应起身、俯身、翻滚。单次模型执行期间不串接其他模型，SELECT 随时中止。</p>
+<p>动作键本身就是本次操作确认，请先做好防跌准备。网页和手柄共用当前模型，SELECT 停止始终优先。通信、姿态等异常保留现有保护；接收器在线不代表无线链路在线，无线关机行为和真机动作仍需现场验收。</p>
+<pre id="x5GamepadValues"></pre>
+<details id="x5ControlMonitor"><summary>查看控制来源与心跳记录</summary>
+<p id="x5ControlMonitorSummary">等待读取…</p>
+<p>这里记录网页和 X5 手柄各自发送的请求。网页和手柄均可操作当前模型，停止按钮始终可用。请求被接受不代表机器人实际完成了动作。</p>
+<pre id="x5ControlMonitorData" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+</details>
+</section>
+<script>
+(()=>{
+  const panel=document.getElementById('x5GamepadPanel'),status=document.getElementById('x5GamepadStatus');
+  const control=document.getElementById('x5GamepadControl'),values=document.getElementById('x5GamepadValues'),error=document.getElementById('x5GamepadError');
+  const main=document.querySelector('.workspace main');if(!main)return;
+  main.append(panel);
+  const originalOwnsMotionControl=ownsMotionControl;
+  ownsMotionControl=function(){
+    const h=motionControlHardware();
+    return snapshot?.motion?.gamepad_control?.shared_model_buttons===true
+      &&snapshot?.motion?.owns_connection===true&&!h?.joint_follow?.active
+      &&['hold','walk','getup','pick','roulade'].includes(h?.mode)||originalOwnsMotionControl();
+  };
+  function displayControl(){
+    const state=snapshot?.motion?.gamepad_control;
+    control.textContent=(state?.shared_model_buttons?'网页与手柄共用：':'手柄状态：')+
+      (state?.message||'开机直接监听；无需接管。');
+    const monitor=snapshot?.motion?.control_monitor,source=state?.active?'X5 本地手柄':snapshot?.motion?.control_owner?'网页':'尚未启动';
+    const local=monitor?.sources?.x5_local,web=monitor?.sources?.browser;
+    document.getElementById('x5ControlMonitorSummary').textContent=monitor
+      ?'控制来源：'+source+'；本次服务已接受心跳：X5 手柄 '+local.heartbeat_accepted+' 次，网页 '+web.heartbeat_accepted+' 次。'+
+       '当前手柄会话最大心跳间隔 '+local.maximum_heartbeat_gap_ms.toFixed(1)+' ms。'+(monitor.recording_error?'记录保存异常：'+monitor.recording_error:'')
+      :'控制来源记录尚未返回。';
+    if(document.getElementById('x5ControlMonitor').open){
+      const h=snapshot?.motion?.hardware;
+      document.getElementById('x5ControlMonitorData').textContent=JSON.stringify({
+        current_source:source,requests:monitor,input_failure:state?.last_input_failure,
+        hardware:{mode:h?.mode,feedback_age_ms:h?.age_ms,imu_age_ms:h?.imu_age_ms},
+        control_timing:h?.candidate_profile?.latency_diagnostics,last_stop:h?.candidate_profile?.last_trial_stop},null,2);
+    }
+  }
+  async function poll(){
+    panel.hidden=location.hash!=='#motion-models';displayControl();
+    if(document.hidden||panel.hidden){setTimeout(poll,300);return;}
+    const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),700);
+    try{
+      const response=await fetch('/api/gamepad',{credentials:'same-origin',cache:'no-store',signal:abort.signal});
+      if(!response.ok)throw new Error('输入读取失败');const input=await response.json();
+      status.textContent=input.connected?'按键输入在线 · '+(snapshot?.motion?.gamepad_control?.active?'网页与手柄共用当前模型':'开机可用，单按 A 或 X 启动'):'输入未就绪：'+(input.error||'接收器断开');
+      values.textContent=input.connected?'轴 0–7：'+input.axes.join('  ')+'\n按下的按钮编号：'+input.buttons.flatMap((v,i)=>v?[i]:[]).join(', '):'';
+    }catch(failure){status.textContent='页面暂时无法读取手柄状态；请以 X5 控制记录为准。';}
+    finally{clearTimeout(timer);setTimeout(poll,150);}
+  }
+  void poll();
+})();
+</script>

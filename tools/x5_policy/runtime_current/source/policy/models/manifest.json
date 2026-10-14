@@ -1,0 +1,22 @@
+{
+  "repository": "https://github.com/LuwuDynamics/xgoduck_runtime_arduino",
+  "commit": "8cdbbd84710d856581982c9eaf0d5e2970666232",
+  "models": {
+    "xgoduck_getup.onnx": {
+      "sha256": "c414f2bd84b0a79b89f0ba6997135eb45e4ecd9df9271ea989c237864027b2a3",
+      "size_bytes": 793706
+    },
+    "xgoduck_walk.onnx": {
+      "sha256": "5727b909d5ea1a0f9ff63bf4cea9707339dea6a522374c7a120da633605b923f",
+      "size_bytes": 793706
+    },
+    "xgoduck_roulade.onnx": {
+      "sha256": "8adb1e6bc3f5eef751ce4edbf940f6d5a25fdec3ec4a798e1d9ca135c8248e97",
+      "size_bytes": 793686
+    },
+    "xgoduck_pick.onnx": {
+      "sha256": "f34e990dda785e9a8c53890bdcd0f7f1d457592691fd3703f3776b48fb2d14b8",
+      "size_bytes": 793686
+    }
+  }
+}

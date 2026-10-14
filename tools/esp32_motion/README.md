@@ -112,11 +112,27 @@ refreshes all positions once between the first eight and last seven torque
 reads, while the ARM handler still excludes recursive host commands. This
 keeps the position sample valid through verification and the next normal
 position cycle; no partial position array or incomplete ARM is acknowledged.
-Desired goals are clamped in firmware to 600 raw counts/s
-(about 52.7°/s), with a maximum elapsed step of 50 ms. This initial conservative
-limit may constrain an RL policy; physical gait performance must be evaluated
-before changing it. TARGET packets outside any configured range are rejected
-atomically. Invalid TARGET packets do not refresh the watchdog.
+Legacy 34-byte TARGETs retain the port's 600 raw counts/s pose slew
+(about 52.7°/s), with a maximum elapsed step of 50 ms. This value was an
+unvalidated conservative addition, **not a servo capability or upstream policy
+requirement**. Paired offline trials found it disrupted the official walk.
+
+The explicit policy-position extension accepts a 35-byte TARGET: the same
+`<I15H` payload followed by profile byte `1`. After unchanged cookie, sequence
+and full-group range checks, the next bus tick writes those position goals
+without the extra MCU slew, as upstream does. Duration/speed register fields
+remain zero. The host preserves EMA and its separate stance/policy takeover.
+Before any ARM, the new host must query empty `POLICY_POSITION_CAPS (24)` and
+receive exactly `ACK [24,0]`; unsupported firmware fails closed with no legacy
+fallback. The probe itself changes no profile, goals, torque or watchdog time.
+
+A later legacy TARGET resumes pose slew from the last applied goals. STOP and
+each new ARM clear the profile; ARM still initializes goals at actual encoder
+positions before enabling torque. Unknown profile bytes, wrong lengths,
+cookies, replayed sequences and out-of-range goals are rejected atomically and
+do not renew the watchdog. Tilt/freshness/range protection remains required.
+This fixes the execution contract, not the outstanding saved ankle-range
+conflict or physical walking qualification. No automatic flash/deploy occurs.
 
 ARM failures include an optional version-1 22-byte ACK with the preparation
 stage, first failed gain/torque-read ID/register/result and servo/IMU sample ages.
@@ -195,6 +211,8 @@ disarms, even when its payload is malformed.
 | CONFIG `3` | `<15H15b15H15H`, 105 bytes | ACK; RAM only, disarmed only |
 | ARM `4` | `<I`, nonzero random arm cookie | ACK after observed torque verification |
 | TARGET `5` | `<I15H`, matching arm cookie and 15 raw goals | ACK |
+| TARGET `5`, policy position | `<I15H` followed by byte `1`; capability check required | ACK |
+| POLICY_POSITION_CAPS `24` | empty; read-only support check | exact ACK `[24,0]` |
 | STOP `6` | Empty | ACK after disable command/readback attempt |
 | FAULT_DETAILS `7` | Empty | `0x87`, 247-byte read-only diagnostic snapshot |
 

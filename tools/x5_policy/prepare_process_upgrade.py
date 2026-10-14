@@ -117,9 +117,15 @@ def prepare(source, destination):
             "            result['last_stop_diagnostic'] = motion.copy.deepcopy(diagnostic)")
     members['service/worker-classes.py'] = worker.encode()
     members['service/native_process.py'] = (HERE / 'native_process.py').read_bytes()
+    for name in ('system_health.py', 'system_health_panel.html'):
+        members['service/' + name] = (HERE / name).read_bytes()
+    members['service/gamepad_web.py'] = (HERE / 'gamepad_web.py').read_bytes()
+    members['service/native_gamepad.py'] = (HERE / 'native_gamepad.py').read_bytes()
+    members['service/gamepad_panel.html'] = (HERE / 'gamepad_panel.html').read_bytes()
     changed = [name for name in members if members[name] != old_members.get(name)]
     for name in changed:
-        compile(members[name], '<' + name + '>', 'exec')
+        if name.endswith('.py'):
+            compile(members[name], '<' + name + '>', 'exec')
     if any(old_members[name] != members[name] for name in old_members if name.startswith(('policy/', 'web/'))):
         raise ValueError('Policy/calibration/UI unexpectedly changed')
     raw = pack(members)

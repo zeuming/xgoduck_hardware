@@ -9,6 +9,9 @@ c++ -std=c++11 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
   -I "$task_dir/tests/mocks" "$task_dir/tests/test_firmware.cpp" -o "$task_build/firmware"
 "$task_build/firmware"
 c++ -std=c++11 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+  -I "$task_dir/tests/mocks" "$task_dir/tests/test_policy_position.cpp" -o "$task_build/policy-position"
+"$task_build/policy-position"
+c++ -std=c++11 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
   -I "$task_dir/tests/mocks" "$task_dir/tests/test_timing.cpp" -o "$task_build/timing"
 "$task_build/timing"
 c++ -std=c++11 -Wall -Wextra -Werror -fsanitize=address,undefined -g \

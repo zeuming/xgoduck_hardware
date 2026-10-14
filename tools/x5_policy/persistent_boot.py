@@ -44,6 +44,62 @@ def check_platform(metadata):
             raise ValueError('Root filesystem or swap configuration changed')
 
 
+def restore_kernel_history(kernel, retained):
+    """Restore an evicted prefix only across an exact, unambiguous overlap.
+
+    Linux dmesg is a ring, not an append-only file. The retained bytes remain
+    evidence; newly observed lines still require the caller's fault validation.
+    A gap, edited overlap or short/ambiguous match grants no recovery.
+    """
+    if (type(kernel) is not str or type(retained) is not str
+            or not kernel.endswith('\n') or not retained.endswith('\n')
+            or max(len(kernel.encode()), len(retained.encode())) > 262144):
+        raise ValueError('Kernel history is incomplete or exceeds its bound')
+    lines, baseline = kernel.splitlines(), retained.splitlines()
+    if not lines or not baseline:
+        raise ValueError('Kernel history is empty')
+    if lines[:len(baseline)] == baseline:
+        return kernel
+    # Sixty-four identical timestamped records are required, including the
+    # retained tail. This deliberately rejects weak one-line boot matches.
+    matches = [i for i in range(1, len(baseline)-63)
+               if baseline[i] == lines[0] and baseline[i:] == lines[:len(baseline)-i]]
+    if len(matches) != 1:
+        raise ValueError('Kernel history has a gap or changed overlap; cannot reconstruct it')
+    offset = matches[0]
+    overlap = baseline[offset:]
+    records = overlap + lines[len(overlap):]
+    # cfg80211 emits this fixed regulatory notice as one multiline printk.
+    # Recognize only its complete, timestamp-anchored continuation; preserve
+    # every byte for the unchanged fault classifier below.
+    banner = [
+        '               *******************************************************',
+        '               ** CAUTION: USING PERMISSIVE CUSTOM REGULATORY RULES **',
+        '               *******************************************************',
+    ]
+    continuations = set()
+    for index, line in enumerate(records):
+        if (re.fullmatch(r'\[\s*\d+(?:\.\d+)?\] ieee80211 phy\d+: ', line)
+                and records[index+1:index+4] == banner):
+            continuations.update(range(index+1, index+4))
+    times = []
+    for index, line in enumerate(records):
+        match = re.match(r'^\[\s*(\d+(?:\.\d+)?)\]', line)
+        if not match:
+            # Existing multiline printk continuations are already covered by
+            # the exact overlap. New unframed text cannot establish continuity.
+            if index < len(overlap) or index in continuations:
+                continue
+            raise ValueError('New kernel tail contains an untimestamped record')
+        times.append(float(match[1]))
+    if len(times)<2 or times[-1] < 1 or any(a > b for a,b in zip(times,times[1:])):
+        raise ValueError('Kernel overlap timestamps are invalid')
+    restored = '\n'.join(baseline[:offset]+lines)+'\n'
+    if len(restored.encode()) > 262144:
+        raise ValueError('Reconstructed kernel history exceeds its bound')
+    return restored
+
+
 def boot_expected(template, metadata, classify):
     check_platform(metadata)
     kernel = metadata['kernel_log']
@@ -72,6 +128,7 @@ def persistent_kernel(kernel, expected, classify):
         raise ValueError('Installed boot baseline changed')
     if expected['cid'] != CARD or expected['model'] != MODEL:
         raise ValueError('Installed boot/card identity changed')
+    kernel = restore_kernel_history(kernel, prefix)
     lines, baseline = kernel.splitlines(), prefix.splitlines()
     if not baseline or lines[:len(baseline)] != baseline or len(kernel.encode()) > 262144:
         raise ValueError('Retained kernel history changed or lost its boot prefix')

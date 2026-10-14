@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/LuwuDynamics/xgoduck_runtime_arduino",
+  "commit": "8cdbbd84710d856581982c9eaf0d5e2970666232",
+  "path": "python/policy.py",
+  "sha256": "5132eb21cf97547e96ba0c0a7c4719dc38dc9b6f06e3bf726074b2f5c68d3f12",
+  "purpose": "Unmodified upstream EMA oracle for offline fake-policy regression; no ONNX or robot execution"
+}

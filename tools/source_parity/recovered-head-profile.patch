@@ -1,0 +1,161 @@
+--- a/service/bootstrap.py
++++ b/service/bootstrap.py
+@@ -240,15 +240,18 @@
+         raise ValueError('Strict native startup mode or fault proof differs')
+     namespace=connection_guard_factory(initial=True)
+ import native_runtime,native_workbench,native_calibration
+-# This deployment selects a fixed HOLD-only hip-pitch candidate, relative to
+-# the existing paired stance: ID12 -= 2 degrees, ID22 += 2; ankles stay fixed.
+-# Captured head targets, model HOME, calibration, interpolation and all existing
+-# feedback/tilt/actual/target limits remain unchanged. Every live model handoff
+-# is blocked until separately reviewed; this is not a zero-speed balance build.
++# 本机适配 HEAD-PROFILE-20261012：官方 controller.head 初始为全零；
++# 这里从带哈希校验的安装配置注入 head_command（官方61维输入的51:55）。
++# 本次 profile 的目标角度来自用户确认独立站立30秒的旧记录，而非猜测重心。
++# 只选旧头颈姿态这一项；KP6/KD20、腿HOME、原ONNX/EMA、当前校准与范围
++# 保持现状。完整出处和输入弧度值在 service/deployment.json 的
++# walk_head_command_provenance / walk_head_command_rad 中；缺省仍为零。
++# 读取配置只做元数据初始化，不自动连接UART或启动动作。
+ runtime=native_runtime.NativeRuntime(namespace,str(root),deployment,calibration,
+     (root/'service/worker-classes.py').read_text(),
+     startup_fault=startup_fault['reason'] if offline_startup else None,
+-    allow_fixed_head_walk=True, hold_hip_pitch_bias_deg=0)
++    allow_fixed_head_walk=True, hold_hip_pitch_bias_deg=0,
++    walk_head_command_rad=deployment.get('walk_head_command_rad'))
+ def calibration_writer(config,provenance):
+     global calibration_reload_fault,loaded_calibration
+     # Called under the wizard session lock, sometimes from its reader thread.
+--- a/service/native_runtime.py
++++ b/service/native_runtime.py
+@@ -36,7 +36,7 @@
+ motor_voltages voltage_range_v voltage_scale_hardware_verified official_runtime policy_goal_execution command joint_follow forward_trial tracking_probe current_pose_probe last_action
+ inference_ms last_policy_target_deg last_policy_target_rejections last_executed_target_deg
+ target_rejection active_model behavior_protocol target_validation_protocol
+-policy_metadata_protocol stand_target_deg model_stand_target_deg hold_hip_pitch_bias_deg head_clearance_protocol
++policy_metadata_protocol stand_target_deg model_stand_target_deg hold_hip_pitch_bias_deg head_clearance_protocol walk_head_command_rad
+ head_clearance_required fixed_head_walk_protocol fixed_head_walk_allowed
+ fixed_head_walk_ready fixed_head_walk_adapted fixed_head_walk_zero_velocity_only
+ hold_head_deg walk_preview_head_protocol walk_preview_head_command_rad policy_profiles
+@@ -167,12 +167,18 @@
+ class NativeRuntime:
+     def __init__(self, guard_namespace, ram_directory, deployment, calibration, classes_source,
+                  *, startup_fault=None, require_head_clearance=False, allow_fixed_head_walk=False,
+-                 hold_hip_pitch_bias_deg=0):
++                 hold_hip_pitch_bias_deg=0, walk_head_command_rad=None):
+         if (type(hold_hip_pitch_bias_deg) not in (int, float)
+                 or not -3 <= hold_hip_pitch_bias_deg <= 3
+                 or not math.isfinite(hold_hip_pitch_bias_deg)):
+             raise ValueError('固定 HOLD 髋偏置必须为 -3 至 3° 的有限数值')
+         self._hold_hip_pitch_bias_deg = float(hold_hip_pitch_bias_deg)
++        # HEAD-PROFILE-20261012: bind the reviewed official head input to this
++        # runtime and reuse it after reconnect/calibration reload. Copying the
++        # profile grants no motion; the normal explicit connection/ARM path
++        # and current calibration/range validation still apply.
++        self._walk_head_command_rad = ([0., 0., 0., 0.] if walk_head_command_rad is None
++                                       else copy.deepcopy(walk_head_command_rad))
+         if startup_fault is not None and (type(startup_fault) is not str
+                 or not startup_fault.strip() or len(startup_fault.encode('utf-8')) > 16384):
+             raise ValueError('A bounded actual hardware startup fault is required')
+@@ -253,13 +259,15 @@
+             self.sessions[name] = session
+         # Metadata/calibration validation is CPU-only and does not call start().
+         validation = self.motion.MotionController(self.sessions, config_path=calibration_path,
+-            hold_hip_pitch_bias_deg=self._hold_hip_pitch_bias_deg)
++            hold_hip_pitch_bias_deg=self._hold_hip_pitch_bias_deg,
++            walk_head_command_rad=self._walk_head_command_rad)
+         # Explicit zero saves may invalidate one joint's direction/range.
+         # The full workbench must still open to complete that calibration;
+         # connect() retains the complete-calibration gate before opening UART.
+         self._record('deployment.json', dict(deployment=self.deployment,
+             controller_classes_sha256=self.classes_sha256, host='X5', runtime='CPUExecutionProvider',
+             hold_hip_pitch_bias_deg=self._hold_hip_pitch_bias_deg,
++            walk_head_command_rad=self._walk_head_command_rad,
+             models=list(self.sessions), motor_start_attempted=False, serial_open_attempts=0))
+         self._persist()
+         # Match the upstream's current-observation ONNX execution. The motion
+@@ -632,7 +640,8 @@
+                     transport_factory=namespace['ReviewedTransport'],
+                     require_head_clearance=self.require_head_clearance,
+                     allow_fixed_head_walk=self.allow_fixed_head_walk,
+-                    hold_hip_pitch_bias_deg=self._hold_hip_pitch_bias_deg)
++                    hold_hip_pitch_bias_deg=self._hold_hip_pitch_bias_deg,
++                    walk_head_command_rad=self._walk_head_command_rad)
+                 if self._policy_worker is not None:
+                     controller.attach_policy_worker(self._policy_worker)
+                 self._generation_floor += 1
+--- a/policy/motion.py
++++ b/policy/motion.py
+@@ -1,8 +1,15 @@
+-"""Native transport adapter for the unmodified official walking policy.
+-
+-No experimental HOME, action remapping, head fixation, following gate, timed
+-trial, warmup lease, or takeover interpolation. Construction performs no I/O.
+-Calibration, command ownership, explicit ARM, STOP and feedback checks remain.
++"""Native transport adapter; official ONNX weights and action decoding unchanged.
++
++本机差异 HEAD-PROFILE-20261012（官方基准 8cdbbd84710d856581982c9eaf0d5e2970666232）：
++官方 python/controller.py 的 head 默认是四个零，可由 command(head=...) 设置；
++python/rl_core.py:build_obs 将其放进 observation[51:55]。本机从安装配置读取
++一个固定的 head 指令，还让显式 HOLD 使用对应头颈角度。不是重训或修改模型 HOME。
++这组角度来自 2026-10-08 用户确认独立承重的 30 秒记录：
++output/x5_gait_trial/20261008/leg-kp8-candidate/attended-trial-01/hold-check.json
++ID30..33 = [-7.56043956, -3.42857143, -5.80219780, -2.98901099] 度。
++该历史试验还包含 KP8 和固定头部输出等其他改动；本版本不恢复那些改动。
++因此这只是有历史依据的单因素候选，尚未证明现在的实机能够站稳或行走。
++未设置 profile 时保持原零指令。构造不连接硬件，不自动 ARM 或发送目标。
+ """
+ import collections
+ import copy
+@@ -29,9 +36,20 @@
+     def __init__(self, sessions, config_path=None, port='validation-only', *,
+                  transport_factory=None, clock=time.monotonic,
+                  require_head_clearance=False, allow_fixed_head_walk=False,
+-                 hold_hip_pitch_bias_deg=0):
++                 hold_hip_pitch_bias_deg=0, walk_head_command_rad=None):
+         if hold_hip_pitch_bias_deg != 0:
+             raise MotionError('Official runtime does not accept experimental stance offsets')
++        # 与官方差异：将默认零 head 改为安装时明确选定的四维指令。
++        # 顺序为 neck_pitch/head_pitch/head_yaw/head_roll，单位弧度、相对
++        # ONNX 元数据 HOME；这里不修改 HOME 本身或腿部观察/输出。
++        # +/-1 rad 沿用官方 controller.py:command 的边界，不新增经验阈值。
++        # 连接内保持不变；数值来源见模块注释及 deployment 的 provenance。
++        head = [0., 0., 0., 0.] if walk_head_command_rad is None else walk_head_command_rad
++        if (not isinstance(head, (list, tuple)) or len(head) != 4 or
++                any(isinstance(v, bool) or not isinstance(v, (int, float)) or
++                    not math.isfinite(v) or abs(v) > 1. for v in head)):
++            raise MotionError('Head command requires four finite values within the official +/-1rad contract')
++        self._walk_head_profile = tuple(float(v) for v in head)
+         self._validation_only = transport_factory is None
+         self._official_firmware = False
+         self._recovery = Recovery()
+@@ -153,10 +171,20 @@
+         return struct.pack('<I15H', self._cookie, *raw) + b'\x01'
+ 
+     def _fixed_stance_locked(self):
+-        return None if self._stand_deg is None else list(self._stand_deg)
++        # 本机 HOLD 扩展：官方 controller.py 固定阶段直接使用 DEFAULT_DEG。
++        # 此处仅给四个头颈目标加 head 指令对应的角度，便于 HOLD 与后续
++        # WALK 的指令一致；不加腿部偏置，不改变校准/范围。恢复起身路径
++        # 仍使用原模型默认姿态，不在此处施加这组头颈姿态。
++        target = None if self._stand_deg is None else list(self._stand_deg)
++        if target is not None:
++            for sid, delta in zip((30, 31, 32, 33), self._walk_head_profile):
++                target[MOTOR_IDS.index(sid)] += math.degrees(delta)
++        return target
+ 
+     def _walk_head_command_locked(self):
+-        return np.zeros(4, dtype=np.float32)
++        # 仅作为官方 build_obs 的输入；WALK 不强制覆盖模型的头部输出。
++        # 与历史“固定头部输出”的实现不同，不能把历史成功当作本版验收。
++        return np.asarray(self._walk_head_profile, dtype=np.float32).copy()
+ 
+     def _execution_target_locked(self, mode, policy_target):
+         result = list(policy_target)
+@@ -399,6 +427,7 @@
+         result['servo_voltage_polling']=dict(enabled=False,reason='正常运控不额外轮询电压')
+         for i,row in enumerate(result.get('rawdata', [])):
+             row['torque']=int(bool(state.get('torque_mask',0)&(1<<i))) if known&(1<<i) else None
++        result['walk_head_command_rad'] = list(self._walk_head_profile)
+         result.update(official_runtime=dict(protocol=1, recovery=self._recovery.status(),
+             firmware_confirmed=self._official_firmware, trial_time_limit_s=None,
+             one_pulse_per_episode=False, following_error_start_gate_deg=None,

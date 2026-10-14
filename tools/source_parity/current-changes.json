@@ -1,0 +1,1522 @@
+{
+  "schema": 1,
+  "baseline_installation_sha256": "1f1bffe7cfe3cd4aedfa30a2a44b6ec2af2823f4808312e8c66b4e70d7a8f501",
+  "upstream_commit": "8cdbbd84710d856581982c9eaf0d5e2970666232",
+  "changes": [
+    {
+      "path": "firmware/firmware/main.cpp",
+      "before_sha256": "6a83cbe4b6a6b705b3f2e17fa2d8065bb7da554327aec2cfa79d853cca9319b2",
+      "after_sha256": "1b77e41f0725c28fea2a3f4b93f06dde0569f5d8f10a8d53ab2a4a992c1e1b76",
+      "edits": [
+        {
+          "start": 6,
+          "end": 6,
+          "lines": [
+            "#include \"source_cycle.h\"\n"
+          ]
+        },
+        {
+          "start": 21,
+          "end": 22,
+          "lines": [
+            "constexpr uint32_t kServoDeadlineUs = 1500; // Legacy maintenance transactions only; not source model polling.\n"
+          ]
+        },
+        {
+          "start": 23,
+          "end": 26,
+          "lines": [
+            "// Normal model polling is the grouped source_cycle path. Individual reads\n",
+            "// remain only for explicit legacy maintenance/diagnostic and OFF proof.\n",
+            "\n"
+          ]
+        },
+        {
+          "start": 35,
+          "end": 35,
+          "lines": [
+            "uint32_t positionReadUs[15] = {}; uint16_t positionSeen = 0;\n"
+          ]
+        },
+        {
+          "start": 64,
+          "end": 64,
+          "lines": [
+            "struct SourceArmFailure {\n",
+            " bool seen=false; uint16_t online=0,fault=0,torque=0; bool imuOk=false;\n",
+            " uint32_t positionAge=0,imuAge=0;\n",
+            "} sourceArmFailure;\n"
+          ]
+        },
+        {
+          "start": 96,
+          "end": 97,
+          "lines": [
+            "  feedback.onlineMask = lock.sourceRuntime ? presentMask : presentMask & freshTorque;\n"
+          ]
+        },
+        {
+          "start": 116,
+          "end": 117,
+          "lines": [
+            "      (!lock.sourceRuntime && feedback.onlineMask != motion::kAllMotors) ? OfflineStop :\n"
+          ]
+        },
+        {
+          "start": 118,
+          "end": 119,
+          "lines": [
+            "      (!lock.sourceRuntime && uint32_t(now - feedback.sampleUs) > motion::kStateFreshUs) ? PositionStaleStop :\n"
+          ]
+        },
+        {
+          "start": 123,
+          "end": 124,
+          "lines": [
+            "  if (!lock.sourceRuntime && lock.armed && !verifyingTorque && feedback.torqueMask != motion::kAllMotors) {\n"
+          ]
+        },
+        {
+          "start": 146,
+          "end": 148,
+          "lines": [
+            "  if (!enabled || lock.sourceRuntime) {\n",
+            "    const uint8_t data[] = {40, uint8_t(enabled)};\n"
+          ]
+        },
+        {
+          "start": 423,
+          "end": 423,
+          "lines": [
+            "  const bool sourceOffRead = lock.sourceRuntime && !maintenanceMode;\n"
+          ]
+        },
+        {
+          "start": 424,
+          "end": 425,
+          "lines": [
+            "  if (armTorqueRead || sourceOffRead) {\n"
+          ]
+        },
+        {
+          "start": 430,
+          "end": 431,
+          "lines": [
+            "  const uint32_t replyBudget = (armTorqueRead || sourceOffRead) ? source_cycle::replyUs : kServoDeadlineUs;\n"
+          ]
+        },
+        {
+          "start": 702,
+          "end": 702,
+          "lines": [
+            "    if(sourceArmFailure.seen) {\n",
+            "      uint8_t data[30]={frame.type,uint8_t(error),3,armDiagnostic.stage};\n",
+            "      motion::put32(data+14,sourceArmFailure.positionAge);motion::put32(data+18,sourceArmFailure.imuAge);\n",
+            "      motion::put16(data+22,sourceArmFailure.online);motion::put16(data+24,sourceArmFailure.fault);\n",
+            "      motion::put16(data+26,sourceArmFailure.torque);data[28]=sourceArmFailure.imuOk;data[29]=1;\n",
+            "      respond(0x80,frame.sequence,data,sizeof(data));return;\n",
+            "    }\n"
+          ]
+        },
+        {
+          "start": 720,
+          "end": 721,
+          "lines": [
+            "  uint16_t legacyOnline=feedback.onlineMask;\n",
+            "  if(lock.sourceRuntime) {\n",
+            "    legacyOnline &= torqueKnown;\n",
+            "    for(size_t i=0;i<15;++i) if(uint32_t(micros()-torqueReadUs[i])>kTorqueFreshUs) legacyOnline &= ~uint16_t(1u<<i);\n",
+            "  }\n",
+            "  motion::put16(data + 8, legacyOnline); motion::put16(data + 10, feedback.faultMask);\n"
+          ]
+        },
+        {
+          "start": 883,
+          "end": 883,
+          "lines": [
+            "  if (frame.type == motion::SourceRuntime) {\n",
+            "    if (frame.length) { ack(frame, motion::BadPacket); return; }\n",
+            "    if (lock.armed || lock.cookie || maintenanceMode || preparingArm || disablePending ||\n",
+            "        torqueKnown != motion::kAllMotors || feedback.torqueMask) {\n",
+            "      ack(frame, motion::BadState); return;\n",
+            "    }\n",
+            "    lock.sourceRuntime = true; updateMasks(micros());\n",
+            "    ack(frame, motion::Ok); return;\n",
+            "  }\n",
+            "  if (frame.type == motion::SourceState) {\n",
+            "    if (frame.length || !lock.sourceRuntime) { ack(frame, motion::BadState); return; }\n",
+            "    if(!lock.armed && !maintenanceMode) {\n",
+            "      bool expired=torqueKnown!=motion::kAllMotors;\n",
+            "      for(size_t i=0;i<15;++i) expired |= uint32_t(micros()-torqueReadUs[i])>kTorqueFreshUs;\n",
+            "      if(expired) refreshTorque(); // OFF confirmation on request, never while running.\n",
+            "    }\n",
+            "    checkSafety(); flushDisable();\n",
+            "    uint8_t data[214] = {}; fillState(data);\n",
+            "    motion::put16(data+8,feedback.onlineMask); // source state separates online from torque-known.\n",
+            "    uint16_t known = torqueKnown; const uint32_t now=micros();\n",
+            "    for(size_t i=0;i<15;++i) if(uint32_t(now-torqueReadUs[i])>kTorqueFreshUs) known &= ~uint16_t(1u<<i);\n",
+            "    motion::put16(data+106,known); data[108]=1; data[109]=1;\n",
+            "    for(size_t i=0;i<15;++i) motion::put32(data+110+4*i,\n",
+            "      positionSeen & (1u<<i) ? uint32_t(now-positionReadUs[i]) : UINT32_MAX);\n",
+            "    // Normal running replies remain the exact 170-byte source packet. Attach\n",
+            "    // the first autonomous stop only AFTER disarm, on the existing STATE read.\n",
+            "    // No added servo transaction, request, running bytes or watchdog renewal.\n",
+            "    if (!lock.armed && safetyDiagnostic.seen) {\n",
+            "      data[109] = 2;\n",
+            "      uint8_t* stop = data + 170;\n",
+            "      stop[0] = motion::Target; stop[1] = motion::BadState; stop[2] = 1;\n",
+            "      stop[3] = safetyDiagnostic.cause; stop[4] = safetyDiagnostic.error;\n",
+            "      stop[5] = safetyDiagnostic.imuOk;\n",
+            "      motion::put16(stop+6,safetyDiagnostic.online); motion::put16(stop+8,safetyDiagnostic.fault);\n",
+            "      motion::put16(stop+10,safetyDiagnostic.torque); motion::put32(stop+12,safetyDiagnostic.atUs);\n",
+            "      motion::put32(stop+16,safetyDiagnostic.positionAge); motion::put32(stop+20,safetyDiagnostic.imuAge);\n",
+            "      motion::put32(stop+24,safetyDiagnostic.targetAge); motion::put32(stop+28,safetyDiagnostic.uartErrors);\n",
+            "      stop[32]=safetyDiagnostic.readId; stop[33]=safetyDiagnostic.address;\n",
+            "      stop[34]=safetyDiagnostic.outcome; stop[35]=safetyDiagnostic.deviceError;\n",
+            "      motion::put32(stop+36,safetyDiagnostic.readElapsed); motion::put32(stop+40,safetyDiagnostic.cookie);\n",
+            "      respond(0xa0,frame.sequence,data,sizeof(data));\n",
+            "    } else respond(0xa0,frame.sequence,data,170);\n",
+            "    return;\n",
+            "  }\n"
+          ]
+        },
+        {
+          "start": 903,
+          "end": 904,
+          "lines": [
+            "    armDiagnostic = ArmDiagnostic{}; sourceArmFailure=SourceArmFailure{}; armFailedReadSeen = false; armBusCount = 0;\n"
+          ]
+        },
+        {
+          "start": 917,
+          "end": 918,
+          "lines": [
+            "    if (!lock.armed) { sequence.reset(); lock.sourceRuntime = false; }\n"
+          ]
+        },
+        {
+          "start": 981,
+          "end": 982,
+          "lines": [
+            "  if (frame.type != motion::ConfigRequest && frame.type != motion::Arm && frame.type != motion::Target && frame.type != motion::SourceTarget) {\n"
+          ]
+        },
+        {
+          "start": 985,
+          "end": 986,
+          "lines": [
+            "  if (!sequence.consume(frame.sequence)) {\n",
+            "    if(frame.type==motion::SourceTarget) {requestDisarm(motion::BadPacket);flushDisable();}\n",
+            "    else ack(frame, lock.record(motion::BadPacket));\n",
+            "    return;\n",
+            "  }\n"
+          ]
+        },
+        {
+          "start": 987,
+          "end": 987,
+          "lines": [
+            "  if (frame.type == motion::SourceTarget) {\n",
+            "    // No request/ACK wait on ordinary policy targets, as in upstream notify().\n",
+            "    // Refusals remain visible in STATE and cannot leave an old target active.\n",
+            "    motion::Error result = !lock.sourceRuntime ? motion::BadState : lock.target(frame,micros());\n",
+            "    if(result!=motion::Ok) {requestDisarm(result);flushDisable();}\n",
+            "    return;\n",
+            "  }\n"
+          ]
+        },
+        {
+          "start": 988,
+          "end": 988,
+          "lines": [
+            "  if (lock.sourceRuntime) {\n",
+            "    // Validate current pose before writes, then preserve upstream startup order:\n",
+            "    // gain writes -> current goals -> enable. Normal loop reads follow enable.\n",
+            "    // Do not insert another synchronous read between gain and target writes.\n",
+            "    preparingArm=true;\n",
+            "    const uint8_t kp[]={50,6}, kd[]={51,20}, mouth[]={50,10};\n",
+            "    armDiagnostic.stage=1;\n",
+            "    motion::Error result=lock.prepareArm(frame,feedback,micros());\n",
+            "    if(result==motion::Ok) {armDiagnostic.stage=5;sampleServos();sampleImu();result=lock.prepareArm(frame,feedback,micros());}\n",
+            "    if(result==motion::Ok) armDiagnostic.stage=2;\n",
+            "    if(result==motion::Ok && (!sendServo(0xfe,3,kp,2)||!txComplete()||!sendServo(0xfe,3,kd,2)||!txComplete()||\n",
+            "       !sendServo(34,3,mouth,2)||!txComplete())) result=motion::BadState;\n",
+            "    if(result==motion::Ok) armDiagnostic.stage=6;\n",
+            "    if(result==motion::Ok && !writeGoals(lock.goals)) result=motion::BadState;\n",
+            "    if(result==motion::Ok) armDiagnostic.stage=7;\n",
+            "    if(result==motion::Ok && !feedback.fresh(micros())) result=motion::Stale;\n",
+            "    if(result==motion::Ok) armDiagnostic.stage=8;\n",
+            "    if(result==motion::Ok && !writeTorque(true)) result=motion::BadState;\n",
+            "    if(result==motion::Ok) {\n",
+            "      torqueKnown=0; feedback.torqueMask=0; // ON broadcast is not measured ON.\n",
+            "      lock.armed=true; ++causalArmEpoch; safetyDiagnostic=SafetyDiagnostic{};\n",
+            "    } else {\n",
+            "      const uint32_t now=micros();sourceArmFailure.seen=true;\n",
+            "      sourceArmFailure.online=feedback.onlineMask;sourceArmFailure.fault=feedback.faultMask;\n",
+            "      sourceArmFailure.torque=feedback.torqueMask;sourceArmFailure.imuOk=feedback.imuOk;\n",
+            "      sourceArmFailure.positionAge=uint32_t(now-feedback.sampleUs);sourceArmFailure.imuAge=uint32_t(now-feedback.imuUs);\n",
+            "      requestDisarm(result);flushDisable();\n",
+            "    }\n",
+            "    preparingArm=false; ack(frame,result); return;\n",
+            "  }\n"
+          ]
+        },
+        {
+          "start": 1054,
+          "end": 1054,
+          "lines": [
+            "  if(lock.sourceRuntime && !maintenanceMode) {\n",
+            "    source_cycle::Scan scan;\n",
+            "    // Same drain-before-sync-read ordering as upstream; bounded to bytes\n",
+            "    // already buffered, no invented quiet-period or repeated clearing.\n",
+            "    int buffered=Serial1.available(); while(buffered-->0) (void)Serial1.read();\n",
+            "    uint8_t packet[23]; source_cycle::request(packet);\n",
+            "    if(Serial1.write(packet,sizeof(packet))!=sizeof(packet)||!txComplete()) {\n",
+            "      if(lock.armed) {requestDisarm(motion::BadState);flushDisable();}\n",
+            "      return;\n",
+            "    }\n",
+            "    const uint32_t began=micros();\n",
+            "    auto receive=[&]() {\n",
+            "      int available=Serial1.available();\n",
+            "      while(available-->0) scan.feed(uint8_t(Serial1.read()),micros());\n",
+            "    };\n",
+            "    sampleImu();\n",
+            "    while(uint32_t(micros()-began)<source_cycle::replyUs) {\n",
+            "      receive(); checkSafety(); flushDisable(); delayMicroseconds(100);\n",
+            "    }\n",
+            "    receive(); // Include bytes present at the deadline, matching upstream.\n",
+            "    for(size_t i=0;i<15;++i) if(scan.mask & (1u<<i)) {\n",
+            "      feedback.positions[i]=scan.positions[i]; velocities[i]=scan.speeds[i];\n",
+            "      presentLoadRaw[i]=scan.loads[i]; positionReadUs[i]=scan.receivedUs[i];\n",
+            "      positionSeen |= uint16_t(1u<<i);\n",
+            "    }\n",
+            "    // Missing replies keep last measured values and original per-ID ages;\n",
+            "    // onlineMask describes THIS cycle, never an invented all-online state.\n",
+            "    presentMask=scan.mask; presentFaults=scan.faults;\n",
+            "    feedback.sampleUs=micros(); ++servoSampleSequence; sampleBoundGoals.valid=false;\n",
+            "    updateMasks(micros()); checkSafety();flushDisable(); return;\n",
+            "  }\n"
+          ]
+        },
+        {
+          "start": 1147,
+          "end": 1148,
+          "lines": [
+            "  } else if (!lock.sourceRuntime) {\n"
+          ]
+        },
+        {
+          "start": 1163,
+          "end": 1164,
+          "lines": [
+            "  if (!maintenanceMode && !lock.sourceRuntime) sampleVoltage();\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "firmware/firmware/motion_protocol.h",
+      "before_sha256": "01182474b6d500e71812afd65bdaa8a33d69b25ede9a5d69f6dac390f31796a4",
+      "after_sha256": "71a4fcbcdc02abb5766411ce21abe8ed1ec1bcf5280238b89972b5a4dccbb3d1",
+      "edits": [
+        {
+          "start": 47,
+          "end": 48,
+          "lines": [
+            "  OffRegisterDetails = 23, PolicyPositionCaps = 24, MotionEvidenceCaps = 25, PositionRetryDetails = 26, OfficialRuntimeCaps = 27, ArmBusDetails = 28, ArmReadOrder = 29, SourceRuntime = 30, SourceTarget = 31, SourceState = 32\n"
+          ]
+        },
+        {
+          "start": 208,
+          "end": 208,
+          "lines": [
+            "  bool sourceRuntime = false;\n"
+          ]
+        },
+        {
+          "start": 221,
+          "end": 222,
+          "lines": [
+            "    if (!feedback.fresh(now) || (!sourceRuntime && uint32_t(now - feedback.imuUs) >= 50000)) return record(Stale);\n"
+          ]
+        },
+        {
+          "start": 248,
+          "end": 249,
+          "lines": [
+            "    if ((sourceRuntime ? (!feedback.imuOk || uint32_t(now-feedback.imuUs)>kStateFreshUs) : !feedback.fresh(now)) || uint32_t(now - lastCommandUs) > kWatchdogUs) { disarm(Stale); return true; }\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "firmware/firmware/source_cycle.h",
+      "before_sha256": null,
+      "after_sha256": "2f73d3e7cec14eb78d82f0bf784f05bb915a3363c2aa93cf8ba548da8432fc3c",
+      "edits": [
+        {
+          "start": 0,
+          "end": 0,
+          "lines": [
+            "#pragma once\n",
+            "#include \"motion_protocol.h\"\n",
+            "\n",
+            "// Upstream scs_bus.h readAllRegisters(56,6), duck_config.h SERVO_REPLY_US.\n",
+            "// Pure packet/parser; hardware time and I/O are owned by main.cpp.\n",
+            "namespace source_cycle {\n",
+            "constexpr uint32_t replyUs = 6000;\n",
+            "inline size_t request(uint8_t* out) {\n",
+            "  out[0]=out[1]=0xff; out[2]=0xfe; out[3]=19; out[4]=0x82;\n",
+            "  out[5]=56; out[6]=6;\n",
+            "  uint8_t sum=0;\n",
+            "  for(size_t i=0;i<15;++i) out[7+i]=motion::kMotorIds[i];\n",
+            "  for(size_t i=2;i<22;++i) sum+=out[i];\n",
+            "  out[22]=uint8_t(~sum); return 23;\n",
+            "}\n",
+            "struct Scan {\n",
+            "  uint16_t mask=0, faults=0;\n",
+            "  uint16_t positions[15]={}, loads[15]={}; int16_t speeds[15]={};\n",
+            "  uint32_t receivedUs[15]={};\n",
+            "  uint8_t packet[12]={}; size_t used=0;\n",
+            "  void feed(uint8_t byte, uint32_t now) {\n",
+            "    if(used==sizeof(packet)) discard();\n",
+            "    packet[used++]=byte;\n",
+            "    while(used) {\n",
+            "      if(packet[0]!=0xff) {discard();continue;}\n",
+            "      if(used<2) return;\n",
+            "      if(packet[1]!=0xff) {discard();continue;}\n",
+            "      if(used<4) return;\n",
+            "      if(packet[3]!=8) {discard();continue;}\n",
+            "      if(used<12) return;\n",
+            "      uint8_t sum=0; for(size_t i=2;i<12;++i) sum+=packet[i];\n",
+            "      size_t j=0; while(j<15 && motion::kMotorIds[j]!=packet[2]) ++j;\n",
+            "      if(sum!=0xff || j==15) {discard();continue;}\n",
+            "      const uint16_t bit=uint16_t(1u<<j);\n",
+            "      if(packet[4]) faults|=bit;\n",
+            "      else if(motion::u16(packet+5)<=4095) {\n",
+            "        mask|=bit; positions[j]=motion::u16(packet+5);\n",
+            "        speeds[j]=motion::speedSignMagnitude(motion::u16(packet+7));\n",
+            "        loads[j]=motion::u16(packet+9); receivedUs[j]=now;\n",
+            "      }\n",
+            "      used=0;\n",
+            "    }\n",
+            "  }\n",
+            " private:\n",
+            "  void discard(){--used;memmove(packet,packet+1,used);}\n",
+            "};\n",
+            "}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "firmware/tests/test_firmware.cpp",
+      "before_sha256": "800b611968a1a159d759d93cccdebddfd4af51b24dc7e8d841f5978111a68621",
+      "after_sha256": "1acbc96e42e4febd18e8582172ec0927179d897d076c4cb767146339a0e5f741",
+      "edits": [
+        {
+          "start": 562,
+          "end": 563,
+          "lines": [
+            "    prepareRecoveryTest(9216000); condition();\n"
+          ]
+        },
+        {
+          "start": 578,
+          "end": 579,
+          "lines": [
+            "  prepareRecoveryTest(2921600);\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "firmware/tests/test_source_firmware.cpp",
+      "before_sha256": null,
+      "after_sha256": "0053bc63fcdc112b32bf03a6b5e6739fb6df3342e78f458523b517cf3f591807",
+      "edits": [
+        {
+          "start": 0,
+          "end": 0,
+          "lines": [
+            "#define main oldLegacyMain\n",
+            "#include \"test_firmware.cpp\"\n",
+            "#undef main\n",
+            "#include <algorithm>\n",
+            "static uint32_t replyDelay=0;\n",
+            "static size_t groupedRequests=0, singleRequests=0;\n",
+            "static uint16_t missing=0;\n",
+            "static bool corruptGroup=false, reverseGroup=false;\n",
+            "void sourceBus(const uint8_t* packet,size_t count) {\n",
+            " if(packet[4]!=0x82){if(packet[4]==2)++singleRequests;busWrite(packet,count);return;}\n",
+            " ++groupedRequests;\n",
+            " uint8_t gold[23]={255,255,254,19,130,56,6,10,11,12,13,14,20,21,22,23,24,30,31,32,33,34,0};\n",
+            " uint8_t sum=0;for(size_t i=2;i<22;++i)sum+=gold[i];gold[22]=uint8_t(~sum);\n",
+            " assert(count==23&&!memcmp(gold,packet,count));\n",
+            " std::vector<uint8_t> replies;\n",
+            " for(size_t slot=0;slot<15;++slot){size_t i=reverseGroup?14-slot:slot;\n",
+            "   if(missing&(1u<<i))continue;\n",
+            "   const uint8_t id=expectedIds[i];\n",
+            "   std::vector<uint8_t> r={255,255,id,8,mockServoFault[id],uint8_t(normalPosition),uint8_t(normalPosition>>8),100,128,0,0};\n",
+            "   uint8_t check=0;for(size_t j=2;j<r.size();++j)check+=r[j];r.push_back(uint8_t(~check));\n",
+            "   if(corruptGroup && i==0)++r.back();\n",
+            "   replies.insert(replies.end(),r.begin(),r.end());\n",
+            " }\n",
+            " if(replyDelay){for(size_t i=0;i<replies.size();++i)Serial1.scheduledInput.emplace_back(mockMicros+replyDelay+uint32_t(i),replies[i]);}\n",
+            " else Serial1.input.insert(Serial1.input.end(),replies.begin(),replies.end());\n",
+            "}\n",
+            "void negotiate(){motion::Frame f;f.type=motion::SourceRuntime;command(f);assert(lastResponse().payload[1]==0);}\n",
+            "void stopNow(){motion::Frame f;f.type=motion::Stop;command(f);assert(lastResponse().payload[1]==0);assert(!lock.armed&&!feedback.torqueMask&&torqueKnown==motion::kAllMotors);}\n",
+            "void armNow(uint32_t seq){sampleImu();sampleServos();command(armCommand(seq));assert(lastResponse().payload[1]==0);assert(lock.armed);}\n",
+            "\n",
+            "#ifndef SOURCE_PARITY_NO_MAIN\n",
+            "int main(){\n",
+            " Serial1.onWrite=sourceBus;Wire.registers[0x0f]=0x6b;Wire.registers[0x1e]=3;\n",
+            " setup();mockMicros+=110000;readyFeedback();command(configuration(1));assert(lastResponse().payload[1]==0);\n",
+            " size_t bytes=Serial1.output.size();negotiate();assert(lock.sourceRuntime&&bytes==Serial1.output.size());\n",
+            " const size_t singles=singleRequests;sampleServos();assert(groupedRequests==1&&singleRequests==singles&&feedback.onlineMask==motion::kAllMotors);\n",
+            " reverseGroup=true;sampleServos();assert(feedback.onlineMask==motion::kAllMotors);\n",
+            " replyDelay=5000;sampleServos();assert(feedback.onlineMask==motion::kAllMotors);replyDelay=0;\n",
+            " armNow(2);assert(torqueKnown==0&&feedback.torqueMask==0); // unknown, NOT fabricated ON.\n",
+            " assert(singleRequests==singles&&gainReads.empty());\n",
+            " uint32_t readBefore=positionReadUs[0];normalPosition=2100;missing=1;sampleServos();\n",
+            " assert(lock.armed&&feedback.onlineMask==0x7ffe&&feedback.positions[0]==2047&&feedback.positions[1]==2100&&positionReadUs[0]==readBefore);\n",
+            " missing=motion::kAllMotors;sampleServos();assert(lock.armed&&feedback.onlineMask==0&&feedback.positions[1]==2100);\n",
+            " missing=0;corruptGroup=true;sampleServos();assert(lock.armed&&feedback.onlineMask==0x7ffe);corruptGroup=false;\n",
+            " motion::Frame stateFrame;stateFrame.type=motion::SourceState;command(stateFrame);auto status=lastResponse();\n",
+            " assert(status.type==0xa0&&status.length==170&&status.payload[108]==1&&motion::u16(status.payload+106)==0);\n",
+            " motion::Frame target;target.type=motion::SourceTarget;target.sequence=3;target.length=35;motion::put32(target.payload,123);target.payload[34]=1;\n",
+            " for(size_t i=0;i<15;++i)motion::put16(target.payload+4+2*i,2200);\n",
+            " command(target);assert(Serial.output.empty()&&lock.armed&&lock.desired[0]==2200);\n",
+            " lock.slew(micros());assert(lock.goals[0]==2200); // no 600-count slew.\n",
+            " stopNow();const size_t afterStop=writes.size();command(target);assert(!lock.armed&&writes.size()>=afterStop);assert(Serial.output.empty());\n",
+            " sampleImu();sampleServos();armNow(4);target.sequence=5;motion::put16(target.payload+4,999);command(target);assert(!lock.armed&&lock.lastError==motion::Range&&Serial.output.empty());stopNow();\n",
+            " armNow(6);mockServoFault[11]=4;sampleServos();assert(!lock.armed&&lock.lastError==motion::BadState);mockServoFault[11]=0;stopNow();\n",
+            " armNow(7);mockMicros+=250001;sampleImu();checkSafety();flushDisable();assert(!lock.armed);stopNow();\n",
+            " armNow(8);feedback.imuUs=micros()-100001;checkSafety();flushDisable();assert(!lock.armed);stopNow();\n",
+            " // OFF proof expiry triggers readback only on a requested OFF state.\n",
+            " mockMicros+=500001;sampleImu();sampleServos();stateFrame.sequence=50;command(stateFrame);status=lastResponse();\n",
+            " assert(motion::u16(status.payload+106)==motion::kAllMotors);\n",
+            " // Entire loop during valid source operation has no torque/voltage reads.\n",
+            " armNow(9);size_t oldSingles=singleRequests;for(int i=0;i<10;++i)loop();assert(lock.armed&&singleRequests==oldSingles);stopNow();\n",
+            " // HELLO can reset source negotiation only when OFF; never arms.\n",
+            " motion::Frame hello;hello.type=motion::Hello;command(hello);lastResponse();assert(!lock.sourceRuntime&&!lock.armed);\n",
+            " puts(\"PASS grouped packet/order/delay/partial/corrupt, source ARM no extra reads, asynchronous target, STOP wins, range/device/watchdog/IMU, OFF proof, zero extra running polls\");\n",
+            "}\n",
+            "\n",
+            "#endif\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "policy/async_policy.py",
+      "before_sha256": "843b9f5d3b26563f4e0b994cfff2043735f3a0c760b53e2af0bcfed36e7f28bf",
+      "after_sha256": "df12ee13afc449ff7cb3afc8605acbd74d0a5b942fb6fbda17831b642fac5b90",
+      "edits": [
+        {
+          "start": 29,
+          "end": 30,
+          "lines": [
+            "            # Detached evidence of the tensor actually submitted, not a later\n",
+            "            # reconstruction from display state. This does not feed control.\n",
+            "            self._policy_job = dict(frame, request_id=request_id,\n",
+            "                submitted_observation=obs.copy(), submission_monotonic=self._clock())\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "policy/model_reference.py",
+      "before_sha256": null,
+      "after_sha256": "55ab823df1eb36e33036ad1114e403303367f44ba52759991b008ef78ecbcb2f",
+      "edits": [
+        {
+          "start": 0,
+          "end": 0,
+          "lines": [
+            "\"\"\"Generated from the pinned official walk ONNX metadata; no hardware I/O.\n",
+            "\n",
+            "This deliberately records the model's HOME, which differs from the upstream\n",
+            "Python hardcoded +/-23 degrees. Calibration and the installed policy use the\n",
+            "same model-specific reference. No stored calibration is rewritten on import.\n",
+            "\"\"\"\n",
+            "WALK_MODEL_SHA256 = '5727b909d5ea1a0f9ff63bf4cea9707339dea6a522374c7a120da633605b923f'\n",
+            "WALK_HOME_RAD = (0.0, -0.087, -0.349, -0.005, 0.349, 0.349, 0.349, 0.0, 0.0, 0.0, 0.087, 0.349, 0.005, -0.349)\n",
+            "WALK_DEFAULT_DEG = (0.0, -4.984732817638162, -19.99622705006573, -0.2864788975654116, 19.99622705006573, 0.0, 4.984732817638162, 19.99622705006573, 0.2864788975654116, -19.99622705006573, 19.99622705006573, 19.99622705006573, 0.0, 0.0, 0.0)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "policy/motion.py",
+      "before_sha256": "ce680bc5ed96a437f44a515272e01703141a15e3e4d0d7c16c27c4f6de166a8d",
+      "after_sha256": "8c0f976f20084d3964ba2b0421802e97364a04853a8145e04fdc03e9b3566a17",
+      "edits": [
+        {
+          "start": 18,
+          "end": 18,
+          "lines": [
+            "SOURCE_RUNTIME = 30\n",
+            "SOURCE_TARGET = 31\n",
+            "SOURCE_STATE = 32\n"
+          ]
+        },
+        {
+          "start": 38,
+          "end": 38,
+          "lines": [
+            "        self._policy_trace = collections.deque(maxlen=3000)\n",
+            "        self._policy_trace_total = 0\n",
+            "        self._pending_policy_evidence = None\n"
+          ]
+        },
+        {
+          "start": 44,
+          "end": 44,
+          "lines": [
+            "        from model_reference import WALK_HOME_RAD\n",
+            "        if not np.array_equal(self._policy_profiles['walk']['home_rad'], WALK_HOME_RAD):\n",
+            "            raise MotionError('\u884c\u8d70\u6a21\u578b HOME \u4e0e\u6821\u51c6\u53c2\u7167\u4e0d\u4e00\u81f4\uff1b\u5148\u91cd\u65b0\u751f\u6210\u914d\u5957\u53c2\u7167\uff0c\u4e0d\u80fd\u9759\u9ed8\u4f7f\u7528\u65e7\u504f\u7f6e')\n"
+          ]
+        },
+        {
+          "start": 58,
+          "end": 60,
+          "lines": [
+            "                if self._request(SOURCE_RUNTIME) != bytes([SOURCE_RUNTIME, 0]):\n",
+            "                    raise MotionError('\u9700\u8981\u914d\u5957\u540c\u6b65\u8bfb\u53d6\u56fa\u4ef6\uff1b\u4e0d\u81ea\u52a8\u964d\u7ea7\u5230\u65e7\u901a\u4fe1\u6d41\u7a0b')\n"
+          ]
+        },
+        {
+          "start": 61,
+          "end": 61,
+          "lines": [
+            "                self._state_request = SOURCE_STATE\n",
+            "                self._state_request_payload = b''\n",
+            "                self._motion_evidence_supported = False\n",
+            "                self._accept_state_locked(self._read_state())\n"
+          ]
+        },
+        {
+          "start": 68,
+          "end": 68,
+          "lines": [
+            "\n",
+            "    def _read_state(self):\n",
+            "        if self._state_request != SOURCE_STATE:\n",
+            "            return super()._read_state()\n",
+            "        payload = self._request(SOURCE_STATE)\n",
+            "        legacy = len(payload) == 170 and payload[108:110] == b'\\x01\\x01'\n",
+            "        stopped = len(payload) == 214 and payload[108:110] == b'\\x01\\x02'\n",
+            "        if not (legacy or stopped):\n",
+            "            raise MotionError('\u540c\u6b65\u8bfb\u53d6\u72b6\u6001\u7248\u672c\u6216\u957f\u5ea6\u4e0d\u5339\u914d')\n",
+            "        state = decode_state(payload[:106])\n",
+            "        known = struct.unpack_from('<H',payload,106)[0]\n",
+            "        ages = list(struct.unpack_from('<15I',payload,110))\n",
+            "        if known & ~ALL_MASK or state['torque_mask'] & ~known:\n",
+            "            raise MotionError('\u626d\u77e9\u89c2\u6d4b\u6709\u6548\u4f4d\u65e0\u6548')\n",
+            "        state.update(source_runtime=True,torque_known_mask=known,position_ages_us=ages)\n",
+            "        if stopped:\n",
+            "            if state['armed']:\n",
+            "                raise MotionError('\u8fd0\u884c\u4e2d\u7684\u72b6\u6001\u4e0d\u80fd\u643a\u5e26\u5df2\u505c\u6b62\u4f1a\u8bdd\u8bb0\u5f55')\n",
+            "            detail, text = target_stop_detail(payload[170:210])\n",
+            "            detail['arm_cookie'] = struct.unpack_from('<I', payload, 210)[0]\n",
+            "            if not detail['arm_cookie']:\n",
+            "                raise MotionError('\u9996\u6b21\u505c\u673a\u4f1a\u8bdd\u6807\u8bc6\u65e0\u6548')\n",
+            "            state.update(firmware_first_stop=detail, firmware_first_stop_text=text)\n",
+            "            self._transport.last_firmware_stop = copy.deepcopy(detail)\n",
+            "        return state\n",
+            "\n",
+            "    def _session_failure_locked(self, state):\n",
+            "        detail = state.get('firmware_first_stop')\n",
+            "        if detail and self._cookie and detail['arm_cookie'] == self._cookie:\n",
+            "            return '\u4e0b\u4f4d\u673a\u5df2\u505c\u6b62\uff1b' + state['firmware_first_stop_text']\n",
+            "        reasons = []\n",
+            "        if not state['armed']:\n",
+            "            error = state.get('last_error')\n",
+            "            reasons.append('\u4e0b\u4f4d\u673a\u9000\u51fa\u4f7f\u80fd' + (f'\uff08\u56fa\u4ef6\u9519\u8bef\u7801 {error}\uff1a{ERRORS[error]}\uff09' if error in ERRORS else ''))\n",
+            "        if not state['configured']:\n",
+            "            reasons.append('\u4e0b\u4f4d\u673a\u6821\u51c6\u914d\u7f6e\u5931\u6548')\n",
+            "        if state['armed'] and state['cookie'] != self._cookie:\n",
+            "            reasons.append('\u4e0b\u4f4d\u673a\u4f1a\u8bdd\u6807\u8bc6\u4e0d\u5339\u914d')\n",
+            "        if state['armed'] and not self._enabled_feedback(state):\n",
+            "            reasons.append('\u4e0b\u4f4d\u673a\u626d\u77e9\u72b6\u6001\u4e0d\u7b26\u5408\u5f53\u524d\u63a7\u5236\u6a21\u5f0f')\n",
+            "        if detail:\n",
+            "            reasons.append('\u9996\u6b21\u505c\u673a\u8bb0\u5f55\u5c5e\u4e8e\u5176\u4ed6\u4f7f\u80fd\u4f1a\u8bdd\uff0c\u4e0d\u80fd\u4f5c\u4e3a\u672c\u8f6e\u539f\u56e0')\n",
+            "        return '\uff1b'.join(reasons) or '\u4e0b\u4f4d\u673a\u5df2\u505c\u6b62\u6216\u4f1a\u8bdd\u5931\u6548'\n",
+            "\n",
+            "    def _request_transport(self, transport, kind, payload=b''):\n",
+            "        follow = getattr(self, '_joint_follow', None)\n",
+            "        if kind == TARGET and self._official_firmware and not (follow and follow['active']):\n",
+            "            began, failed = self._clock(), True\n",
+            "            try:\n",
+            "                response=transport.request(SOURCE_TARGET,payload)\n",
+            "                if response != b'': raise MotionError('\u5f02\u6b65\u76ee\u6807\u63a5\u53e3\u4e0d\u80fd\u4f2a\u9020\u5e94\u7b54')\n",
+            "                failed=False\n",
+            "                return response\n",
+            "            finally: self._record_timing('target_request',began,failed)\n",
+            "        if kind == SOURCE_STATE:\n",
+            "            began, failed = self._clock(), True\n",
+            "            try:\n",
+            "                response=transport.request(kind,payload)\n",
+            "                self._state_request_sequence=getattr(transport,'seq',None)\n",
+            "                failed=False\n",
+            "                return response\n",
+            "            finally: self._record_timing('state_request',began,failed)\n",
+            "        return super()._request_transport(transport,kind,payload)\n"
+          ]
+        },
+        {
+          "start": 111,
+          "end": 112,
+          "lines": [
+            "                        self._enabled_feedback(self._state) and not self._pending_stop)\n"
+          ]
+        },
+        {
+          "start": 121,
+          "end": 122,
+          "lines": [
+            "        if state['fault_mask'] or ((self._mode == 'off' or getattr(self, '_joint_follow', None) and self._joint_follow['active']) and state['online_mask'] != ALL_MASK):\n"
+          ]
+        },
+        {
+          "start": 123,
+          "end": 123,
+          "lines": [
+            "        if self._mode == 'off' and state.get('torque_known_mask', ALL_MASK) != ALL_MASK:\n",
+            "            raise MotionError('\u505c\u6b62\u540e\u7684\u626d\u77e9\u5173\u95ed\u56de\u8bfb\u5c1a\u672a\u5b8c\u6574\u786e\u8ba4')\n"
+          ]
+        },
+        {
+          "start": 221,
+          "end": 222,
+          "lines": [
+            "            attempted_target_ticks=target, error=error, recovery=self._recovery.status(),\n",
+            "            feedback_provenance=self._snapshot_policy_feedback_locked())\n",
+            "\n",
+            "    def _snapshot_policy_feedback_locked(self):\n",
+            "        # SOURCE_STATE can keep one motor's older reading while advancing the\n",
+            "        # whole-packet timestamp. Preserve that distinction without extra I/O\n",
+            "        # or a new freshness threshold. Missing ages stay unknown, never zero.\n",
+            "        state = self._state or {}\n",
+            "        ages = state.get('position_ages_us')\n",
+            "        return dict(scope='received_state_fields_not_motor_execution_proof',\n",
+            "            state_sample_us=state.get('sample_us'), filtered_sample_us=self._last_sample,\n",
+            "            host_sample_received_monotonic=self._sample_received,\n",
+            "            host_recorded_monotonic=self._clock(),\n",
+            "            position_ages_us=None if ages is None else list(ages),\n",
+            "            online_mask=state.get('online_mask'), fault_mask=state.get('fault_mask'),\n",
+            "            raw_positions=list(state.get('positions', ())),\n",
+            "            raw_velocities=list(state.get('velocities', ())),\n",
+            "            torque_known_mask=state.get('torque_known_mask'),\n",
+            "            armed=state.get('armed'), cookie=state.get('cookie'),\n",
+            "            configured=state.get('configured'), last_error=state.get('last_error'),\n",
+            "            torque_mask=state.get('torque_mask'),\n",
+            "            firmware_first_stop=copy.deepcopy(state.get('firmware_first_stop')))\n"
+          ]
+        },
+        {
+          "start": 225,
+          "end": 225,
+          "lines": [
+            "\n",
+            "    def _record_policy_frame_locked(self, frame, target, action, smooth, inference_ms):\n",
+            "        row = dict(generation=frame['generation'], mode=frame['mode'],\n",
+            "            selected_model=frame['selected'], observation_sample_us=frame['observation_sample'],\n",
+            "            commit_sample_us=self._last_sample,\n",
+            "            observation_received_monotonic=frame['observation_received'],\n",
+            "            submission_monotonic=frame['submission_monotonic'],\n",
+            "            validation_monotonic=self._clock(),\n",
+            "            submitted_observation=frame['submitted_observation'].tolist(),\n",
+            "            previous_raw_action=frame['previous'].tolist(),\n",
+            "            previous_EMA=frame['smooth'].tolist(), raw_action=action.tolist(),\n",
+            "            EMA=smooth.tolist(), requested_target_deg=[float(v) for v in target],\n",
+            "            input_feedback_provenance=copy.deepcopy(frame.get('feedback_provenance')),\n",
+            "            commit_feedback_provenance=self._snapshot_policy_feedback_locked(),\n",
+            "            inference_ms=inference_ms, target_write_attempted=False,\n",
+            "            target_write_completed=False, motor_execution_confirmed=False)\n",
+            "        self._policy_trace.append(row); self._policy_trace_total += 1\n",
+            "        self._pending_policy_evidence = row\n"
+          ]
+        },
+        {
+          "start": 230,
+          "end": 230,
+          "lines": [
+            "        evidence = self._pending_policy_evidence\n",
+            "        if evidence is not None:\n",
+            "            evidence.update(target_write_attempted=True,\n",
+            "                target_write_started_monotonic=self._clock(), transmitted_ticks=row['attempted_target_ticks'])\n"
+          ]
+        },
+        {
+          "start": 231,
+          "end": 232,
+          "lines": [
+            "            response = super()._request(kind, payload)\n",
+            "            if evidence is not None:\n",
+            "                evidence['target_write_completed'] = True\n",
+            "            return response\n"
+          ]
+        },
+        {
+          "start": 234,
+          "end": 234,
+          "lines": [
+            "            if evidence is not None:\n",
+            "                evidence['target_write_error'] = str(error)\n"
+          ]
+        },
+        {
+          "start": 238,
+          "end": 238,
+          "lines": [
+            "            self._pending_policy_evidence = None\n"
+          ]
+        },
+        {
+          "start": 240,
+          "end": 241,
+          "lines": [
+            "        if self._trace or self._policy_trace:\n"
+          ]
+        },
+        {
+          "start": 243,
+          "end": 244,
+          "lines": [
+            "                reason=reason, terminal_feedback=self._snapshot_policy_feedback_locked(),\n",
+            "                frames=list(self._trace), total_frames=self._trace_total,\n",
+            "                policy_frames=list(self._policy_trace), total_policy_frames=self._policy_trace_total,\n",
+            "                policy_frames_truncated=self._policy_trace_total > len(self._policy_trace),\n"
+          ]
+        },
+        {
+          "start": 246,
+          "end": 246,
+          "lines": [
+            "            self._policy_trace.clear(); self._policy_trace_total = 0\n",
+            "            self._pending_policy_evidence = None\n"
+          ]
+        },
+        {
+          "start": 258,
+          "end": 258,
+          "lines": [
+            "        state=self._state or {}\n",
+            "        known=state.get('torque_known_mask', ALL_MASK)\n",
+            "        result['torque_observation']=dict(\n",
+            "            known_ids=[sid for i,sid in enumerate(MOTOR_IDS) if known & (1<<i)],\n",
+            "            commanded_enabled=bool(state.get('armed')),\n",
+            "            on_broadcast_is_not_readback=True)\n",
+            "        result['position_feedback_ages_us']=state.get('position_ages_us')\n",
+            "        result['firmware_first_stop']=copy.deepcopy(state.get('firmware_first_stop'))\n",
+            "        result['servo_voltage_polling']=dict(enabled=False,reason='\u6b63\u5e38\u8fd0\u63a7\u4e0d\u989d\u5916\u8f6e\u8be2\u7535\u538b')\n",
+            "        for i,row in enumerate(result.get('rawdata', [])):\n",
+            "            row['torque']=int(bool(state.get('torque_mask',0)&(1<<i))) if known&(1<<i) else None\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "policy/production_motion.py",
+      "before_sha256": "0ecb508bb4bb43404d1dfa08c886b50a86254b35269133d52670057394469334",
+      "after_sha256": "7130c1b4e1625883b65e1a06ee5d562aa0b5a4c5811fe4db28388886f6a379cb",
+      "edits": [
+        {
+          "start": 16,
+          "end": 16,
+          "lines": [
+            "import select\n"
+          ]
+        },
+        {
+          "start": 64,
+          "end": 65,
+          "lines": [
+            "               4: '\u5173\u8282\u91c7\u6837\u8d85\u8fc7\u56fa\u4ef6\u65f6\u9650', 5: 'IMU \u91c7\u6837\u8d85\u8fc7\u56fa\u4ef6\u65f6\u9650',\n"
+          ]
+        },
+        {
+          "start": 106,
+          "end": 106,
+          "lines": [
+            "    if len(payload)==30 and payload[0]==ARM and payload[1] and payload[2]==3:\n",
+            "        online,fault,torque=struct.unpack_from('<HHH',payload,22)\n",
+            "        if online & ~ALL_MASK or fault & ~ALL_MASK or torque & ~ALL_MASK or payload[28] not in (0,1) or payload[29]!=1:\n",
+            "            raise MotionError('ARM \u6e90\u53cd\u9988\u8bca\u65ad\u5b57\u6bb5\u4e0d\u5339\u914d')\n",
+            "        missing=[str(sid) for i,sid in enumerate(MOTOR_IDS) if not online & (1<<i)]\n",
+            "        suffix='\uff1b\u4f7f\u80fd\u524d\u540c\u6b65\u53cd\u9988\u7f3a\u5931 ID '+(', '.join(missing) if missing else '\u65e0')\n",
+            "        suffix+=f'\uff0c\u6545\u969c\u63a9\u7801 {fault:#06x}\uff0c\u626d\u77e9\u63a9\u7801 {torque:#06x}\uff0cIMU\u6709\u6548 {bool(payload[28])}'\n",
+            "        payload=payload[:2]+b'\\x01'+payload[3:22]\n"
+          ]
+        },
+        {
+          "start": 229,
+          "end": 231,
+          "lines": [
+            "        gap = (began - self._last_target_attempt) * 1000 if kind in (TARGET,31) and self._last_target_attempt is not None else None\n",
+            "        if kind in (TARGET,31):\n"
+          ]
+        },
+        {
+          "start": 262,
+          "end": 262,
+          "lines": [
+            "        if kind == 31:\n",
+            "            # Explicitly negotiated source target is enqueue-only. Never invent\n",
+            "            # an MCU acknowledgement; current errors arrive via SOURCE_STATE.\n",
+            "            return b''\n"
+          ]
+        },
+        {
+          "start": 265,
+          "end": 266,
+          "lines": [
+            "                    32: 0xa0, TELEMETRY_CAPS: TELEMETRY_CAPS_REPLY, MOTION_EVIDENCE_CAPS: MOTION_EVIDENCE_CAPS_REPLY}.get(kind, ACK)\n"
+          ]
+        },
+        {
+          "start": 268,
+          "end": 268,
+          "lines": [
+            "            if not data and self._posix_write:\n",
+            "                # The production POSIX fd is nonblocking. Wait for readable\n",
+            "                # bytes instead of burning a CPU core on empty reads. Preserve\n",
+            "                # the same absolute response deadline and parser/sequence gates;\n",
+            "                # no command is resent and no feedback timestamp is refreshed.\n",
+            "                remaining = deadline - time.monotonic()\n",
+            "                if remaining > 0:\n",
+            "                    select.select([self.serial.fileno()], [], [], remaining)\n",
+            "                continue\n"
+          ]
+        },
+        {
+          "start": 272,
+          "end": 274,
+          "lines": [
+            "                    if (len(response) not in (2, 22, 30, ARM_TRACE_SIZE, TARGET_STOP_PACKET.size) or response[0] != kind\n",
+            "                            or (len(response) in (22, 30, ARM_TRACE_SIZE) and (kind != ARM or not response[1]))\n"
+          ]
+        },
+        {
+          "start": 293,
+          "end": 294,
+          "lines": [
+            "                            detail = '\uff1b' + arm_failure_detail(response) if len(response) in (22, 30, ARM_TRACE_SIZE) else ''\n"
+          ]
+        },
+        {
+          "start": 737,
+          "end": 738,
+          "lines": [
+            "        if (all(j['zero'] is not None for j in joints) and (state['online_mask'] == ALL_MASK or state.get('source_runtime') is True and state['armed'])\n"
+          ]
+        },
+        {
+          "start": 744,
+          "end": 745,
+          "lines": [
+            "            vels = [v * SPEED_COUNTS_PER_UNIT * 360. / 4096 * j['sign']\n"
+          ]
+        },
+        {
+          "start": 757,
+          "end": 757,
+          "lines": [
+            "\n",
+            "    def _enabled_feedback(self, state):\n",
+            "        return bool(state.get('armed') and (state.get('source_runtime') is True or\n",
+            "                                           state['torque_mask'] == ALL_MASK))\n"
+          ]
+        },
+        {
+          "start": 1115,
+          "end": 1118,
+          "lines": [
+            "                        if (not self._state['armed'] or self._state['cookie'] != cookie or self._filtered is None or\n",
+            "                                not self._enabled_feedback(self._state)):\n",
+            "                            raise MotionError('\u4e0b\u4f4d\u673a\u672a\u786e\u8ba4\u542f\u7528\u6216\u4f7f\u80fd\u540e\u7684\u59ff\u6001\u53cd\u9988\u65e0\u6548\uff0c\u5df2\u505c\u6b62')\n"
+          ]
+        },
+        {
+          "start": 1248,
+          "end": 1250,
+          "lines": [
+            "                            or not self._enabled_feedback(state)):\n",
+            "                        raise MotionError(self._session_failure_locked(state))\n"
+          ]
+        },
+        {
+          "start": 1300,
+          "end": 1301,
+          "lines": [
+            "                             head_command=None, frame_evidence=None):\n"
+          ]
+        },
+        {
+          "start": 1303,
+          "end": 1303,
+          "lines": [
+            "        if frame_evidence is not None:\n",
+            "            frame_evidence.update(submitted_observation=obs.copy(),\n",
+            "                                  submission_monotonic=self._clock())\n"
+          ]
+        },
+        {
+          "start": 1305,
+          "end": 1305,
+          "lines": [
+            "\n",
+            "    def _session_failure_locked(self, state):\n",
+            "        return '\u4e0b\u4f4d\u673a\u5df2\u505c\u6b62\u6216\u4f1a\u8bdd\u5931\u6548'\n",
+            "\n",
+            "    def _record_policy_frame_locked(self, frame, target, action, smooth, inference_ms):\n",
+            "        \"\"\"Optional detached evidence sink; never participates in motion gates.\"\"\"\n",
+            "        pass\n",
+            "\n",
+            "    def _snapshot_policy_feedback_locked(self):\n",
+            "        \"\"\"Optional passive provenance; never changes policy inputs or gates.\"\"\"\n",
+            "        return None\n"
+          ]
+        },
+        {
+          "start": 1371,
+          "end": 1372,
+          "lines": [
+            "                observation_received=observation_received, observation_sample=observation_sample,\n",
+            "                feedback_provenance=self._snapshot_policy_feedback_locked())\n"
+          ]
+        },
+        {
+          "start": 1374,
+          "end": 1374,
+          "lines": [
+            "        frame = latest_frame\n"
+          ]
+        },
+        {
+          "start": 1398,
+          "end": 1399,
+          "lines": [
+            "                    head_command=head_command, frame_evidence=frame)\n"
+          ]
+        },
+        {
+          "start": 1416,
+          "end": 1416,
+          "lines": [
+            "                    self._record_policy_frame_locked(frame, target, action, smooth, inference_ms)\n"
+          ]
+        },
+        {
+          "start": 1534,
+          "end": 1535,
+          "lines": [
+            "                                        360. / 4096 * j['sign'] if online else None))\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "policy/rl_core.py",
+      "before_sha256": "880b316654373aea8708c475c8fad31609e23d5791dbf3a04e94a9c9b28dfcc0",
+      "after_sha256": "cb84a8ae3db0ca0dcb8d9c653e68ab660e8856a2a9f95276156a0e502e4d2e47",
+      "edits": [
+        {
+          "start": 29,
+          "end": 44,
+          "lines": [
+            "# Same pinned model-specific reference used by passive calibration.\n",
+            "from model_reference import WALK_DEFAULT_DEG\n",
+            "DEFAULT_DEG = list(WALK_DEFAULT_DEG)\n",
+            "FIXED_STANCE_OVERRIDES = {}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "policy/status_snapshot.py",
+      "before_sha256": "52baf16a33487697c99736aabd6cae5189e9a37e909007a387569ccbb247b835",
+      "after_sha256": "3328ca1f44b15dfd9fb7a381073eda6b2cc3831e4ffefb5df6c20527c1782edb",
+      "edits": [
+        {
+          "start": 28,
+          "end": 28,
+          "lines": [
+            "    view._display_captured_monotonic = controller._clock()\n",
+            "    # Only this detached rendering view uses frozen time. The live controller\n",
+            "    # retains its clock and all original freshness/command checks.\n",
+            "    view._clock = lambda captured=view._display_captured_monotonic: captured\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "policy/stop_release.py",
+      "before_sha256": "f66521c8c0c4cef600e793c6dd6e74647025e0ac406f5bcb01c3e683f95003cd",
+      "after_sha256": "10049abe4a21663116d786ecfbf5475d5ecc38009f72bb2da9260466ea34e878",
+      "edits": [
+        {
+          "start": 51,
+          "end": 52,
+          "lines": [
+            "                state['online_mask'] == all_mask and state.get('torque_known_mask',all_mask) == all_mask and not state['fault_mask'] and\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "service/feedback_calibration_server.py",
+      "before_sha256": "955e763887de81b4d2ef469579e4782a72e43487bc36d4dc3686370eee8d166b",
+      "after_sha256": "269c6926e57f95da61e97f9ca24f91dbc061851c656c7c8a616b7c6f04fd3a45",
+      "edits": [
+        {
+          "start": 1680,
+          "end": 1683,
+          "lines": []
+        },
+        {
+          "start": 1728,
+          "end": 1730,
+          "lines": [
+            "            if sample_delta > 150000 or imu_delta > 150000:\n",
+            "                raise ValueError('\u96f6\u70b9\u8fde\u7eed\u53cd\u9988\u4e2d\u65ad\u8d85\u8fc7\u4e3b\u673a 150 \u6beb\u79d2\u6709\u6548\u671f\uff0c\u672c\u6b21\u672a\u4fdd\u5b58')\n"
+          ]
+        },
+        {
+          "start": 1738,
+          "end": 1740,
+          "lines": []
+        },
+        {
+          "start": 1747,
+          "end": 1756,
+          "lines": [
+            "            draft.update(sample_count=1, progress=1.)\n",
+            "            candidate = raw\n"
+          ]
+        },
+        {
+          "start": 1757,
+          "end": 1758,
+          "lines": [
+            "                         message='\u5df2\u53d6\u5f97\u70b9\u51fb\u540e\u7684\u65b0\u8bfb\u6570\uff0c\u4ec5\u4e3a\u9884\u89c8\u3002\u6838\u5bf9\u6a21\u578b\u96f6\u59ff\u6001\u548c\u65b0\u65e7\u6570\u503c\u540e\u70b9\u51fb\u4fdd\u5b58\uff1b\u9700\u8981\u65f6\u53ef\u91cd\u65b0\u91c7\u96c6\u3002')\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "service/joint_calibration.py",
+      "before_sha256": "fb5c29adc664665e257eeaf5e51f7592f042fb39ef68648289bf1f88b7b1cbc4",
+      "after_sha256": "f9a7f3fadb213db4d78dce2dd1e795c744ebe6716abe196d90ead27e0d4a6470",
+      "edits": [
+        {
+          "start": 5,
+          "end": 6,
+          "lines": []
+        },
+        {
+          "start": 8,
+          "end": 17,
+          "lines": [
+            "from model_reference import WALK_DEFAULT_DEG\n",
+            "DEFAULT_DEG = WALK_DEFAULT_DEG\n",
+            "# Endpoints are the user's explicitly selected comfortable safe positions.\n",
+            "# No automatic expansion of existing bounds, nor unmeasured 12-tick trimming.\n",
+            "MARGIN = 0\n"
+          ]
+        },
+        {
+          "start": 25,
+          "end": 26,
+          "lines": [
+            "        super().__init__(f'{reason}\u3002\u91c7\u6837 A={a}\u3001B={b}\uff1b\u6240\u9009\u8303\u56f4 {minimum}\u2013{maximum}\uff1b'\n"
+          ]
+        },
+        {
+          "start": 41,
+          "end": 43,
+          "lines": [
+            "    if not 0 < abs(delta) < 2048:\n",
+            "        raise ValueError('\u4e24\u6b21\u8bfb\u6570\u5fc5\u987b\u4e0d\u540c\u4e14\u4e0d\u8de8\u534a\u5708\uff1b\u8bf7\u6309\u5df2\u786e\u8ba4\u6b63\u65b9\u5411\u8f7b\u6446\u540e\u91cd\u91c7')\n"
+          ]
+        },
+        {
+          "start": 55,
+          "end": 64,
+          "lines": [
+            "    minimum, maximum = low, high\n",
+            "    if sid == 34 and max((a-zero)*sign, (b-zero)*sign) <= 0:\n",
+            "        raise ValueError('\u5634\u90e8\u8303\u56f4\u6ca1\u6709\u5305\u542b\u6cbf\u5df2\u786e\u8ba4\u6b63\u65b9\u5411\u5f20\u5f00\u7684\u8bfb\u6570\uff0c\u672a\u4fdd\u5b58')\n"
+          ]
+        },
+        {
+          "start": 65,
+          "end": 67,
+          "lines": [
+            "        reason = ('\u4e24\u4fa7\u4f4d\u7f6e\u76f8\u540c\uff0c\u8303\u56f4\u4e3a\u7a7a\uff0c\u672c\u5173\u8282\u672a\u4fdd\u5b58' if minimum >= maximum else\n",
+            "                  '\u6240\u9009\u8303\u56f4\u672a\u5305\u542b\u539f\u96f6\u70b9\uff0c\u672c\u5173\u8282\u672a\u4fdd\u5b58')\n"
+          ]
+        },
+        {
+          "start": 73,
+          "end": 74,
+          "lines": [
+            "        reason = '\u9ed8\u8ba4\u7ad9\u59ff\u8d85\u51fa\u6240\u9009\u8303\u56f4\uff0c\u672c\u5173\u8282\u672a\u4fdd\u5b58\uff1b\u8bf7\u6838\u5bf9\u65b9\u5411\u4e0e\u4e24\u4fa7\u5b89\u5168\u4f4d\u7f6e'\n"
+          ]
+        },
+        {
+          "start": 145,
+          "end": 146,
+          "lines": [
+            "                          message='\u7b49\u5f85\u8bfb\u53d6\u70b9\u51fb\u540e\u7684\u4e00\u4efd\u65b0\u53cd\u9988\uff1b\u786e\u8ba4\u663e\u793a\u503c\u540e\u624d\u4fdd\u5b58\u3002')\n"
+          ]
+        },
+        {
+          "start": 161,
+          "end": 163,
+          "lines": [
+            "        if delta > 150000:\n",
+            "            raise ValueError('\u5173\u8282\u8fde\u7eed\u53cd\u9988\u4e2d\u65ad\u8d85\u8fc7\u4e3b\u673a 150 \u6beb\u79d2\u6709\u6548\u671f\uff0c\u672c\u5173\u8282\u672a\u4fdd\u5b58')\n"
+          ]
+        },
+        {
+          "start": 175,
+          "end": 183,
+          "lines": [
+            "        # The explicit capture click selects one subsequent fresh observation.\n",
+            "        # Show it for user confirmation; no invented sample/noise thresholds.\n",
+            "        self.value.update(sample_count=1, progress=1.)\n",
+            "        value = raw\n"
+          ]
+        },
+        {
+          "start": 210,
+          "end": 211,
+          "lines": [
+            "                                  message=('\u5634\u90e8\u8303\u56f4\u5305\u542b\u539f\u96f6\u70b9\uff1b\u786e\u8ba4\u8bfb\u6570\u4e0e\u6b63\u65b9\u5411\u540e\u4fdd\u5b58\u3002'\n"
+          ]
+        },
+        {
+          "start": 212,
+          "end": 213,
+          "lines": [
+            "                                           '\u6240\u9009\u4e24\u4fa7\u8303\u56f4\u6709\u6548\uff0c\u672a\u81ea\u52a8\u7f29\u8fb9\uff1b\u786e\u8ba4\u8bfb\u6570\u4e0e\u6b63\u65b9\u5411\u540e\u4fdd\u5b58\u3002'))\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "service/model_reference.py",
+      "before_sha256": null,
+      "after_sha256": "55ab823df1eb36e33036ad1114e403303367f44ba52759991b008ef78ecbcb2f",
+      "edits": [
+        {
+          "start": 0,
+          "end": 0,
+          "lines": [
+            "\"\"\"Generated from the pinned official walk ONNX metadata; no hardware I/O.\n",
+            "\n",
+            "This deliberately records the model's HOME, which differs from the upstream\n",
+            "Python hardcoded +/-23 degrees. Calibration and the installed policy use the\n",
+            "same model-specific reference. No stored calibration is rewritten on import.\n",
+            "\"\"\"\n",
+            "WALK_MODEL_SHA256 = '5727b909d5ea1a0f9ff63bf4cea9707339dea6a522374c7a120da633605b923f'\n",
+            "WALK_HOME_RAD = (0.0, -0.087, -0.349, -0.005, 0.349, 0.349, 0.349, 0.0, 0.0, 0.0, 0.087, 0.349, 0.005, -0.349)\n",
+            "WALK_DEFAULT_DEG = (0.0, -4.984732817638162, -19.99622705006573, -0.2864788975654116, 19.99622705006573, 0.0, 4.984732817638162, 19.99622705006573, 0.2864788975654116, -19.99622705006573, 19.99622705006573, 19.99622705006573, 0.0, 0.0, 0.0)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "service/native_runtime.py",
+      "before_sha256": "fa774d4e0bde0ec3ca566bf84dcd2dd1c89424ffce71a2c911e368a67a3f32a1",
+      "after_sha256": "5eb6c9e3ed2a80ce667e0978b1285bf8f4a59c9198fc9f5006648e3c2fc19849",
+      "edits": [
+        {
+          "start": 34,
+          "end": 35,
+          "lines": [
+            "fault_ids torque_ids torque_observation position_feedback_ages_us servo_voltage_polling age_ms imu_age_ms rawdata joints imu voltage_supported\n"
+          ]
+        },
+        {
+          "start": 45,
+          "end": 46,
+          "lines": [
+            "release_confirmed imu_ok request_counts candidate_profile firmware_first_stop'''.split())\n"
+          ]
+        },
+        {
+          "start": 47,
+          "end": 49,
+          "lines": [
+            "pending_stop online_ids fault_ids torque_ids torque_observation position_feedback_ages_us servo_voltage_polling age_ms imu_age_ms sample_us imu_us\n",
+            "hold_ready hold_head_deg serial_closed no_uart_opened reason error firmware_error\n",
+            "firmware_first_stop'''.split())\n"
+          ]
+        },
+        {
+          "start": 511,
+          "end": 512,
+          "lines": [
+            "                    state.get('online_mask') == self.motion.ALL_MASK and state.get('torque_known_mask',self.motion.ALL_MASK) == self.motion.ALL_MASK and controller._age_locked() < self.motion.FRESH_SECONDS and not state.get('fault_mask') and\n"
+          ]
+        },
+        {
+          "start": 533,
+          "end": 535,
+          "lines": [
+            "        # Fallback for legacy status producers. Reviewed detached status binds\n",
+            "        # its ages to its own capture clock, after any control-lock wait.\n"
+          ]
+        },
+        {
+          "start": 542,
+          "end": 542,
+          "lines": [
+            "        status_at = current.get('status_captured_monotonic')\n",
+            "        if status_at is not None:\n",
+            "            if (type(status_at) not in (int, float) or not math.isfinite(status_at)\n",
+            "                    or status_at < 0 or status_at > time.monotonic()):\n",
+            "                raise ValueError('Invalid display capture timestamp')\n",
+            "            captured = status_at\n"
+          ]
+        },
+        {
+          "start": 703,
+          "end": 703,
+          "lines": [
+            "            # A fault can close UART before _finish calls stop(). Its live\n",
+            "            # status correctly reports disconnected, but a completed measured\n",
+            "            # STOP transaction remains evidence of that closure. It is invalidated\n",
+            "            # by every later ARM/TARGET, never inferred from an ACK or cached OFF.\n",
+            "            verified = getattr(controller, 'release_verification', lambda: None)()\n",
+            "            if (self._serial_closed(controller, namespace) and verified is not None\n",
+            "                    and verified.get('verification', {}).get('release_confirmed') is True):\n",
+            "                release = True\n"
+          ]
+        },
+        {
+          "start": 704,
+          "end": 705,
+          "lines": [
+            "                release_verification=verified, release_confirmed=release, serial_open_attempts=namespace['serial_open_attempts'],\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "service/native_workbench.py",
+      "before_sha256": "9b4b77c3a904fc6269c1be86696806d5cb363269d67efb10746880413bbff4e6",
+      "after_sha256": "4f5e75c5d908d884a65a4e955fb149742b44ae56d94c2bb33cc4d165ef36ebdb",
+      "edits": [
+        {
+          "start": 1033,
+          "end": 1035,
+          "lines": [
+            "        if action == 'stop' and body.get('stop_source') not in STOP_SOURCES:\n",
+            "            raise ValueError('\u672a\u77e5\u505c\u6b62\u6765\u6e90')\n"
+          ]
+        },
+        {
+          "start": 1058,
+          "end": 1058,
+          "lines": [
+            "            # Only the page-owned slider session uses an attended browser\n",
+            "            # lease. Ordinary X5-owned models keep their explicit-stop rule.\n",
+            "            if (action == 'stop' and body['stop_source'] != 'button'\n",
+            "                    and not hardware.get('joint_follow', {}).get('active')):\n",
+            "                raise ValueError('\u9875\u9762\u5207\u6362\u6216\u5173\u95ed\u4e0d\u518d\u505c\u6b62\u8fd0\u63a7\uff1b\u53ea\u6709\u660e\u786e\u7684\u505c\u6b62\u547d\u4ee4\u53ef\u6267\u884c')\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "service/worker-classes.py",
+      "before_sha256": "9bb8c4d3e270d707519409238cb7717115efba2b584004de94e76280f019bfc7",
+      "after_sha256": "27d96ba746fd3119f5b315bf8c3397285a66dd6d17c4082e706553e66a59f84f",
+      "edits": [
+        {
+          "start": 29,
+          "end": 31,
+          "lines": [
+            "        from motion import POLICY_POSITION_CAPS, OFFICIAL_RUNTIME_CAPS, SOURCE_RUNTIME, SOURCE_TARGET, SOURCE_STATE\n",
+            "        if kind not in (motion.HELLO, motion.STATE, motion.CONFIG, motion.ARM, motion.TARGET, motion.STOP, motion.VOLTAGE_STATE, motion.TELEMETRY_CAPS, motion.MOTION_EVIDENCE_CAPS, POLICY_POSITION_CAPS, OFFICIAL_RUNTIME_CAPS, SOURCE_RUNTIME, SOURCE_TARGET, SOURCE_STATE):\n"
+          ]
+        },
+        {
+          "start": 32,
+          "end": 33,
+          "lines": [
+            "        if kind in (POLICY_POSITION_CAPS, OFFICIAL_RUNTIME_CAPS, SOURCE_RUNTIME, SOURCE_STATE) and payload != b'':\n"
+          ]
+        },
+        {
+          "start": 34,
+          "end": 35,
+          "lines": [
+            "        if health_error and kind not in (motion.STOP, motion.STATE, motion.VOLTAGE_STATE, SOURCE_STATE):\n"
+          ]
+        },
+        {
+          "start": 37,
+          "end": 38,
+          "lines": [
+            "        hot = kind in (motion.STATE, motion.VOLTAGE_STATE, motion.TARGET, motion.STOP, SOURCE_TARGET, SOURCE_STATE)\n"
+          ]
+        },
+        {
+          "start": 51,
+          "end": 51,
+          "lines": [
+            "\n",
+            "    def _connect_once(self):\n",
+            "        self._verified_release = None\n",
+            "        return super()._connect_once()\n",
+            "\n",
+            "    def _request(self, kind, payload=b''):\n",
+            "        # An earlier measured OFF transaction must never survive a new\n",
+            "        # enable/position command, including one whose response is lost.\n",
+            "        if kind in (motion.ARM, motion.TARGET, motion.SOURCE_TARGET):\n",
+            "            self._verified_release = None\n",
+            "        return super()._request(kind, payload)\n",
+            "\n",
+            "    def release_verification(self):\n",
+            "        \"\"\"Historical STOP transaction, separate from live feedback freshness.\"\"\"\n",
+            "        with self._lock:\n",
+            "            record = getattr(self, '_verified_release', None)\n",
+            "            if self._mode != 'off' or record is None:\n",
+            "                return None\n",
+            "            return motion.copy.deepcopy(record)\n"
+          ]
+        },
+        {
+          "start": 72,
+          "end": 72,
+          "lines": [
+            "            self._verified_release = None\n"
+          ]
+        },
+        {
+          "start": 73,
+          "end": 74,
+          "lines": [
+            "                verification = confirm_release(lambda: self._request(motion.STOP), self._read_state,\n"
+          ]
+        },
+        {
+          "start": 87,
+          "end": 87,
+          "lines": [
+            "            self._verified_release = dict(generation=self._generation,\n",
+            "                recorded_monotonic=self._clock(), verification=verification,\n",
+            "                scope='historical_measured_STOP_transaction_not_live_freshness')\n"
+          ]
+        },
+        {
+          "start": 92,
+          "end": 92,
+          "lines": [
+            "            deadline = self._clock()\n"
+          ]
+        },
+        {
+          "start": 93,
+          "end": 94,
+          "lines": []
+        },
+        {
+          "start": 97,
+          "end": 98,
+          "lines": [
+            "                # Pinned upstream Controller.run uses an absolute 20ms clock.\n",
+            "                # Relative sleeps accumulate every scheduler late wakeup.\n",
+            "                # Skip missed slots using the same source formula, never replay\n",
+            "                # stale targets to catch up and never alter feedback deadlines.\n",
+            "                deadline += motion.PERIOD\n",
+            "                now = self._clock()\n",
+            "                if deadline <= now:\n",
+            "                    missed = int((now-deadline)/motion.PERIOD)+1\n",
+            "                    deadline += missed*motion.PERIOD\n",
+            "                else:\n",
+            "                    self._closed.wait(deadline-now)\n"
+          ]
+        },
+        {
+          "start": 130,
+          "end": 130,
+          "lines": [
+            "        result['status_captured_monotonic'] = view._display_captured_monotonic\n"
+          ]
+        },
+        {
+          "start": 160,
+          "end": 161,
+          "lines": [
+            "            result['release_confirmed'] = bool(self._connected and self._state and (self._state['online_mask'] == motion.ALL_MASK) and (self._state.get('torque_known_mask', motion.ALL_MASK) == motion.ALL_MASK) and self._age_locked() < motion.FRESH_SECONDS and (not self._state['fault_mask']) and (not self._state['armed']) and (not self._state['torque_mask']) and (not self._state['cookie']) and (not self._pending_stop))\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/index.html",
+      "before_sha256": "6232eb313b665bfaf08e68cf1f3809ecff711d537a92ef895de88d4a2c6ef2f8",
+      "after_sha256": "fe9ac4be5d107f06f1acbd26fe831fc1728b67200aece0d49bd85401673cddda",
+      "edits": [
+        {
+          "start": 202,
+          "end": 203,
+          "lines": [
+            "          <p id=\"jointMarginNote\" class=\"note\">\u8fd9\u662f\u5176\u4f59\u5173\u8282\u4fdd\u6301\u53c2\u8003\u59ff\u6001\u65f6\u91c7\u5230\u7684\u5355\u5173\u8282\u8303\u56f4\uff0c\u4e0d\u4ee3\u8868\u6240\u6709\u5173\u8282\u7ec4\u5408\u90fd\u65e0\u78b0\u649e\u3002\u9700\u81ea\u5df1\u7559\u660e\u663e\u95f4\u9699\uff1b\u540e\u53f0\u4fdd\u5b58\u4f60\u9009\u62e9\u7684\u4e24\u7aef\uff0c\u4e0d\u81ea\u52a8\u7f29\u8fb9\uff1b\u68c0\u67e5\u539f\u96f6\u70b9\u548c\u6a21\u578b\u9ed8\u8ba4\u7ad9\u59ff\u5728\u8303\u56f4\u5185\u3002A/B \u8303\u56f4\u4e0d\u8bbe\u534a\u5708\u8de8\u5ea6\u4e0a\u9650\uff0c\u6309\u7f16\u7801\u5668\u8f83\u5c0f\u503c\u5230\u8f83\u5927\u503c\u4fdd\u5b58\uff1b\u8de8 4095\u21920 \u7684\u8303\u56f4\u4e0d\u652f\u6301\u3002</p>\n"
+          ]
+        },
+        {
+          "start": 679,
+          "end": 680,
+          "lines": [
+            "  setMotionText(el('motionLiveDetail'),shown?'\u6700\u8fd1\u53cd\u9988\uff1a\u8235\u673a\u5728\u7ebf '+(shown.online_ids?.length||0)+'/15\uff1b\u6545\u969c '+(shown.fault_ids?.length||0)+'\uff1b'+(shown.torque_observation?.known_ids?.length===0?'\u4f7f\u80fd\u6307\u4ee4 '+(shown.torque_observation.commanded_enabled?'\u5f00\u542f':'\u5173\u95ed')+'\uff0c\u626d\u77e9\u5b9e\u6d4b\u672a\u786e\u8ba4':'\u56de\u8bfb\u626d\u77e9\u5f00\u542f '+(shown.torque_ids?.length||0)+'/15')+'\uff1b\u53cd\u9988 '+(shown.rates?.state_hz||0)+' Hz\uff1b\u76ee\u6807 '+(shown.rates?.control_hz||0)+' Hz'+(mode!=='off'&&typeof shown.inference_ms==='number'?'\uff1b\u63a8\u7406 '+shown.inference_ms.toFixed(2)+' ms':''):'\u5c1a\u672a\u6536\u5230\u8fd0\u63a7\u53cd\u9988\uff0c\u6b63\u5728\u7b49\u5f85\u6570\u636e\u3002');\n"
+          ]
+        },
+        {
+          "start": 836,
+          "end": 837,
+          "lines": [
+            "  const f=fromMotion?{online_mask:mask(h.online_ids),fault_mask:mask(h.fault_ids),torque_mask:mask(h.torque_ids),torque_known_mask:h.torque_observation?mask(h.torque_observation.known_ids):32767,armed:h.armed===true,arm_cookie:h.armed?1:0,imu_ok:h.imu_ok===true,positions:motorIds.map(id=>h.rawdata?.find(row=>row.id===id)?.position)}:snapshot?.feedback;\n"
+          ]
+        },
+        {
+          "start": 844,
+          "end": 845,
+          "lines": [
+            "  const allOff=fresh&&f.online_mask===32767&&f.fault_mask===0&&f.torque_mask===0&&f.armed===false&&(f.torque_known_mask??32767)===32767;\n"
+          ]
+        },
+        {
+          "start": 858,
+          "end": 859,
+          "lines": [
+            "    cells.torque.textContent=online&&((f.torque_known_mask??32767)&(1<<index))?(f.torque_mask&(1<<index)?'\u5f00\u542f':'\u5173\u95ed'):'\u672a\u786e\u8ba4';\n"
+          ]
+        },
+        {
+          "start": 1150,
+          "end": 1151,
+          "lines": [
+            "  let rangeGuide=mouth?'\u5634\u90e8\u6cbf\u8f7b\u5408\u3001\u5f20\u5f00\u8fa8\u8ba4\uff0c\u4e0d\u80fd\u8d8a\u8fc7\u95ed\u5408\u7aef\u3002':zero===null?'\u7b49\u5f85\u5df2\u4fdd\u5b58\u96f6\u70b9\u3002':'A\u3001B \u8981\u5305\u4f4f\u539f\u96f6\u70b9 '+zero+'\uff1b\u6240\u9009\u4e24\u7aef\u5fc5\u987b\u5305\u542b\u5b83\uff0c\u4e0d\u4f1a\u81ea\u52a8\u6269\u5c55\u6216\u7f29\u8fb9\u3002';\n"
+          ]
+        },
+        {
+          "start": 1172,
+          "end": 1173,
+          "lines": [
+            "  el('jointMarginNote').textContent=mouth?'\u5634\u90e8\u53ea\u8f7b\u5408\u3001\u5f20\u5f00\uff0c\u4e0d\u53ef\u8d8a\u8fc7\u95ed\u5408\u7aef\u3002\u6240\u9009\u8303\u56f4\u987b\u5305\u542b\u539f\u96f6\u70b9\u53ca\u6cbf\u5df2\u786e\u8ba4\u6b63\u65b9\u5411\u5f20\u5f00\u7684\u8bfb\u6570\uff1b\u4fdd\u5b58\u6240\u9009\u4e24\u7aef\uff0c\u4e0d\u81ea\u52a8\u7f29\u8fb9\uff0c\u539f\u96f6\u70b9\u4e0d\u6539\u3002':'\u8fd9\u662f\u5176\u4f59\u5173\u8282\u4fdd\u6301\u53c2\u8003\u59ff\u6001\u65f6\u91c7\u5230\u7684\u5355\u5173\u8282\u8303\u56f4\uff0c\u4e0d\u4ee3\u8868\u6240\u6709\u5173\u8282\u7ec4\u5408\u90fd\u65e0\u78b0\u649e\u3002\u9700\u81ea\u5df1\u7559\u660e\u663e\u95f4\u9699\uff1b\u540e\u53f0\u4fdd\u5b58\u4f60\u9009\u62e9\u7684\u4e24\u7aef\uff0c\u4e0d\u81ea\u52a8\u7f29\u8fb9\uff1b\u68c0\u67e5\u539f\u96f6\u70b9\u548c\u6a21\u578b\u9ed8\u8ba4\u7ad9\u59ff\u5728\u8303\u56f4\u5185\u3002A/B \u8303\u56f4\u4e0d\u8bbe\u534a\u5708\u8de8\u5ea6\u4e0a\u9650\uff0c\u6309\u7f16\u7801\u5668\u8f83\u5c0f\u503c\u5230\u8f83\u5927\u503c\u4fdd\u5b58\uff1b\u8de8 4095\u21920 \u7684\u8303\u56f4\u4e0d\u652f\u6301\u3002';\n"
+          ]
+        }
+      ]
+    }
+  ]
+}

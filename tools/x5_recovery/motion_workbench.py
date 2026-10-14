@@ -328,7 +328,8 @@ def run_motion():
                         except Exception as error: reason=str(error)
                         result['model_start_blocked_reasons'][name]=reason
                     result['release_confirmed']=bool(self._connected and self._state and
-                        self._state['online_mask']==motion.ALL_MASK and not self._state['fault_mask'] and not self._state['armed'] and
+                        self._state.get('torque_known_mask',self._state['online_mask'])==motion.ALL_MASK and
+                        self._age_locked()<motion.FRESH_SECONDS and not self._state['fault_mask'] and not self._state['armed'] and
                         not self._state['torque_mask'] and not self._state['cookie'] and not self._pending_stop)
                     result['imu_ok']=bool(self._state and self._state['imu_ok'])
                     result['request_counts']=dict(request_counts)

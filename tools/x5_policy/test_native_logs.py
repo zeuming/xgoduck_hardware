@@ -90,7 +90,7 @@ class LogHTTPTests(process_tests.ProcessTests):
     # Use the actual separate HTTP subprocess from the existing fixture.
     def test_log_routes_read_disk_without_rpc_or_controller_snapshot(self):
         directory = self.root / 'native-evidence'
-        directory.mkdir(mode=0o700)
+        directory.mkdir(mode=0o700, exist_ok=True)
         for index in range(10):
             path = directory / ('operation-%016x.json' % index)
             path.write_text(json.dumps(dict(action='stop', state='complete', token='private')))

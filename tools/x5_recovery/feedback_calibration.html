@@ -200,7 +200,7 @@
             <div class="joint-action" id="jointRangeBRow"><div><strong>4 · 安全位置 B</strong><p id="jointRangeBValue">其余关节继续保持原姿态。再记录另一侧不擦碰、有明显间隙的位置，不用判断数值大小。</p></div><button class="button" id="jointRangeB" type="button" disabled>记录安全位置 B</button></div>
             <div class="joint-action" id="jointSaveRow"><div><strong>5 · 保存本关节</strong><p id="jointSaveValue">方向和安全范围一并保存，原零点及 IMU 保持不变。</p></div><button class="button" id="jointSave" type="button" disabled>保存本关节</button></div>
           </div>
-          <p id="jointMarginNote" class="note">这是其余关节保持参考姿态时采到的单关节范围，不代表所有关节组合都无碰撞。需自己留明显间隙；后台两端各缩进 12 刻度（约 1.05°），并检查原零点和默认站姿在范围内。跨 4095→0 的范围不支持。</p>
+          <p id="jointMarginNote" class="note">这是其余关节保持参考姿态时采到的单关节范围，不代表所有关节组合都无碰撞。需自己留明显间隙；后台两端各缩进 12 刻度（约 1.05°），并检查原零点和默认站姿在范围内。A/B 范围不设半圈跨度上限，按编码器较小值到较大值保存；跨 4095→0 的范围不支持。</p>
           <div class="joint-bottom"><button class="button" id="jointCancel" type="button" disabled>取消未保存步骤 / 重来</button><button class="button" id="jointNext" type="button" disabled>下一个未完成关节 →</button></div>
           <p id="jointGate" class="note" style="margin-top:10px">等待新鲜反馈、15 个舵机在线且实际扭矩关闭。</p>
         </div>
@@ -252,14 +252,6 @@
       <p id="motionDeploymentDetail" class="source-note">连接时自动载入本页保存的零点、方向、安全范围和 IMU 校准。</p>
       <div class="table-wrap"><table class="device-table"><thead><tr><th>模型</th><th>运行状态</th><th>输入 / 输出</th><th>触发条件</th></tr></thead><tbody id="motionModelRows"></tbody></table></div>
       <div class="capability-note" role="status" aria-live="polite"><strong id="motionStatusTitle">等待连接 X5</strong><p id="motionStatusMessage">点击「连接并载入模型」。会先结束校准采集，关闭原串口，再建立运控连接。</p></div>
-      <div class="checklist"><label><input id="motionSupportConfirmed" type="checkbox">机身有稳固支撑，关节运动空间无遮挡；停止释放扭矩后仍能托住机身</label></div>
-      <div class="capability-note" id="motionHeadClearance" hidden>
-        <strong id="motionHeadClearanceTitle">头颈避让 · 固定站姿</strong>
-        <p class="note" id="motionHeadClearanceInstructions">扭矩关闭时，轻扶头颈到不碰板卡、线束的位置，再记录。记录不转动电机、不修改零点；本次连接有效，重连后需重新记录。记录后保持头颈位置，机身仍需稳固支撑。</p>
-        <label><input id="motionHeadClearanceConfirmed" type="checkbox"><span id="motionHeadClearanceLabel">头颈与板卡、线束有明显间隙，站姿过程中不会挤压或拉线</span></label>
-        <div class="settings-actions"><button class="button" id="motionHeadCapture" type="button" disabled>记录当前头颈位置 · 不动作</button></div>
-        <p class="note" id="motionHeadClearanceStatus">等待头颈位置记录。平衡、行走及其他模型动作的机械间隙尚未验证，暂不开放。</p>
-      </div>
       <p class="note" id="motionFocusHint">固定站姿由 X5 独立保持，切换、刷新或关闭网页不会打断；点击停止按钮或硬件反馈异常时释放扭矩。机身仍需支撑。平衡与行走等动作离开页面或网页控制超时时停止。</p>
       <p class="note" id="motionBalanceHint">先缓慢进入固定站姿，再单独启动站立平衡。固定站姿只保持关节角度，不会根据机身倾斜调整姿态；站立平衡使用零速度行走模型，会持续根据 IMU 和关节反馈调整目标，也可能小幅踏步。模型效果尚需本机验证，支撑装置须继续防止跌落。</p>
       <div class="capability-note" id="motionImuPosture" role="status" aria-live="polite">
@@ -301,6 +293,8 @@
       <p id="motionLiveDetail" class="source-note">尚未收到运控反馈。</p>
       <p id="motionVoltageSummary" class="note" role="status" aria-live="polite"></p>
       <p class="note motion-voltage-note">舵机端电压 · 工作范围 4–8.4 V；按 0.1 V 换算，首次请与电池检测器核对。读不到不代表 0 V。</p>
+      <div class="settings-actions"><button class="button" id="saveRangeBoundaries" type="button" disabled>将越界读数设为区间边界</button></div>
+      <p class="note" id="motionRangeUpdateHint">仅保存越界关节的边界，不驱动舵机；保存会断开运控，随后请重新连接。</p>
       <div class="table-wrap motion-table-wrap"><table class="device-table" id="motionJointTable"><thead><tr><th>关节</th><th>最近实际位置</th><th>安全范围</th><th>默认站姿</th><th>模型目标 °</th><th>读数检查</th><th>供电电压</th></tr></thead><tbody id="motionJointRows"></tbody></table></div>
       <p class="note" style="margin-top:14px">四个模型在 X5 CPU 运行。踏步、俯身和翻滚从站姿到位后启动；起身从停止状态或已到位站姿单独启动。俯身运行 4 秒、翻滚约 1.9 秒；起身先保持默认姿态 1 秒，再运行恢复模型，最长 8 秒。单次运行结束会停止并释放扭矩。模型目标越界或反馈异常时立即停止并显示原因。模型已加载不代表对应实际动作已验证。部署保存在 X5 内存中；重启后重新连接会复查板卡身份和日志。</p>
     </div>
@@ -363,6 +357,38 @@ const stepResults=new Map();
 for(const [action,,poseId] of steps){const status=document.createElement('div');status.className='pose-status';status.id=poseId+'Status';status.textContent='尚未采样';const progress=document.createElement('progress');progress.max=1;progress.value=0;progress.hidden=true;progress.setAttribute('aria-label','本步采样进度');el(poseId).append(status,progress);stepResults.set(action,{status,progress});}
 for(const [name,label] of [['walk','行走'],['getup','起身'],['pick','俯身'],['roulade','翻滚']]){const row=document.createElement('tr'),cells=[];for(let i=0;i<4;i++){const cell=document.createElement('td');row.append(cell);cells.push(cell);}cells[0].textContent=label+' · '+name;el('motionModelRows').append(row);motionModelRows.set(name,cells);}
 for(const spec of jointSpecs){const row=document.createElement('tr'),cells=[],labels=['关节','最近实际位置','安全范围','默认站姿','模型目标 °','读数检查','供电电压'];for(let i=0;i<7;i++){const cell=document.createElement('td');cell.dataset.label=labels[i];row.append(cell);cells.push(cell);}cells[0].textContent='ID '+spec.id+' · '+spec.name;el('motionJointRows').append(row);motionRows.set(spec.id,cells);}
+let motionRangeUpdateMessage='',motionRangeUpdateBusy=false;
+function motionRangeUpdates(){const h=snapshot?.motion?.hardware;return (h?.rawdata||[]).flatMap(row=>{const j=calibrationJoint(row.id);return motorIds.includes(row.id)&&h.online_ids?.includes(row.id)&&encoder(row.position)&&j&&encoder(j.min)&&encoder(j.max)&&(row.position<j.min||row.position>j.max)?[{id:row.id,position:row.position,min:j.min,max:j.max}]:[];});}
+function motionRangeUpdateReason(){
+  const m=snapshot?.motion,h=m?.hardware,elapsed=receivedAt===null?Infinity:Math.max(0,performance.now()-receivedAt);
+  if(motionRangeUpdateBusy)return '正在保存边界，请等待结果；不会重复提交。';
+  if(motionBusy||requestBusy)return '上一项操作尚未结束，请等待结果。';
+  if(localFilePage||!snapshot?.native_access?.full_workbench)return '请打开 X5 工作台后保存边界。';
+  if(!motionConnectionEstablished()){
+    const error=m?.last_operation?.state==='failed'?m.last_operation.error:m?.error;
+    return '请点击“连接并载入模型”恢复位置读取，再保存边界；连接不会启动动作。'+(error?' 上次连接已结束：'+feedbackErrorText(error)+'。表格中的保留读数不能用于本次保存。':'');
+  }
+  if(h?.mode!=='off'||h?.armed!==false||h?.release_confirmed!==true||(h?.torque_ids||[]).length)return '请先点击“停止运动 · 释放扭矩”，确认扭矩全关后再保存边界。';
+  // Display polling is once a second. The save endpoint checks the actual
+  // controller sample against its unchanged 100 ms physical freshness gate.
+  if(fetchError||!Number.isFinite(h?.age_ms)||h.age_ms<0||h.age_ms+elapsed>=2500)return '页面反馈尚未更新，请等待当前读数恢复后再保存。';
+  if(!motionRangeUpdates().length)return '没有可更新的越界读数。';
+  return '';
+}
+async function expandMotionRanges(){
+  if(motionRangeUpdateBusy||el('saveRangeBoundaries').disabled)return;
+  const updates=motionRangeUpdates(),pageGeneration=motionPageGeneration(),generation=snapshot?.motion?.hardware?.generation;
+  motionRangeUpdateMessage='';motionRangeUpdateBusy=true;renderMotion();
+  const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),10000);
+  try{
+    const response=await fetch('/api/motion',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':snapshot.token},credentials:'same-origin',signal:abort.signal,body:JSON.stringify({action:'expand-feedback-ranges',page_generation:pageGeneration,generation,control_id:motionControlId,updates})});
+    const result=await response.json();if(!response.ok)throw new Error(result.error||'边界保存失败');
+    if(motionPageGeneration()!==pageGeneration||motionPageGeneration(result)!==pageGeneration)throw new Error('页面会话已变化，请刷新查看已保存区间');
+    if(motionStateNotOlder(result.motion,snapshot.motion)){snapshotRevision++;acceptSnapshot(result);render();}
+    motionRangeUpdateMessage=result.range_update_message||'越界读数已保存为安全区间边界；运控已断开，请重新连接载入。';
+  }catch(error){motionRangeUpdateMessage=error.name==='AbortError'?'保存应答超时，请检查已保存区间；不会自动重试。':'边界保存未完成：'+error.message;}
+  finally{clearTimeout(timer);motionRangeUpdateBusy=false;renderMotion();}
+}
 function motionPageGeneration(value=snapshot){return value?.native_access?.page_generation??value?.session?.generation;}
 // Connection ownership and feedback freshness have different lifetimes. A slow
 // status poll must not claim that an established serial connection is closing.
@@ -377,8 +403,7 @@ function syncMotionConfirmations(){
   // retained diagnostic again must not revoke a renewed confirmation.
   if(connectionChanged)motionConfirmationStop=null;
   if(connectionChanged||stop!==null&&stop!==motionConfirmationStop){
-    el('motionSupportConfirmed').checked=false;el('motionBehaviorConfirmed').checked=false;
-    el('motionHeadClearanceConfirmed').checked=false;
+    el('motionBehaviorConfirmed').checked=false;
   }
   motionConfirmationKey=key;
   if(stop!==null)motionConfirmationStop=stop;
@@ -509,26 +534,12 @@ function motionStandDegrees(h=snapshot?.motion?.hardware){
   if(Array.isArray(h?.stand_target_deg)&&h.stand_target_deg.length===motorIds.length&&h.stand_target_deg.every(v=>typeof v==='number'&&Number.isFinite(v)))return h.stand_target_deg;
   return h?.policy_metadata_protocol===1?null:legacyStandDegrees;
 }
-function motionFixedHeadWalkReady(h=snapshot?.motion?.hardware){
-  return h?.head_clearance_required===true&&h.head_clearance_protocol===1&&h.fixed_head_walk_protocol===1
-    &&h.fixed_head_walk_ready===true&&h.fixed_head_walk_zero_velocity_only===true
-    &&[30,31,32,33].every(id=>typeof h.hold_head_deg?.[id]==='number'&&Number.isFinite(h.hold_head_deg[id]));
-}
 function motionModelContractReady(model='walk',h=snapshot?.motion?.hardware){
-  return h?.target_validation_protocol===1&&h?.policy_metadata_protocol===1&&motionStandDegrees(h)!==null
-    &&(h.head_clearance_required!==true||model==='walk'&&motionFixedHeadWalkReady(h));
+  return h?.target_validation_protocol===1&&h?.policy_metadata_protocol===1&&motionStandDegrees(h)!==null;
 }
 function motionModelContractHint(model='walk',h=snapshot?.motion?.hardware){
   if(h?.target_validation_protocol!==1||h?.policy_metadata_protocol!==1||motionStandDegrees(h)===null)return '控制程序已更新，请停止并断开运控，再连接并载入模型';
-  return model==='walk'?'固定头颈零速平衡尚未就绪；先在扭矩关闭时确认间隙并记录头颈位置':'当前头颈避让仅用于固定站姿与零速平衡；其他模型动作的机械间隙尚未验证';
-}
-function motionHeadCaptureReady(){
-  const h=snapshot?.motion?.hardware??snapshot?.motion?.last_hardware,elapsed=receivedAt===null?Infinity:performance.now()-receivedAt;
-  return !localFilePage&&!fetchError&&motionConnectionEstablished()&&h?.head_clearance_protocol===1
-    &&Number.isFinite(elapsed)&&elapsed>=0&&elapsed<1500&&Number.isFinite(h.age_ms)&&h.age_ms+elapsed<1500
-    &&Number.isInteger(h.generation)&&h.mode==='off'&&h.armed===false&&h.calibrated===true&&h.pending_stop!==true
-    &&Array.isArray(h.torque_ids)&&h.torque_ids.length===0&&Array.isArray(h.online_ids)&&motorIds.every(id=>h.online_ids.includes(id))
-    &&Array.isArray(h.fault_ids)&&h.fault_ids.length===0&&h.firmware_error===0;
+  return '';
 }
 function motionStartupPending(m=snapshot?.motion){return m?.phase==='fault'&&m?.owns_connection===false&&m?.closed_proof?.no_uart_opened===true&&m?.error==='已明确选择仅启动诊断网页；尚未执行完整硬件连接检查，尚未启动舵机操作和采集。';}
 function motionTerminalReason(m=snapshot?.motion){
@@ -626,24 +637,11 @@ function renderMotion(){
   const m=snapshot?.motion,h=m?.hardware,d=m?.deployment,live=motionFresh(),connected=motionConnectionEstablished(),ready=m?.phase==='ready',owns=m?.owns_connection===true;
   const display=motionDisplayReadings(),recent=motionDisplayRecent(display);
   const loaded=ready&&d?.model_hashes?Object.keys(d.model_hashes).length:0,mode=h?.mode||'off';
-  const headHardware=h??m?.last_hardware,headRestricted=headHardware?.head_clearance_required===true;
-  const targetValidated=motionModelContractReady('walk',h),targetValidationHint=motionModelContractHint('walk',h),fixedHeadWalkReady=motionFixedHeadWalkReady(headHardware);
-  el('motionHeadClearance').hidden=headHardware?.head_clearance_protocol!==1||!headRestricted;
-  setMotionText(el('motionHeadClearanceTitle'),fixedHeadWalkReady?'头颈避让 · 固定站姿与零速平衡':'头颈避让 · 固定站姿');
-  const restoreReference=h?.candidate_profile?.standing_reference_restore===true;
-  setMotionText(el('motionStand'),restoreReference?'缓慢恢复上次站姿':'缓慢进入固定站姿');
-  setMotionText(el('motionHeadClearanceInstructions'),restoreReference?'记录当前头颈位置不会动作或修改零点。启动固定站姿后，腿部和头颈会在约3秒内一起缓慢恢复到上次站住时的记录位置。请扶住躯干，并确认头颈整个移动范围内没有顶住板卡、夹线或拉线。':'扭矩关闭时，轻扶头颈到不碰板卡、线束的位置，再记录。记录不转动电机、不修改零点；本次连接有效，重连后需重新记录。记录后保持头颈位置，机身仍需稳固支撑。');
-  setMotionText(el('motionHeadClearanceLabel'),restoreReference?'头颈从当前位置到上次站姿的移动范围内，均无碰撞、挤压或拉线':'头颈与板卡、线束有明显间隙，站姿过程中不会挤压或拉线');
-  el('motionHeadCapture').disabled=motionBusy||requestBusy||motionReceiptContextCurrent()||!motionHeadCaptureReady()||!el('motionHeadClearanceConfirmed').checked;
-  el('motionHeadClearanceConfirmed').disabled=!connected||motionBusy||headHardware?.mode!=='off';
-  const headPose=headHardware?.hold_head_deg;
-  setMotionText(el('motionHeadClearanceStatus'),headPose?'本次连接已记录：'+[30,31,32,33].map(id=>'ID '+id+'：'+Number(headPose[id]).toFixed(1)+'°').join('，')+(fixedHeadWalkReady?'。可用于固定站姿与固定头颈零速平衡；前进、后退、转向和其他模型动作暂不开放。':'。只用于固定站姿；零速平衡尚未就绪，其他模型动作暂不开放。'):'尚未记录；请先在扭矩关闭时确认间隙并记录。平衡与其他模型动作暂不开放。');
-  const headPreview=headHardware?.walk_preview_head_protocol===1&&el('motionPreviewModel').value==='walk';
-  el('motionPreviewHeadStatus').hidden=!headPreview;
-  setMotionText(el('motionPreviewHeadStatus'),!headPreview?'':headPose?'行走不动作预览采用已记录的头颈期望姿态，模型仍自行计算各关节目标；不会开启扭矩。预览通过不代表头颈联动间隙或站立平衡已经验证。':'尚未记录头颈位置；行走不动作预览使用模型原始头部指令。要检查避让姿态，请先在扭矩关闭时确认间隙并记录。');
-  setMotionText(el('motionBalanceHint'),headRestricted?fixedHeadWalkReady?'先缓慢进入固定站姿，关节到位后可单独启动固定头颈零速平衡。头颈保持已记录位置，腿部由行走模型根据 IMU 和关节反馈调整，也可能小幅踏步。仅允许零速度；前进、后退、转向和其他模型动作暂不开放，机身须继续防跌支撑。':'当前固定站姿保持已记录的头颈避让位置和原有腿部目标，不会根据机身倾斜自动平衡。先记录头颈间隙位置；固定头颈零速平衡尚未就绪，其他模型动作暂不开放。':'先缓慢进入固定站姿，再单独启动站立平衡。固定站姿只保持关节角度，不会根据机身倾斜调整姿态；站立平衡使用零速度行走模型，会持续根据 IMU 和关节反馈调整目标，也可能小幅踏步。模型效果尚需本机验证，支撑装置须继续防止跌落。');
-  if(restoreReference)setMotionText(el('motionBalanceHint'),'固定站姿会同时恢复上次站住时的腿部和头颈目标，避免每次卸力后换成不同的重心。关节到位后可单独启动零速平衡；头颈保持该记录位置。仍需本次实物验证，机身须防跌支撑。');
-  setMotionText(el('motionWalk'),headRestricted?'启动固定头颈零速平衡':'启动站立平衡');
+  const targetValidated=motionModelContractReady('walk',h),targetValidationHint=motionModelContractHint('walk',h),headRestricted=false;
+  setMotionText(el('motionStand'),'缓慢进入固定站姿');
+  el('motionPreviewHeadStatus').hidden=true;
+  setMotionText(el('motionBalanceHint'),'固定站姿使用模型配置的关节目标，包括头颈。先缓慢进入固定站姿，关节到位后再启动零速试跑；固定站姿本身不会自动平衡。');
+  setMotionText(el('motionWalk'),'启动站立平衡');
   setMotionText(el('motionHost'),loaded?'X5 · CPU':'尚未部署');setMotionText(el('motionModelsCount'),loaded+' / 4');
   setMotionText(el('motionCalibration'),loaded&&h?.calibrated?'15 / 15 + IMU':loaded?'校准待核对':'等待部署');
   setMotionText(el('motionMode'),!recent?(m?.phase==='deploying'?'正在部署':owns?'反馈未确认':'停止'):{off:h?.release_confirmed?'停止 · 扭矩关闭':'停止 · 扭矩待确认',shadow:'不动作预览 · '+({walk:'行走',getup:'起身',pick:'俯身',roulade:'翻滚'}[h.active_model]||'行走'),hold:h.hold_ready?'关节站姿已到位 · 待核对机身姿态':'正在进入固定站姿',walk:headRestricted?'固定头颈零速平衡运行':[h.command?.forward,h.command?.side,h.command?.yaw].every(v=>typeof v==='number'&&Number.isFinite(v)&&Math.abs(v)<.000001)?'站立平衡模型运行':'平衡与行走模型运行',getup:'起身模型运行',pick:'俯身模型运行',roulade:'翻滚模型运行'}[mode]||'未确认');
@@ -678,8 +676,6 @@ function renderMotion(){
   setMotionText(el('motionStatusMessage'),error||(m?.phase==='deploying'?'正在检查板卡、传输模型和校准、加载 X5 运行依赖。请等待部署结果。':recent?(outside.length?'实际位置超出安全范围：'+outside.join('、')+'。确认扭矩关闭后轻轻摆回表中的记录范围，再进入站姿。':h.start_blocked_reason||(mode==='hold'&&h.hold_ready?'固定站姿未运行平衡模型。编码器已接近目标，不能验证实物装配、零点和正方向。请观察双脚前后是否对齐、是否翘脚尖或脚跟，以及两侧关节是否持续保持。若翘脚或关节回落，先停止并确认扭矩关闭，再核对髋、膝、踝的零姿态与方向，暂不启动其他动作。':'模型和已保存校准已载入。先确认支撑，再缓慢进入固定站姿。')):connected?'运控连接已建立；页面反馈待更新，取得新鲜反馈后才能启动动作。':'点击「连接并载入模型」。会先结束校准采集，关闭原串口，再建立运控连接。'));
   if(motionReceiptContextCurrent()&&!error)setMotionText(el('motionStatusMessage'),'动作已确认；等待新的传感器状态，当前数值仍为此前读数。');
   syncMotionConfirmations();
-  const supported=el('motionSupportConfirmed').checked;
-  el('motionSupportConfirmed').disabled=!connected||motionBusy;
   el('motionBehaviorConfirmed').disabled=!connected||motionBusy;
   el('motionPreviewModel').disabled=!live||motionBusy||mode!=='off';
   const connectBlocked=motionConnectBlockedReason();
@@ -689,10 +685,10 @@ function renderMotion(){
   el('motionRecheck').disabled=!canMotionRecheck();setMotionText(el('motionRecheck'),recoveryPending()||snapshot?.maintenance?.fault_hold===true&&snapshot.maintenance.busy===true?'正在检查…':'重新检查连接与舵机');
   setMotionText(el('motionRecoveryStatus'),motionRecoveryInfo());
   el('motionShadow').disabled=!live||motionBusy||requestBusy||mode!=='off'||!h?.calibrated;
-  el('motionStand').disabled=!live||motionBusy||requestBusy||!supported||!!h?.start_blocked_reason||motionStandDegrees(h)===null||!['off','walk'].includes(mode);
-  el('motionStand').title=!live?'等待新鲜的运控反馈；支撑确认已保留':!supported?'请先确认机身有稳固支撑':h?.start_blocked_reason||'';
+  el('motionStand').disabled=!live||motionBusy||requestBusy||!!h?.start_blocked_reason||motionStandDegrees(h)===null||!['off','walk'].includes(mode);
+  el('motionStand').title=!live?'等待新鲜的运控反馈':h?.start_blocked_reason||'';
   const walkBlocked=motionWalkBlockedReason(),angles=motionImuDisplayAngles();
-  el('motionWalk').disabled=!live||motionBusy||requestBusy||!supported||!targetValidated||mode!=='hold'||h?.hold_ready!==true||!!walkBlocked;
+  el('motionWalk').disabled=!live||motionBusy||requestBusy||!targetValidated||mode!=='hold'||h?.hold_ready!==true||!!walkBlocked;
   el('motionWalk').title=!live?'等待新鲜的运控反馈':!targetValidated?targetValidationHint:walkBlocked;
   if(motionReceiptContextCurrent())for(const id of ['motionShadow','motionStand','motionWalk'])el(id).disabled=true;
   for(const [id,key] of [['motionImuTilt','tilt'],['motionImuPitch','pitch'],['motionImuRoll','roll']])setMotionText(el(id),angles?(Math.abs(angles[key])<.05?0:angles[key]).toFixed(1)+'°':'等待读数');
@@ -701,7 +697,7 @@ function renderMotion(){
   setMotionText(el('motionImuReadStatus'),imuReadReason||(recoveryError?'IMU 读取未完成：'+feedbackErrorText(recoveryError):'舵机电池断开时可独立读取姿态。保持 X5 与 ESP32 供电，点击后只读取 IMU，不会开启扭矩或启动动作。'));
   const displayWalkReason=motionKnownWalkBlockedReason(h)||(!angles?'等待 100 毫秒内的新鲜 IMU 姿态后才能启动站立平衡。':angles.tilt>=15?'动作开始前机身需要保持水平（倾角小于 15°）':'');
   setMotionText(el('motionWalkGateStatus'),(recent&&!targetValidated?targetValidationHint+'。':'')+(!recent?'等待新鲜反馈后检查站立平衡启动条件。':mode==='walk'?headRestricted?'固定头颈零速平衡最近运行；不开放移动，机身仍需防跌支撑。':'平衡与行走模型最近运行；机身仍需防跌支撑。':displayWalkReason?'站立平衡暂不能启动：'+displayWalkReason:h?.hold_ready!==true?'先等待关节站姿到位，再核对机身姿态和支撑。':'最近姿态读数符合小于 15° 的要求；启动仍检查 100 毫秒内的新鲜反馈和机身支撑。'));
-  for(const [id,name] of [['motionGetup','getup'],['motionPick','pick'],['motionRoulade','roulade']]){const contract=motionModelContractReady(name,h);el(id).disabled=!live||motionBusy||requestBusy||!supported||!contract||h?.behavior_protocol!==1||!!h?.model_start_blocked_reasons?.[name]||name!=='pick'&&!el('motionBehaviorConfirmed').checked;el(id).title=live&&!contract?motionModelContractHint(name,h):'';}
+  for(const [id,name] of [['motionGetup','getup'],['motionPick','pick'],['motionRoulade','roulade']]){const contract=motionModelContractReady(name,h);el(id).disabled=!live||motionBusy||requestBusy||!contract||h?.behavior_protocol!==1||!!h?.model_start_blocked_reasons?.[name]||name!=='pick'&&!el('motionBehaviorConfirmed').checked;el(id).title=live&&!contract?motionModelContractHint(name,h):'';}
   if(motionReceiptContextCurrent())for(const id of ['motionGetup','motionPick','motionRoulade'])el(id).disabled=true;
   setMotionText(el('motionBehaviorHint'),recent&&!motionModelContractReady('getup',h)?motionModelContractHint('getup',h):h?.behavior_result||(['getup','pick','roulade'].includes(mode)&&recent?'本轮剩余约 '+(h.behavior_seconds_remaining??0).toFixed(1)+' 秒；结束后停止并释放扭矩。':'起身、俯身和翻滚为单次模型测试，结束后停止并释放扭矩；先使用“不动作预览”，再逐项验证实际动作。'));
   const transportExited=m?.transport_exit?.process_exited===true;
@@ -720,6 +716,10 @@ function renderMotion(){
   setMotionText(el('motionStopReason'),protectiveReason?'停止原因：'+feedbackErrorText(protectiveReason)+currentStartRefusal:'');
   for(const name of ['FeedbackState','FeedbackAge','TorqueState','LiveDetail'])setMotionText(el('motionStop'+name),el('motion'+name).textContent);
   const defaults=motionStandDegrees(h);
+  const rangeUpdates=motionRangeUpdates(),rangeReason=motionRangeUpdateReason();
+  el('saveRangeBoundaries').disabled=!!rangeReason;
+  el('saveRangeBoundaries').title=rangeReason||'保存当前越界读数为安全区间边界；仅保存校准，不驱动舵机。';
+  setMotionText(el('motionRangeUpdateHint'),motionRangeUpdateMessage||rangeReason||(rangeUpdates.length?'将更新 '+rangeUpdates.map(v=>'ID '+v.id+'：'+(v.position<v.min?v.min:v.max)+' → '+v.position).join('；')+'。仅保存边界，不驱动舵机；保存会断开运控。':'没有可更新的越界读数。仅保存边界，不驱动舵机。'));
   renderMotionVoltages();
   for(const [id,cells] of motionRows){const j=calibrationJoint(id),raw=motionDisplayJoints.get(id),reported=h?.rawdata?.find(v=>v.id===id),current=recent&&h?.online_ids?.includes(id)&&encoder(reported?.position),i=motorIds.indexOf(id),stand=defaults&&j&&encoder(j.zero)&&[-1,1].includes(j.sign)?roundToEven(j.zero+defaults[i]/360*4095*j.sign):null;setMotionText(cells[1],raw?.position??'等待读数');cells[1].title=raw?'最近读数；距采样约 '+((raw.age_ms+performance.now()-raw.receivedAt)/1000).toFixed(1)+' 秒。':'';setMotionText(cells[2],j&&encoder(j.min)&&encoder(j.max)?j.min+'–'+j.max:'待采集');setMotionText(cells[3],stand??'待采集');setMotionText(cells[4],Number.isFinite(shown?.last_action?.[i])?shown.last_action[i].toFixed(2):'未运行');const outside=raw&&j&&(raw.position<j.min||raw.position>j.max);setMotionText(cells[5],raw&&j?(current?'最近读数 · ':'上次读数 · ')+(outside?'超出范围':'范围内'):'等待读数');cells[5].dataset.state=outside?'bad':current?'good':'stale';}
   if(workspaceView==='motion-models'){
@@ -733,15 +733,12 @@ function renderMotion(){
 async function runMotion(action,extra={}){
   if(localFilePage||!snapshot?.token||!snapshot?.session||((motionBusy||requestBusy)&&!['stop','command'].includes(action)))return;
   if(action==='connect'&&el('motionConnect').disabled)return;
-  if(action==='capture-head-clearance'&&(motionReceiptContextCurrent()||!motionHeadCaptureReady()||!el('motionHeadClearanceConfirmed').checked))return;
   if(action==='start'&&!motionFresh())return;
   if(action==='start'&&motionReceiptContextCurrent())return;
-  if(action==='start'&&extra.mode!=='shadow'&&!el('motionSupportConfirmed').checked)return;
   if(action==='start'&&extra.mode==='hold'&&motionStandDegrees()===null)return;
   if(action==='start'&&['getup','roulade'].includes(extra.mode)&&!el('motionBehaviorConfirmed').checked)return;
   if(action==='start'&&['walk','getup','pick','roulade'].includes(extra.mode)&&!motionModelContractReady(extra.mode))return;
   if(action==='start'&&extra.mode==='walk'&&(snapshot.motion.hardware.mode!=='hold'||snapshot.motion.hardware.hold_ready!==true||motionWalkBlockedReason()))return;
-  if(action==='command'&&snapshot?.motion?.hardware?.mode==='walk'&&snapshot.motion.hardware.head_clearance_required===true&&[extra.forward,extra.side,extra.yaw].some(v=>v!==0))return;
   const generation=(action==='capture-head-clearance'?(snapshot.motion?.hardware??snapshot.motion?.last_hardware):['stop','command'].includes(action)?motionControlHardware():snapshot.motion?.hardware)?.generation,pageGeneration=motionPageGeneration();
   const deploymentHash=snapshot.motion?.deployment?.archive_sha256,deploymentStarted=snapshot.motion?.deployment?.started_monotonic;
   const connectionSequence=snapshot.motion?.connection_sequence,operationStamp=snapshot.motion?.last_operation?.recorded_monotonic;
@@ -753,7 +750,7 @@ async function runMotion(action,extra={}){
   motionError='';motionRequestTimeout=null;renderMotion();const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),action==='connect'?20000:5000);
   try{
     const response=await fetch('/api/motion',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':snapshot.token},credentials:'same-origin',signal:abort.signal,body:JSON.stringify({action,page_generation:pageGeneration,generation,control_id:motionControlId,...extra})});
-    const result=await response.json();if(!response.ok)throw new Error(result.error||'运控请求失败');
+    const result=await response.json();if(!response.ok)throw new Error(result.error||'运控请求失败');if(result.range_update_message)motionRangeUpdateMessage=result.range_update_message;
     if(result?.action_receipt_protocol!==undefined){receiptAccepted=acceptMotionReceipt(result,receiptRequest);return;}
     if(epoch!==motionActionEpoch&&['start','stop','capture-head-clearance'].includes(action))return;
     if(motionPageGeneration()!==pageGeneration||motionPageGeneration(result)!==pageGeneration)throw new Error('页面会话已变化，旧运控响应未采用');
@@ -762,6 +759,7 @@ async function runMotion(action,extra={}){
   }catch(error){if(epoch===motionActionEpoch&&motionPageGeneration()===pageGeneration&&snapshot?.motion?.deployment?.archive_sha256===deploymentHash&&snapshot?.motion?.deployment?.started_monotonic===deploymentStarted){motionError=error.name==='AbortError'?(action==='connect'?'连接请求应答超时；正在通过状态反馈核对结果，不会重复连接或启动动作。':'运控请求超时；不会重发。请查看实际状态，连接超时会停止运动。'):error.message;if(error.name==='AbortError')motionRequestTimeout={action,message:motionError,pageGeneration,deploymentHash,deploymentStarted,connectionSequence,operationStamp};}}
   finally{clearTimeout(timer);if(busy)motionBusy=false;if(receiptAccepted&&action==='start')motionHeartbeat();if(receiptAccepted){if(pollPromise)pollPromise.then(()=>refresh());else refresh();}renderMotion();}
 }
+function motionHeartbeatTick(){if(performance.now()-motionLastHeartbeat>=100)motionHeartbeat();}
 async function motionHeartbeat(){
   const h=motionControlHardware();
   // The browser lease proves that the controlling page is present. It does
@@ -773,19 +771,18 @@ async function motionHeartbeat(){
   const pageGeneration=motionPageGeneration(),deploymentHash=snapshot.motion.deployment?.archive_sha256,deploymentStarted=snapshot.motion.deployment?.started_monotonic;
   const background=document.hidden===true&&h.mode==='hold';
   motionHeartbeatBusy=true;motionLastHeartbeat=performance.now();const began=motionLastHeartbeat,abort=new AbortController(),timer=setTimeout(()=>abort.abort(),background?1000:180);
-  let rejected=false,status=null,outcome='accepted';
+  let rejected=false,status=null,outcome='accepted',failureMessage=null;
   try{const response=await fetch('/api/motion',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':snapshot.token},credentials:'same-origin',signal:abort.signal,body:JSON.stringify({action:'heartbeat',page_generation:motionPageGeneration(),generation,control_id:motionControlId,background})});status=response.status;if(!response.ok){rejected=true;const result=await response.json();throw new Error(result.error||'控制心跳未通过');}motionHeartbeatTransientError='';}
   // A lost response must not occupy the sole request slot longer than the
   // actual400ms backend lease. Only heartbeat renewals may run again at the
   // next ordinary tick. Motion START/TARGET/command requests are never retried.
   // An explicit backend rejection remains terminal, as do generation/owner,
   // visibility, workspace and connection changes. No lease is extended here.
-  catch(error){outcome=rejected?'rejected':'transport-failure';if(!motionBusy&&motionPageGeneration()===pageGeneration&&snapshot?.motion?.deployment?.archive_sha256===deploymentHash&&snapshot?.motion?.deployment?.started_monotonic===deploymentStarted&&ownsMotionControl()&&motionControlHardware()?.generation===generation&&motionControlHardware()?.mode!=='off'&&!motionTerminalReason()){if(rejected){motionError=error.message;motionLastHeartbeat=Infinity;}else motionHeartbeatTransientError=error.message;}}
-  finally{motionHeartbeatAttempts.push({generation,started_ms:began,elapsed_ms:performance.now()-began,status,outcome});if(motionHeartbeatAttempts.length>64)motionHeartbeatAttempts.shift();clearTimeout(timer);motionHeartbeatBusy=false;if(background!==(document.hidden===true&&snapshot?.motion?.hardware?.mode==='hold')&&snapshot?.motion?.hardware?.generation===generation)motionHeartbeat();}
+  catch(error){failureMessage=error.message;outcome=rejected?'rejected':'transport-failure';if(!motionBusy&&motionPageGeneration()===pageGeneration&&snapshot?.motion?.deployment?.archive_sha256===deploymentHash&&snapshot?.motion?.deployment?.started_monotonic===deploymentStarted&&ownsMotionControl()&&motionControlHardware()?.generation===generation&&motionControlHardware()?.mode!=='off'&&!motionTerminalReason()){if(rejected){motionError=error.message;motionLastHeartbeat=Infinity;}else motionHeartbeatTransientError=error.message;}}
+  finally{motionHeartbeatAttempts.push({generation,started_ms:began,elapsed_ms:performance.now()-began,status,outcome,error:failureMessage});if(motionHeartbeatAttempts.length>64)motionHeartbeatAttempts.shift();clearTimeout(timer);motionHeartbeatBusy=false;if(background!==(document.hidden===true&&snapshot?.motion?.hardware?.mode==='hold')&&snapshot?.motion?.hardware?.generation===generation)motionHeartbeat();}
 }
 async function motionDriveCommand(value){
   if(!ownsMotionControl()||!motionFresh()||snapshot?.motion?.hardware?.mode!=='walk'||!finiteVector(value))return;
-  if(snapshot.motion.hardware.head_clearance_required===true&&value.some(v=>v!==0))return;
   motionDesired=value;motionDriveEpoch++;
   if(motionCommandBusy)return;
   motionCommandBusy=true;
@@ -1055,7 +1052,8 @@ function jointGateReason(includeSupport=true,includeDirectionAsset=true){const s
   if(f.armed!==false||f.arm_cookie!==0||f.torque_mask!==0)return '实际扭矩尚未确认关闭或控制器已使能，不能手动摆动与采样。';
   if(f.fault_mask!==0)return '反馈报告故障，关节采样已锁住。';
   if(f.last_error!==undefined&&f.last_error!==0)return '控制器报告异常状态，关节采样已锁住。';
-  if(f.online_mask!==32767)return '需 15 个舵机全部在线，才可确认实际扭矩关闭；检查 URT2 电池并等待反馈。';
+  if((f.torque_known_mask??f.online_mask)!==32767)return '等待实际扭矩关闭反馈；检查 URT2 电池并等待反馈。';
+  if(!validMask(f.online_mask)||!(f.online_mask&(1<<motorIds.indexOf(selectedJointId))))return '当前位置暂时不可读；摆回可读范围后继续，已记录步骤保留。';
   if(f.imu_ok!==true||!imuCalibrationSaved())return '需保留有效的 IMU 朝向和静止校准，再开始关节采样。';
   if(!Array.isArray(f.positions)||f.positions.length!==15||!f.positions.every(encoder))return '真实编码器反馈无效，采样已锁住。';
   if(!encoder(calibrationJoint(selectedJointId)?.zero))return '所选关节缺少已保存零点，请先核对零姿态。';
@@ -1088,13 +1086,14 @@ function zeroSupportId(){return workspaceView==='joint-steps'?'jointSupportConfi
 function canZeroAction(action){const z=snapshot?.joint_zero,s=snapshot?.session;
   if(localFilePage||requestBusy||typeof snapshot?.token!=='string'||!snapshot.token||!Number.isInteger(s?.generation))return false;
   if(action==='cancel')return motorIds.includes(z?.id)&&!['idle','saved','cancelled'].includes(z.stage);
+  if(action==='save')return z?.stage==='ready'&&z.id===selectedJointId&&encoder(z.candidate_zero);
   if(zeroSamplingBusy()||zeroGateReason())return false;
   if(action==='capture')return !zeroDraftActive();
-  return action==='save'&&z?.stage==='ready'&&z.id===selectedJointId&&encoder(z.candidate_zero)&&Math.abs(snapshot.feedback.positions[motorIds.indexOf(selectedJointId)]-z.candidate_zero)<=6;
+  return false;
 }
 function renderZeroCalibration(){const f=snapshot?.feedback,z=snapshot?.joint_zero,s=snapshot?.session;const spec=jointSpecs.find(item=>item.id===selectedJointId);const j=calibrationJoint(selectedJointId);const basic=!jointGateReason(false,false);const busy=zeroSamplingBusy();const draft=zeroDraftActive();const selected=z?.id===selectedJointId?z:null;
   const inline=workspaceView==='joint-steps';el('zeroEditorTitle').textContent='记 ID '+selectedJointId+' · '+spec.name+' 的零点（可选）';el('zeroOldBox').hidden=inline;el('zeroLiveBox').hidden=inline;el('zeroReadings').hidden=inline&&!encoder(selected?.candidate_zero);
-  for(const id of motorIds){const cell=zeroElements.get(id),joint=calibrationJoint(id);cell.row.dataset.selected=String(id===selectedJointId);cell.live.textContent=basic?String(f.positions[motorIds.indexOf(id)]):'—';cell.saved.textContent=encoder(joint?.zero)?String(joint.zero):'—';cell.state.textContent=jointSavedLabel(id);cell.button.disabled=requestBusy||jointSamplingBusy()||jointDraftActive()||draft;}
+  for(const id of motorIds){const cell=zeroElements.get(id),joint=calibrationJoint(id);cell.row.dataset.selected=String(id===selectedJointId);cell.live.textContent=basic&&(f.online_mask&(1<<motorIds.indexOf(id)))?String(f.positions[motorIds.indexOf(id)]):'—';cell.saved.textContent=encoder(joint?.zero)?String(joint.zero):'—';cell.state.textContent=jointSavedLabel(id);cell.button.disabled=requestBusy||jointSamplingBusy()||jointDraftActive()||draft;}
   el('zeroJointSelect').value=String(selectedJointId);el('zeroJointSelect').disabled=requestBusy||jointSamplingBusy()||jointDraftActive()||draft;
   el('zeroSelectedLabel').textContent='只更新 ID '+selectedJointId+' · '+spec.name;
   el('zeroHardwareStatus').textContent=basic?'当前反馈：15 / 15 舵机在线 · 实际扭矩关闭 · 控制器未使能':jointGateReason(false,false);
@@ -1105,12 +1104,12 @@ function renderZeroCalibration(){const f=snapshot?.feedback,z=snapshot?.joint_ze
   el('zeroCapture').title=busy?'正在采样，请保持静止。':zeroGateReason()||(draft?'已有未保存的零点预览，请先保存或取消。':'采集当前关节的静止零点，先预览再保存。');
   el('zeroCancelJointDraft').hidden=!jointDraftActive();el('zeroCancelJointDraft').disabled=!canJointCancel();
   el('zeroProgress').hidden=!busy;el('zeroProgress').value=typeof selected?.progress==='number'&&Number.isFinite(selected.progress)?Math.min(1,Math.max(0,selected.progress)):0;
-  const localError=zeroErrorGeneration===s?.generation&&zeroErrorId===selectedJointId?zeroError:'';const moved=selected?.stage==='ready'&&basic&&encoder(selected.candidate_zero)&&Math.abs(f.positions[motorIds.indexOf(selectedJointId)]-selected.candidate_zero)>6;
+  const localError=zeroErrorGeneration===s?.generation&&zeroErrorId===selectedJointId?zeroError:'';
   const missing=!draft&&selected?.stage!=='saved'&&zeroGateReason();
   let text=localError||selected?.error||(missing?'还不能记零点：'+missing:'')||selected?.message||(inline?'已有零点正确可跳过。摆到灰色零姿态后记零点，采样完成再保存；只修改当前关节。':'选择关节、对照零姿态摆稳，勾选确认后点击「记零点」。采样只生成预览，点击保存后才修改零点。');
-  if(selected?.stage==='ready'&&!localError&&!selected.error)text=moved?'采样后该关节已经移动，请重新摆到零姿态并采样；旧零点尚未修改。':'已采到候选零点 '+selected.candidate_zero+'，旧零点 '+selected.old_zero+' 尚未修改。保持当前零姿态，再点击「确认保存」。只有此关节的方向和范围会重置。';
-  el('zeroResult').textContent=text;el('zeroResult').classList.toggle('error',!!localError||!!selected?.error||moved);
-  el('zeroGate').textContent=busy?'正在读取静止样本，请保持姿态。':zeroGateReason()||'当前条件通过；只记录编码器，不下发运动指令。';
+  if(selected?.stage==='ready'&&!localError&&!selected.error)text='已记录零点 '+selected.candidate_zero+'，点击保存即可。只更新本关节，不下发运动指令。';
+  el('zeroResult').textContent=text;el('zeroResult').classList.toggle('error',!!localError||!!selected?.error);
+  el('zeroGate').textContent=selected?.stage==='ready'?'已采集，保存使用已记录数值。':busy?'正在读取静止样本，请保持姿态。':zeroGateReason()||'当前条件通过；只记录编码器，不下发运动指令。';
 }
 function stepIndex(action){return steps.findIndex(step=>step[0]===action);}
 function completedBefore(w){return w?.stage==='complete'?4:stepIndex(w?.expected_action);}
@@ -1161,11 +1160,11 @@ function renderCalibration(){const c=snapshot?.calibration;const joints=Array.is
   el('jointProgressSummary').textContent=c?'零点 '+zeros+' / 15 已保留；方向 '+directions+' / 15，安全范围 '+limits+' / 15。':'正在读取笔记本上保留的校准。';
   const savedSpecs=jointSpecs.filter(spec=>jointSaved(spec.id));
   el('jointSavedSummary').textContent=!Array.isArray(c?.joints)?'正在读取哪些关节已完成并保存。':savedSpecs.length?'已完成并保存（'+savedSpecs.length+' / 15）：'+savedSpecs.map(spec=>'ID '+spec.id+' · '+spec.name).join('；')+'。':'尚无完成并保存的关节。完成本关节 5 步并点击「保存本关节」后，这里会列出结果。';
-  for(const spec of jointSpecs)jointOptionElements.get(spec.id).textContent='ID '+spec.id+' · '+spec.name+' · '+jointSavedLabel(spec.id);
+  for(const spec of jointSpecs)setMotionText(jointOptionElements.get(spec.id),'ID '+spec.id+' · '+spec.name+' · '+jointSavedLabel(spec.id));
   if(confirmed){const axes=imu.axes.map(axis=>(axis.startsWith('-')?'−':'+')+axis.slice(-1).toUpperCase());el('savedMountingTitle').textContent='机身朝向已保存';el('savedMountingDetail').textContent='机身前 / 左 / 上 对应传感器 '+axes.join(' / ')+'；静止角速度偏置 '+imu.bias_dps.map(v=>v.toFixed(3)).join(' / ')+' °/s。校准已保存到笔记本，关节零点保持不变。';}else{el('savedMountingTitle').textContent='机身朝向：待识别';el('savedMountingDetail').textContent='完成四步后，网页会保存朝向和静止角速度偏置。15 个关节零点保持不变。';}
 }
 function renderJointAutomaticStatus(){const f=snapshot?.feedback;const fresh=dataFresh();const onlineKnown=fresh&&validMask(f?.online_mask);const online=onlineKnown?motorIds.filter((id,i)=>f.online_mask&(1<<i)).length:null;
-  const masksValid=onlineKnown&&validMask(f.fault_mask)&&validMask(f.torque_mask);const allVerifiedOff=masksValid&&f.online_mask===32767&&f.fault_mask===0&&f.torque_mask===0&&f.armed===false&&f.arm_cookie===0;
+  const masksValid=onlineKnown&&validMask(f.fault_mask)&&validMask(f.torque_mask);const allVerifiedOff=masksValid&&(f.torque_known_mask??f.online_mask)===32767&&f.fault_mask===0&&f.torque_mask===0&&f.armed===false&&f.arm_cookie===0;
   el('jointOnlineStatus').textContent=onlineKnown?online+' / 15':'— / 15';el('jointOnlineStatusCard').dataset.state=online===15&&f.fault_mask===0?'good':'unknown';
   const torquePresent=fresh&&validMask(f?.torque_mask)&&f.torque_mask!==0;el('jointTorqueStatus').textContent=torquePresent?'有扭矩，禁止轻摆':allVerifiedOff?'已关闭':'未确认';el('jointTorqueStatusCard').dataset.state=torquePresent?'bad':allVerifiedOff?'good':'unknown';
   const armed=fresh&&f?.armed===true;const disarmed=fresh&&f?.armed===false&&f.arm_cookie===0;el('jointControllerStatus').textContent=armed?'已使能，禁止轻摆':disarmed?'未使能':'未确认';el('jointControllerStatusCard').dataset.state=armed?'bad':disarmed?'good':'unknown';
@@ -1173,7 +1172,8 @@ function renderJointAutomaticStatus(){const f=snapshot?.feedback;const fresh=dat
 function renderJointCalibration(){const s=snapshot?.session,w=snapshot?.joint_wizard,f=snapshot?.feedback;const spec=jointSpecs.find(item=>item.id===selectedJointId);const j=calibrationJoint(selectedJointId);const selectedWizard=w?.id===selectedJointId?w:null;const expected=expectedJointAction();const busy=jointSamplingBusy();const basic=!jointGateReason(false);const error=currentJointError();const recovering=recoveryInfo();const count=Number.isInteger(w?.completed_count)&&w.completed_count>=0&&w.completed_count<=15?w.completed_count:motorIds.filter(jointSaved).length;const saved=jointSaved(selectedJointId);const mouth=selectedJointId===34;
   renderJointAutomaticStatus();
   const draft=jointDraftActive();const step=jointSteps.findIndex(item=>item[0]===(w?.busy===true?w.stage:expected))+1;
-  el('jointSelect').value=String(selectedJointId);el('jointSelect').disabled=requestBusy||busy||draft||zeroDraftActive();el('jointSelectedState').textContent=draft?(saved?'✓ 此前已完成并保存；本次重采未保存':'本次采样未保存')+' · 第 '+step+' / 5 步':jointSavedLabel(selectedJointId);el('jointCompletedCount').textContent=count+' / 15 完成';el('jointAllDone').hidden=count!==15;el('jointAllDone').textContent='15 个关节的方向和安全范围已保存，等待下一步受控实机检查；本页没有使能或模型运动按钮。';
+  if(el('jointSelect').value!==String(selectedJointId))el('jointSelect').value=String(selectedJointId);
+  el('jointSelect').disabled=requestBusy||busy||draft||zeroDraftActive();el('jointSelectedState').textContent=draft?(saved?'✓ 此前已完成并保存；本次重采未保存':'本次采样未保存')+' · 第 '+step+' / 5 步':jointSavedLabel(selectedJointId);el('jointCompletedCount').textContent=count+' / 15 完成';el('jointAllDone').hidden=count!==15;el('jointAllDone').textContent='15 个关节的方向和安全范围已保存，等待下一步受控实机检查；本页没有使能或模型运动按钮。';
   el('jointSelectionHint').textContent=draft?'正在校准 ID '+selectedJointId+'（'+spec.name+'）。下面第 1–5 步都针对这个关节，参考图保持不变。'+(saved?'此前的校准继续保留，只有再次点击「保存本关节」才会更新。':'')+'保存本关节后点「下一个未完成关节」；若要中途换关节，先点「取消未保存步骤 / 重来」。':saved?'当前关节已完成并保存。可点「下一个未完成关节」继续；也可重采本关节，原结果保留到再次保存。':'先选择关节，再依次完成下面 5 步。第 2 步是当前关节的正方向采样；换到另一个关节时，参考图才会切换。';
   el('jointOriginalZero').textContent=encoder(j?.zero)?String(j.zero):'—';el('jointLivePosition').textContent=basic&&!busy?String(f.positions[motorIds.indexOf(selectedJointId)]):'—';el('jointSavedRange').textContent=encoder(j?.min)&&encoder(j?.max)?String(j.min)+' – '+String(j.max):'待采集';
   const rejection=selectedWizard?.last_range_rejection?.id===selectedJointId?selectedWizard.last_range_rejection:null;
@@ -1200,13 +1200,17 @@ function renderJointCalibration(){const s=snapshot?.session,w=snapshot?.joint_wi
   el('jointPositiveLabel').textContent=mouth?'我确实沿张开嘴部的正方向轻摆了 ID 34':positiveInstruction?'我已按正方向轻摆 ID '+selectedJointId+'：'+positiveInstruction:'我确实沿图中绿色正方向轻摆了这个关节';
   // SVGElement does not reflect the HTMLElement.hidden property. Toggle the
   // actual attribute used by [hidden] CSS, so the previous joint cannot linger.
-  if(mouth){el('jointDirectionDiagram').setAttribute('hidden','');el('jointMouthDiagram').removeAttribute('hidden');}
-  else{el('jointMouthDiagram').setAttribute('hidden','');el('jointDirectionDiagram').removeAttribute('hidden');}
-  if(spec.tile)el('jointDirectionDiagram').setAttribute('viewBox',(20+spec.tile[0]*316)+' '+(104+spec.tile[1]*387)+' 303 371');
+  // Rendering also runs every 100 ms to age live readings. Reassigning an
+  // unchanged SVG viewBox invalidates its image rendering in browsers.
+  for(const [id,hidden] of [['jointDirectionDiagram',mouth],['jointMouthDiagram',!mouth]]){
+    const node=el(id),wasHidden=node.getAttribute('hidden')!==null;
+    if(hidden!==wasHidden){if(hidden)node.setAttribute('hidden','');else node.removeAttribute('hidden');}
+  }
+  if(spec.tile){const viewBox=(20+spec.tile[0]*316)+' '+(104+spec.tile[1]*387)+' 303 371';if(el('jointDirectionDiagram').getAttribute('viewBox')!==viewBox)el('jointDirectionDiagram').setAttribute('viewBox',viewBox);}
   el('jointReferenceCopy').textContent=mouth?'ID 34 嘴部：轻合为零点，绿色嘴部张开为正方向。只需轻轻张开一些，停稳后采样；不能越过闭合端。':positiveInstruction?'灰色是模型零姿态，灰到绿说明正方向。第 2 步：'+positiveInstruction+'；'+(hipPositive?'保持躯干与膝、踝的相对姿态不变':'按小腿与脚掌的相对姿态核对灰色零姿态，不要在髋、膝任意弯曲时仅凭脚底贴桌面记零')+'，停稳后采样。第 1 步可从当前安全位置开始；第 2 步必须按这个方向。这一步确定转向，A/B 两端另采。':'灰色是模型零姿态，绿色是 '+spec.name+' 的正方向。只小幅朝绿色方向轻摆，不用达到图中 +10°。';
   el('jointReferenceCaution').textContent=mouth?'开合动作示意。按实物辨认轻合、张开；示意图的角度不是机械限位。':'图只说明模型方向。结合本机实际装配辨认关节；不要盲选方向，也不要用图上的角度当机械限位。';
   el('jointFullReferenceLink').hidden=mouth;
-  el('jointMarginNote').textContent=mouth?'嘴部只轻合、张开，不可越过闭合端。闭合采样需距原零点不超过 6 刻度；该安全边界保留原零点。张开端至少离零点 36 刻度，并缩进 12 刻度（约 1.05°）。原零点不改。':'这是其余关节保持参考姿态时采到的单关节范围，不代表所有关节组合都无碰撞。需自己留明显间隙；后台两端各缩进 12 刻度（约 1.05°），并检查原零点和默认站姿在范围内。跨 4095→0 的范围不支持。';
+  el('jointMarginNote').textContent=mouth?'嘴部只轻合、张开，不可越过闭合端。闭合采样需距原零点不超过 6 刻度；该安全边界保留原零点。张开端至少离零点 36 刻度，并缩进 12 刻度（约 1.05°）。原零点不改。':'这是其余关节保持参考姿态时采到的单关节范围，不代表所有关节组合都无碰撞。需自己留明显间隙；后台两端各缩进 12 刻度（约 1.05°），并检查原零点和默认站姿在范围内。A/B 范围不设半圈跨度上限，按编码器较小值到较大值保存；跨 4095→0 的范围不支持。';
   el('jointAssetError').hidden=mouth||positiveAssetOk;
   const positions=[selectedWizard?.start_position,selectedWizard?.end_position,selectedWizard?.range_a,selectedWizard?.range_b];
   const descriptions=['让所选关节停稳。这是方向比较的起点，不是重新采零点。',mouth?'轻轻张开一些，停稳并勾选张开方向确认。':'沿绿色方向小幅轻摆，停稳并勾选正方向确认。',mouth?'可先轻合到原闭合位置，停稳；不要越过闭合端。':'托住腿的自重，当前关节缓慢摆到一侧不擦碰、有明显间隙的位置，停稳。',mouth?'记录另一侧安全张开位置；不能顶机械限位。':'再记录另一侧不擦碰的位置；采样值显示在上方，不额外掰开其他关节来腾出范围。'];
@@ -1448,14 +1452,12 @@ el('motionConnect').onclick=()=>{motionLastHeartbeat=-Infinity;return runMotion(
 el('motionRecheck').onclick=recheckMotionFeedback;
 el('motionImuRead').onclick=readMotionImu;el('motionImuEnd').onclick=endMotionImu;
 el('motionShadow').onclick=()=>runMotion('start',{mode:'shadow',preview_model:el('motionPreviewModel').value||'walk'});
-el('motionStand').onclick=()=>runMotion('start',{mode:'hold',support_confirmed:el('motionSupportConfirmed').checked});
-el('motionHeadCapture').onclick=()=>runMotion('capture-head-clearance',{clearance_confirmed:el('motionHeadClearanceConfirmed').checked});
-el('motionHeadClearanceConfirmed').onchange=renderMotion;
+el('motionStand').onclick=()=>runMotion('start',{mode:'hold'});
 el('motionPreviewModel').onchange=renderMotion;
-el('motionWalk').onclick=()=>runMotion('start',{mode:'walk',support_confirmed:el('motionSupportConfirmed').checked});
-for(const [id,mode] of [['motionGetup','getup'],['motionPick','pick'],['motionRoulade','roulade']])el(id).onclick=()=>runMotion('start',{mode,support_confirmed:el('motionSupportConfirmed').checked,behavior_confirmed:el('motionBehaviorConfirmed').checked});
+el('motionWalk').onclick=()=>runMotion('start',{mode:'walk'});
+for(const [id,mode] of [['motionGetup','getup'],['motionPick','pick'],['motionRoulade','roulade']])el(id).onclick=()=>runMotion('start',{mode,behavior_confirmed:el('motionBehaviorConfirmed').checked});
 el('motionBehaviorConfirmed').onchange=renderMotion;
-el('motionStop').onclick=()=>runMotion('stop',{stop_source:'button'});el('motionDisconnect').onclick=()=>runMotion('disconnect');el('motionSupportConfirmed').onchange=renderMotion;
+el('motionStop').onclick=()=>runMotion('stop',{stop_source:'button'});el('motionDisconnect').onclick=()=>runMotion('disconnect');
 for(const [id,values] of [['motionForward',[.1,0,0]],['motionBackward',[-.1,0,0]],['motionLeft',[0,0,.3]],['motionRight',[0,0,-.3]]]){
   el(id).onpointerdown=event=>{if(el(id).disabled)return;event?.preventDefault?.();el(id).setPointerCapture?.(event.pointerId);return motionDriveCommand(values);};
   el(id).onpointerup=el(id).onpointercancel=el(id).onlostpointercapture=()=>{if(motionFresh()&&snapshot.motion.hardware.mode==='walk')return motionDriveCommand([0,0,0]);};
@@ -1464,6 +1466,7 @@ globalThis.addEventListener?.('blur',()=>{if(motionFresh()&&ownsMotionControl()&
 document.addEventListener?.('visibilitychange',()=>{if(motionIndependentHold()||!ownsMotionControl()||!snapshot?.motion?.owns_connection||motionControlHardware()?.mode==='off')return;if(document.hidden&&motionControlHardware()?.mode!=='hold')runMotion('stop',{stop_source:'page-hidden'});else if(workspaceView==='motion-models')motionHeartbeat();});
 document.addEventListener?.('visibilitychange',()=>{renderDisplayUpdates();if(document.hidden)displayPollAbort?.abort();else pollDisplay();});
 el('displayUpdatesToggle').onclick=toggleDisplayUpdates;
+el('saveRangeBoundaries').onclick=expandMotionRanges;
 globalThis.addEventListener?.('pagehide',()=>{if(!localFilePage&&!motionIndependentHold()&&ownsMotionControl()&&snapshot?.token&&snapshot?.motion?.owns_connection&&motionControlHardware()?.mode!=='off'){fetch('/api/motion',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':snapshot.token},credentials:'same-origin',keepalive:true,body:JSON.stringify({action:'stop',page_generation:motionPageGeneration(),generation:motionControl.generation,control_id:motionControlId,stop_source:'pagehide'})}).catch(()=>{});}});
 selectWorkspace(globalThis.location?.hash);
 if(localFilePage){
@@ -1473,7 +1476,7 @@ if(localFilePage){
 }else{
   const reference=new Image();reference.onload=()=>{assetOk=true;el('referenceAssetError').hidden=true;render();};reference.onerror=()=>{assetOk=false;el('referenceAssetError').hidden=false;render();};reference.src='/assets/zero-reference.png';
   const positiveReference=new Image();positiveReference.onload=()=>{positiveAssetOk=true;render();};positiveReference.onerror=()=>{positiveAssetOk=false;render();};positiveReference.src='/assets/positive-direction.png';
-  render();refresh();setInterval(pollDisplay,100);setInterval(()=>render(),100);
+  render();refresh();setInterval(pollDisplay,100);setInterval(()=>render(),100);setInterval(motionHeartbeatTick,100);
 }
 </script>
 </body>

@@ -172,3 +172,5 @@ XGO-Duck 基于 **Pollen Robotics** 的 [Microduck](https://github.com/pollen-ro
 ## RDK X5 + ESP32 适配
 
 本仓库另外保留了 RDK X5 + ESP32 + HD-1910 的自定义适配源码与离线测试，见 [适配说明](docs/rdk-x5-esp32.md)。这一路线仍在排查承重跟随和行走问题，不能视为已经验证的行走方案。构建产物、设备校准、日志、访问密钥与临时环境不纳入 Git。
+
+2026-10-14 的[已安装主机与配套固件源码快照](tools/x5_policy/runtime_current/README.md)已单独整理，并附源码哈希。仿真、手柄、校准和后续诊断开发工具保存在 `tools/`；部分历史工具仍依赖未发布的本地试验输入，使用范围见各目录说明。

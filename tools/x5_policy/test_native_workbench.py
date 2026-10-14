@@ -147,13 +147,13 @@ class NativeWorkbenchTests(unittest.TestCase):
         value.update(changes)
         return value
 
-    def request(self, method, path, body=None, *, changes=None, duplicate=None, logged_in=True):
+    def request(self, method, path, body=None, *, changes=None, duplicate=None, logged_in=True, local_host='192.168.1.11'):
         raw = b'' if body is None else body if isinstance(body, bytes) else json.dumps(body).encode()
-        headers = {'Host': web.HOST + ':' + str(web.PORT)}
+        headers = {'Host': local_host + ':' + str(web.PORT)}
         if logged_in:
             headers['Cookie'] = web.COOKIE + '=' + self.cookie
         if method == 'POST':
-            headers.update(Origin=web.ORIGIN, **{'X-CSRF-Token': self.workbench.token,
+            headers.update(Origin='http://' + headers['Host'], **{'X-CSRF-Token': self.workbench.token,
                            'Content-Type': 'application/json', 'Content-Length': str(len(raw))})
         headers.update(changes or {})
         handler = object.__new__(web.handler_for(self.workbench))
@@ -163,6 +163,8 @@ class NativeWorkbenchTests(unittest.TestCase):
                 handler.headers[key] = value
         if duplicate:
             handler.headers[duplicate[0]] = duplicate[1]
+        handler.connection = mock.Mock()
+        handler.connection.getsockname.return_value = (local_host, web.PORT)
         handler.path = path
         handler.rfile = io.BytesIO(raw)
         handler.client_address = ('192.168.1.20', 54321)

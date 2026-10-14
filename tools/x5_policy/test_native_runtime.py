@@ -34,6 +34,59 @@ class FakeCPUModel(FakePolicy):
         return ['CPUExecutionProvider']
 
 
+class RangeFeedbackSnapshotTests(unittest.TestCase):
+    def setUp(self):
+        self.runtime = app.NativeRuntime.__new__(app.NativeRuntime)
+        self.runtime.lock = threading.RLock()
+        self.runtime._lifecycle = threading.RLock()
+        self.runtime.phase = 'ready'
+        self.runtime._connection_sequence = 2
+        self.runtime._hardware_generation_floor = 7
+        self.runtime._namespace = dict(health_error=None)
+        self.runtime._owns_locked = mock.Mock(return_value=True)
+        self.hardware = dict(generation=7, age_ms=12., imu_age_ms=15.)
+        self.runtime._controller = types.SimpleNamespace(status=mock.Mock(
+            side_effect=lambda: copy.deepcopy(self.hardware)))
+        # A slow publication must never substitute for the actual sample.
+        self.runtime._hardware_snapshot = dict(generation=7, age_ms=320.)
+
+    def test_reads_actual_feedback_without_using_or_relabelling_display(self):
+        with mock.patch.object(app.time, 'monotonic', side_effect=[10., 10.006]):
+            result = self.runtime.range_feedback_snapshot()
+        self.assertAlmostEqual(result['hardware']['age_ms'], 18.)
+        self.assertAlmostEqual(result['feedback_age_ms'], 18.)
+        self.assertEqual(self.runtime._hardware_snapshot['age_ms'], 320.)
+        self.runtime._controller.status.assert_called_once_with()
+
+    def test_preserves_stale_actual_measurement_for_save_gate(self):
+        self.hardware['age_ms'] = 160.
+        self.assertGreaterEqual(self.runtime.range_feedback_snapshot()['hardware']['age_ms'], 160.)
+
+    def test_joint_boundary_save_does_not_consume_stale_imu(self):
+        self.hardware['imu_age_ms'] = 60000.
+        self.assertLess(self.runtime.range_feedback_snapshot()['feedback_age_ms'], 100.)
+
+    def test_rejects_connection_transition_and_superseded_generation(self):
+        controller = self.runtime._controller
+        def changed():
+            self.runtime._connection_sequence += 1
+            return copy.deepcopy(self.hardware)
+        controller.status.side_effect = changed
+        with self.assertRaisesRegex(ValueError, '连接已变化'):
+            self.runtime.range_feedback_snapshot()
+        controller.status.side_effect = lambda: dict(self.hardware, generation=6)
+        with self.assertRaisesRegex(ValueError, '连接已变化'):
+            self.runtime.range_feedback_snapshot()
+
+    def test_unconnected_or_unhealthy_never_reads_feedback(self):
+        for phase, health in [('closed', None), ('ready', 'transport failed')]:
+            self.runtime.phase = phase
+            self.runtime._namespace['health_error'] = health
+            with self.assertRaisesRegex(ValueError, '连接并载入模型'):
+                self.runtime.range_feedback_snapshot()
+        self.runtime._controller.status.assert_not_called()
+
+
 class NativeRuntimeTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -310,9 +363,122 @@ class NativeRuntimeTests(unittest.TestCase):
         self.assertIn(motion.CONFIG, kinds)
         self.assertNotIn(motion.ARM, kinds)
         self.assertNotIn(motion.TARGET, kinds)
-        with self.assertRaisesRegex(ValueError, '连接已关闭'):
-            runtime.connect()
+        before_factory = self.factory_calls
+        before_sequence = runtime.snapshot()['connection_sequence']
+        with mock.patch.object(runtime, '_new_namespace', side_effect=AssertionError('Repeated connect opened UART')):
+            repeated = runtime.connect()
+        self.assertEqual(repeated['phase'], 'ready')
+        self.assertEqual(repeated['connection_sequence'], before_sequence)
+        self.assertEqual(repeated['hardware']['generation'], state['hardware']['generation'])
+        self.assertFalse(repeated['hardware']['armed'])
+        self.assertEqual(self.factory_calls, before_factory)
         self.assertEqual(len(self.transports), 1)
+        self.assertFalse(any(kind in (motion.ARM, motion.TARGET) for kind, _ in self.transports[0].requests))
+
+    def test_gc_heap_is_prepared_before_any_uart_and_restored_after_thread_close(self):
+        runtime = self.create()
+        window = runtime._gc_window
+        prepare, finish = window.prepare, window.finish
+        events = []
+        def prepare_before_open():
+            self.assertTrue(runtime._serial_closed(runtime._controller, runtime._namespace))
+            self.assertFalse(self.transports)
+            events.append('prepare')
+            return prepare()
+        def finish_after_close(*, serial_closed):
+            if serial_closed:
+                self.assertTrue(runtime._serial_closed(runtime._controller, runtime._namespace))
+                self.assertTrue(all(t.serial is None for t in self.transports))
+            events.append(('finish', serial_closed))
+            return finish(serial_closed=serial_closed)
+        with mock.patch.object(window, 'prepare', side_effect=prepare_before_open), \
+                mock.patch.object(window, 'finish', side_effect=finish_after_close):
+            runtime.connect()
+            self.assertTrue(window.active)
+            runtime.disconnect()
+        self.assertFalse(window.active)
+        self.assertEqual(events[0], 'prepare')
+        self.assertIn(('finish', True), events)
+
+    def test_failed_gc_preparation_never_opens_uart(self):
+        runtime = self.create()
+        with mock.patch.object(runtime._gc_window, 'prepare', side_effect=MemoryError('GC preparation failed')):
+            with self.assertRaisesRegex(ValueError, 'GC preparation failed'):
+                runtime.connect()
+        self.assertFalse(self.transports)
+        self.assertTrue(runtime.closed_proof['serial_closed'])
+        self.assertFalse(runtime._gc_window.active)
+
+    def test_failed_controller_start_restores_gc_without_any_uart(self):
+        runtime = self.create()
+        with mock.patch.object(motion.MotionController, 'start', side_effect=RuntimeError('injected start failure')):
+            with self.assertRaisesRegex(ValueError, 'injected start failure'):
+                runtime.connect()
+        self.assertFalse(self.transports)
+        self.assertTrue(runtime.closed_proof['serial_closed'])
+        self.assertFalse(runtime._gc_window.active)
+
+    def test_outside_saved_range_keeps_connection_and_configuration_but_blocks_motion(self):
+        positions = [2047] * 15
+        positions[1] = 99
+        self.initial_feedback = dict(positions=positions)
+        runtime = self.create()
+        state = runtime.connect()
+        self.assertEqual(state['phase'], 'ready')
+        self.assertTrue(state['hardware']['release_confirmed'])
+        self.assertIn('ID 11 实际位置超出', state['hardware']['start_blocked_reason'])
+        sample = runtime.range_feedback_snapshot()
+        self.assertEqual(sample['hardware']['rawdata'][1]['position'], 99)
+        self.assertEqual(runtime.connect()['connection_sequence'], state['connection_sequence'])
+        with self.assertRaisesRegex(motion.MotionError, 'ID 11 实际位置超出'):
+            runtime.action(dict(action='start', mode='hold', generation=state['hardware']['generation'], support_confirmed=True))
+        self.assertTrue(runtime.snapshot()['owns_connection'])
+        kinds = [kind for kind, _ in self.transports[0].requests]
+        self.assertIn(motion.CONFIG, kinds)
+        self.assertNotIn(motion.ARM, kinds)
+        self.assertNotIn(motion.TARGET, kinds)
+
+    def test_repeated_connect_with_stale_imu_keeps_motion_blocked(self):
+        runtime = self.create()
+        runtime.connect()
+        self.transports[0].imu_ok = False
+        self.transports[0].imu_age_us = 60000000
+        deadline = time.monotonic() + 1
+        while time.monotonic() < deadline:
+            state = runtime.snapshot(compact=True)
+            hardware = state.get('hardware') or {}
+            if hardware.get('imu_ok') is False and hardware.get('imu_age_ms', 0) >= 500:
+                break
+            time.sleep(.01)
+        repeated = runtime.connect()
+        self.assertTrue(repeated['owns_connection'])
+        self.assertTrue(repeated['hardware']['connected'])
+        self.assertGreaterEqual(repeated['hardware']['imu_age_ms'], 500)
+        self.assertFalse(repeated['hardware']['armed'])
+        with self.assertRaises(motion.MotionError):
+            runtime.action_receipt(dict(action='start', mode='hold',
+                generation=repeated['hardware']['generation'], support_confirmed=True))
+        self.assertEqual(len(self.transports), 1)
+        self.assertFalse(any(kind in (motion.ARM, motion.TARGET) for kind, _ in self.transports[0].requests))
+
+    def test_connect_waits_for_initial_missing_position_without_arming(self):
+        self.initial_feedback = dict(online=motion.ALL_MASK & ~(1 << motion.MOTOR_IDS.index(22)))
+        original = FakeTransport.request
+        state_requests = []
+        def delayed_position(transport, kind, payload=b''):
+            if kind == motion.STATE:
+                state_requests.append(kind)
+                if len(state_requests) >= 6:
+                    transport.online = motion.ALL_MASK
+            return original(transport, kind, payload)
+        runtime = self.create()
+        with mock.patch.object(FakeTransport, 'request', delayed_position):
+            state = runtime.connect()
+        self.assertGreaterEqual(len(state_requests), 6)
+        self.assertEqual(state['phase'], 'ready')
+        self.assertTrue(state['hardware']['release_confirmed'])
+        self.assertEqual(len(self.transports), 1)
+        self.assertFalse(any(kind in (motion.ARM, motion.TARGET) for kind, _ in self.transports[0].requests))
 
     def test_connect_names_missing_position_without_claiming_torque_is_on(self):
         self.initial_feedback = dict(online=motion.ALL_MASK & ~(1 << motion.MOTOR_IDS.index(22)))
@@ -578,7 +744,7 @@ class NativeRuntimeTests(unittest.TestCase):
     def test_display_publisher_period_does_not_change_actual_action_feedback_gate(self):
         runtime = self.create()
         state = runtime.connect()
-        self.assertEqual(app.DISPLAY_PUBLISH_SECONDS, .2)
+        self.assertEqual(app.DISPLAY_PUBLISH_SECONDS, .1)
         self.assertEqual(motion.HEARTBEAT_SECONDS, .4)
         controller = runtime._controller
         with mock.patch.object(runtime, '_publish_hardware'):

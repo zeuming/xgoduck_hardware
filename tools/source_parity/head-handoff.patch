@@ -1,0 +1,83 @@
+--- a/policy/motion.py
++++ b/policy/motion.py
+@@ -283,6 +283,28 @@
+     def current_pose_probe(self, **kwargs):
+         raise MotionError('正常运控已移除实验性姿态试探；请使用舵机工作台的独立诊断')
+ 
++    def _policy_start_smooth_locked(self, mode):
++        # HEAD-HANDOFF-20261013：修复本机新增的非零头颈 HOLD 与原版零滤波
++        # 初值不一致。官方 policy.py:reset_action_filter() 清零适用于 HOME；
++        # 这里仅在已成功发送 HOLD 目标后进入 WALK 时，保留四个头关节的
++        # 动作滤波初值：(上一条成功发送的HOLD目标 - 模型HOME) / 原动作尺度。
++        # 当前 head profile 下直接清零会使 ID30/31 第一帧回跳约13/15度。
++        # 依据为 zero-after-head 的实测输入重放，不新增插值时长/限速/KP。
++        # 腿部滤波、模型的 previous_raw_action、EMA系数、恢复流程保持原版。
++        # 这是目标连续性修复，并不证明承重平衡或实机行走已解决。
++        seed = super()._policy_start_smooth_locked(mode)
++        if (mode != 'walk' or self._mode != 'hold'
++                or not any(self._walk_head_profile)
++                or self._last_executed_target is None):
++            return seed
++        profile = self._policy_profiles['walk']
++        target = np.asarray(self._last_executed_target, dtype=np.float32)
++        if target.shape != (15,) or not np.isfinite(target).all():
++            raise MotionError('Invalid committed HOLD target for head handoff')
++        seed[5:9] = ((np.deg2rad(target[10:14]) - profile['home_rad'][5:9])
++                     / profile['scale'])
++        return seed
++
+     def _mode_started_locked(self, mode):
+         self._recovery.reset()
+         self._last_trial_stop = None
+--- a/policy/production_motion.py
++++ b/policy/production_motion.py
+@@ -1083,6 +1083,7 @@
+         if mode not in ('shadow', 'hold') + MODEL_MODES:
+             raise MotionError('未知动作模式；停止请使用停止按钮')
+         preflight_generation, preflight_began, preflight_target = None, None, None
++        initial_smooth = np.zeros(14, np.float32)
+         if mode in MODEL_MODES:
+             with self._lock:
+                 if expected_generation is not None and (type(expected_generation) is not int or
+@@ -1093,11 +1094,15 @@
+                 self._model_gate_locked(mode)
+                 st = _copy_policy_state(self._filtered)
+                 head_command = self._walk_head_command_locked() if mode == 'walk' else None
++                initial_smooth = self._policy_start_smooth_locked(mode)
++                if initial_smooth.shape != (14,) or not np.isfinite(initial_smooth).all():
++                    raise MotionError('Invalid initial policy filter state')
++                initial_smooth = initial_smooth.copy()
+                 preflight_generation, preflight_began = self._generation, self._clock()
+             # Never hold the controller lock during inference: a STOP arriving
+             # here must invalidate this start before any ARM or target write.
+             preflight_target, _, _, _ = self._infer_policy_target(mode, st,
+-                np.zeros(14, np.float32), np.zeros(3, np.float32), np.zeros(14, np.float32), 0.,
++                np.zeros(14, np.float32), np.zeros(3, np.float32), initial_smooth, 0.,
+                 head_command=head_command)
+         with self._lock:
+             if preflight_generation is not None and preflight_generation != self._generation:
+@@ -1161,7 +1166,7 @@
+             self._background_hold = False
+             self._command.fill(0)
+             self._previous_action.fill(0)
+-            self._smooth_action.fill(0)
++            self._smooth_action[:] = initial_smooth
+             self._last_action = None
+             if mode not in MODEL_MODES:
+                 self._last_policy_target = None
+@@ -1179,6 +1184,15 @@
+                 self._hold_initial = list(self._filtered.angles)
+             self._mode_started_locked(mode)
+         return self.status()
++
++    def _policy_start_smooth_locked(self, mode):
++        """Default matches upstream Policy.reset_action_filter: all zeros.
++
++        A device adapter may retain a known non-HOME head goal on HOLD->WALK.
++        The exact same seed is checked before mode commit and used at commit;
++        it never changes raw previous_action or bypasses the target validator.
++        """
++        return np.zeros(14, np.float32)
+ 
+     def _mode_started_locked(self, mode):
+         """Internal hook after atomic mode commit; default has no side effect."""

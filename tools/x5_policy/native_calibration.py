@@ -110,6 +110,9 @@ class NativeCalibrationSession(host.CalibrationSession):
 
     def _write_calibration(self, config):
         zero_save = self.joint_zero['stage'] == 'ready' and self.zero_collection is not None
+        if (zero_save and self.status in ('closed', 'fault')
+                and self.connection_done.is_set() and not self.source_transmitting):
+            return super()._write_calibration(config)
         if zero_save or getattr(self, '_native_joint_save', False):
             # Both callers have validated the current torque-off sample and
             # proposed configuration. Drain the reader before persistent I/O;
@@ -162,6 +165,10 @@ class NativeCalibrationSession(host.CalibrationSession):
         with self.lock:
             if getattr(self, '_native_joint_save', False):
                 raise ValueError('关节正在保存，请等待本次结果')
+            if type(body) is dict and body.get('action') != 'cancel':
+                self._require_joint_feedback()
+                if not self._selected_joint_readable(body.get('id')):
+                    raise ValueError('当前位置暂时不可读；摆回可读范围后继续，已记录步骤保留。')
             self._native_joint_save = type(body) is dict and body.get('action') in ('save', 'save-direction')
             try:
                 return super().joint_action(body)
@@ -171,7 +178,7 @@ class NativeCalibrationSession(host.CalibrationSession):
     def _scoped_online_mask(self, purpose):
         # IMU scope validates disarmed, torque-off feedback in _validate_state;
         # servo availability cannot authorize joints or prevent IMU-only reads.
-        return None if purpose == 'imu' else super()._scoped_online_mask(purpose)
+        return None if purpose in ('imu', 'joints') else super()._scoped_online_mask(purpose)
 
     def motion_reserved(self):
         # A status page asks this gate several times. Ownership is a lifecycle
@@ -246,6 +253,12 @@ class NativeCalibrationSession(host.CalibrationSession):
                 self.connection_check.update(phase='passed',error=None,technical_reason=None,message=self.message)
 
     def _validate_state(self, state):
+        if self.feedback_scope == 'joints' and 'torque_known_mask' in state:
+            if (type(state['torque_known_mask']) is not int or not 0 <= state['torque_known_mask'] <= ALL_MASK
+                    or type(state.get('online_mask')) is not int
+                    or not 0 <= state['online_mask'] <= ALL_MASK):
+                raise ValueError('关节采集需要确认实际扭矩全部关闭')
+            return super()._validate_state(dict(state, online_mask=ALL_MASK))
         if self.feedback_scope != 'imu':
             return super()._validate_state(state)
         if type(state) is not dict:
@@ -313,7 +326,51 @@ class NativeCalibrationSession(host.CalibrationSession):
     def _require_joint_feedback(self):
         if self.feedback_scope != 'joints':
             raise ValueError('IMU 专用采集不提供在线关节反馈，请结束后复查关节')
+        if self.feedback is not None and 'torque_known_mask' in self.feedback:
+            if (self.status != 'active' or self.received_at is None
+                    or not 0 <= self.clock() - self.received_at < host.FRESH):
+                raise ValueError('真机反馈不可用或已过期，关节采样已停止')
+            if not all(self.config['imu'][key] is True for key in ('calibrated', 'axes_confirmed')):
+                raise ValueError('请先完成并保存 IMU 校准')
+            self._validate_state(self.feedback)
+            if self.feedback['torque_known_mask'] != ALL_MASK:
+                raise ValueError('等待实际扭矩关闭反馈，已记录步骤保留。')
+            if self.feedback.get('last_error') != 0:
+                raise ValueError('控制器报告异常状态，关节采样已停止')
+            return self.feedback
         return super()._require_joint_feedback()
+
+    def _selected_joint_readable(self, sid):
+        return (sid in host.joint_calibration.IDS and self.feedback is not None
+                and bool(self.feedback['online_mask'] & (1 << host.joint_calibration.IDS.index(sid))))
+
+    def joint_zero_action(self, body):
+        with self.lock:
+            if type(body) is dict and body.get('action') == 'capture':
+                self._require_joint_feedback()
+                if not self._selected_joint_readable(body.get('id')):
+                    raise ValueError('当前位置暂时不可读；摆回可读范围后再记零点。')
+            return super().joint_zero_action(body)
+
+    def _tick_joint(self):
+        if (self.joint_wizard.active() and self.status == 'active' and self.feedback is not None
+                and self.feedback.get('torque_known_mask', ALL_MASK) != ALL_MASK):
+            self.joint_wizard.pause_feedback('等待实际扭矩关闭反馈，已记录步骤保留。')
+            return
+        if (self.joint_wizard.active() and self.status == 'active'
+                and not self._selected_joint_readable(self.joint_wizard.value['id'])):
+            self.joint_wizard.pause_feedback()
+            return
+        return super()._tick_joint()
+
+    def _tick_joint_zero(self):
+        if self.joint_zero['stage'] == 'ready':
+            return
+        if (self._joint_zero_pending() and self.status == 'active'
+                and not self._selected_joint_readable(self.joint_zero['id'])):
+            self._fail_joint_zero('当前位置暂时不可读；摆回可读范围后再记零点。')
+            return
+        return super()._tick_joint_zero()
 
     @staticmethod
     def _validate_local_quiescence(proof, generation):
@@ -528,8 +585,15 @@ class NativeCalibrationService:
         with self.session.lock:
             process = self.session.process
             proof = self.session.closed_proof or {}
+            # A rejected reader preflight never created a child or opened its
+            # UART. Keep that fault visible, but do not demand a fictional
+            # close record before the independent motion connection checks.
+            unopened_preflight_failure = (self.session.status == 'fault'
+                and process is None
+                and self.session._reader_preflight_failure_generation == self.session.generation)
             if (self.session.recovery_pending or self.session.source_transmitting
-                    or self.session.status != 'closed' or (process is not None and (
+                    or (self.session.status != 'closed' and not unopened_preflight_failure)
+                    or (process is not None and (
                     process.poll() != 0 or proof.get('generation') != self.session.generation
                     or proof.get('normal') is not True or proof.get('serial_closed') is not True))):
                 raise ValueError('校准连接缺少正常关闭证明，运控未打开串口')

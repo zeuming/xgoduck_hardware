@@ -30,7 +30,7 @@ class MathTests(unittest.TestCase):
 
     def test_linear_limits_margin_zero_and_actual_default_stand_gate(self):
         self.assertEqual(joint.safe_limits(1700, 2300, 2000, 1, 23), (1712, 2288))
-        for args in ((0, 4095, 2000, 1, 0), (2000, 2300, 2000, 1, 0),
+        for args in ((2000, 2300, 2000, 1, 0),
                      (1800, 2200, 2000, 1, 23), (1980, 2005, 2000, 1, 0)):
             with self.subTest(args=args), self.assertRaises(ValueError):
                 joint.safe_limits(*args)
@@ -38,11 +38,19 @@ class MathTests(unittest.TestCase):
         stand = round(2000 + 23 * 4095 / 360)
         self.assertEqual(joint.safe_limits(1700, stand + 12, 2000, 1, 23)[1], stand)
 
+    def test_linear_ranges_at_and_above_half_turn_keep_measured_endpoints(self):
+        for a, b in ((900, 2948), (900, 3500), (0, 4095), (4095, 0)):
+            with self.subTest(a=a, b=b):
+                self.assertEqual(joint.safe_limits(a, b, 2000, 1, 0, 10),
+                                 (min(a, b) + 12, max(a, b) - 12))
+
     def test_mouth_closed_endpoint_preserves_original_zero_with_both_signs(self):
         self.assertEqual(joint.safe_limits(2006, 2400, 2000, 1, 0, 34), (2000, 2388))
         self.assertEqual(joint.safe_limits(1600, 1994, 2000, -1, 0, 34), (1612, 2000))
         self.assertEqual(joint.safe_limits(2000, 2036, 2000, 1, 0, 34), (2000, 2024))
         self.assertEqual(joint.safe_limits(1964, 2000, 2000, -1, 0, 34), (1976, 2000))
+        self.assertEqual(joint.safe_limits(1000, 3500, 1000, 1, 0, 34), (1000, 3488))
+        self.assertEqual(joint.safe_limits(3500, 1000, 3500, -1, 0, 34), (1012, 3500))
         for args in ((2007, 2400, 2000, 1, 0, 34),
                      (1993, 1600, 2000, -1, 0, 34),
                      (2000, 1600, 2000, 1, 0, 34),
@@ -65,8 +73,7 @@ class MathTests(unittest.TestCase):
                              (min(args[:2]) + 12, max(args[:2]) - 12))
             self.assertIn(f'A={args[0]}、B={args[1]}', str(raised.exception))
             self.assertIn(f'原零点 {args[2]}', str(raised.exception))
-        invalid = ((0, 2048, 2000, 1, 0, 10),
-                   (True, 2400, 2000, 1, 0, 10),
+        invalid = ((True, 2400, 2000, 1, 0, 10),
                    (1800, 2400, True, 1, 0, 10),
                    (1800, 2400, 2000, True, 0, 10),
                    (1800, 2400, 2000, 0, 0, 10),
@@ -213,13 +220,25 @@ class WizardTests(unittest.TestCase):
             self.wizard.proposed_direction_config(self.config, 12)
         self.assertEqual(self.config, original)
 
+    def test_direction_only_reuses_saved_range_wider_than_half_turn(self):
+        self.config['joints'][0].update(sign=-1, min=12, max=4083, direction_confirmed=True)
+        original = copy.deepcopy(self.config)
+        self.capture('direction-start', 2000)
+        self.capture('direction-end', 2050)
+        self.assertTrue(self.wizard.snapshot(self.config)['direction_reuse_allowed'])
+        updated = self.wizard.proposed_direction_config(self.config, 10)
+        expected = copy.deepcopy(original)
+        expected['joints'][0]['sign'] = 1
+        self.assertEqual(updated, expected)
+        self.assertEqual(self.config, original)
+
     def test_direction_only_requires_two_completed_samples_original_bounds_and_same_joint(self):
         self.config['joints'][0].update(sign=-1, min=1612, max=2388, direction_confirmed=True)
         self.capture('direction-start', 2000)
         with self.assertRaises(ValueError):
             self.wizard.proposed_direction_config(self.config, 10)
         self.capture('direction-end', 2050)
-        for changes in (dict(min=None), dict(min=True), dict(max=1612), dict(max=4095),
+        for changes in (dict(min=None), dict(min=True), dict(max=1612), dict(max=4096),
                         dict(min=2001), dict(direction_confirmed=False), dict(id=11)):
             bad = copy.deepcopy(self.config)
             bad['joints'][0].update(changes)
@@ -343,19 +362,30 @@ class WizardTests(unittest.TestCase):
                 self.assertEqual(self.wizard.value['stage'], 'failed')
                 self.assert_cleared()
 
-    def test_crossing_sized_range_is_not_retryable_and_cancel_or_clear_discards_history(self):
-        for action, raw in (('direction-start', 2000), ('direction-end', 2050), ('range-a', 900)):
-            self.capture(action, raw)
-        # Intermediate feedback avoids a one-frame jump; the endpoint span is still forbidden.
-        self.advance(raw=2000)
-        self.advance(raw=2948)
-        self.wizard.start('range-b', 10, state(self.raw, self.sample), self.now)
-        with self.assertRaises(ValueError) as raised:
-            for _ in range(20):
-                self.advance()
-        self.assertNotIsInstance(raised.exception, joint.RangeValidationError)
-        self.wizard.fail(raised.exception)
-        self.assert_cleared()
+    def test_wide_range_continuous_feedback_reaches_ready_and_proposes_save(self):
+        for endpoint in (2948, 3500):
+            with self.subTest(endpoint=endpoint):
+                self.setUp()
+                original = copy.deepcopy(self.config)
+                for action, raw in (('direction-start', 2000), ('direction-end', 2050), ('range-a', 900)):
+                    self.capture(action, raw)
+                # Move continuously through the linear encoder interval, without wrapping.
+                for raw in range(1000, endpoint, 100):
+                    self.advance(raw=raw)
+                self.capture('range-b', endpoint)
+                self.assertEqual(self.wizard.value['stage'], 'ready')
+                self.assertTrue(self.wizard.value['ready_to_save'])
+                self.assertIsNone(self.wizard.value['error'])
+                self.assertEqual(self.config, original)
+                proposed = self.wizard.proposed_config(self.config, 10)
+                expected = copy.deepcopy(original)
+                expected['joints'][0].update(sign=1, min=912, max=endpoint - 12,
+                                             direction_confirmed=True)
+                self.assertEqual(proposed, expected)
+                self.wizard.saved()
+                self.assertEqual(self.wizard.snapshot(proposed)['completed_count'], 1)
+
+    def test_cancel_clear_or_health_failure_discards_rejected_range_history(self):
         for reset in ('cancel', 'clear', 'health-fail'):
             with self.subTest(reset=reset):
                 self.setUp()

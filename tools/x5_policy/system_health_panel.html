@@ -1,0 +1,61 @@
+<section class="capability-note" id="x5HealthPanel" aria-labelledby="x5HealthTitle">
+  <strong id="x5HealthTitle">X5 温度与性能</strong>
+  <p id="x5HealthStatus" role="status">等待监控数据</p>
+  <div class="x5-health-grid">
+    <div><span>CPU 温度</span><strong id="x5HealthTemperature">—</strong></div>
+    <div><span>CPU 当前频率</span><strong id="x5HealthFrequency">—</strong></div>
+    <div><span>频率上限 / 硬件最高</span><strong id="x5HealthCap">—</strong></div>
+    <div><span>整机 CPU 使用率</span><strong id="x5HealthBusy">—</strong></div>
+  </div>
+  <p class="note" id="x5HealthHistory">后台每 2 秒采样，与浏览器是否打开无关。</p>
+  <details><summary>温控依据与运控耗时</summary>
+    <pre id="x5HealthDetails" class="note" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+    <p class="note">低频可能来自正常节能调频。以内核 CPU cooling 状态和频率上限判断是否限速；耗时同步变化只能作为排查线索，不能单独证明因果。2 秒采样可能漏掉瞬时变化。本功能只监控，不改变频率、温度阈值或扭矩。</p>
+    <a class="button" href="/api/system-health/history" download="x5-temperature-performance.json">下载最近 10 分钟记录</a>
+    <p class="note">X5 同时保留滚动诊断日志：运动或限速时每 2 秒，空闲时每 10 秒，状态变化立即记录；最多约 12 MiB。</p>
+  </details>
+</section>
+<style>
+#x5HealthPanel{margin-bottom:18px;border-left:4px solid #08786c}
+#x5HealthPanel[data-level="warning"]{border-left-color:#ae7023}
+#x5HealthPanel[data-level="unknown"]{border-left-color:#86918c}
+.x5-health-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+.x5-health-grid span{display:block;font-size:12px;color:var(--muted,#677a70);margin-bottom:6px}
+.x5-health-grid strong{display:block;font:600 20px/1.4 var(--mono,monospace);color:var(--ink,#26382e)}
+@media(max-width:750px){.x5-health-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+<script>
+window.addEventListener('DOMContentLoaded',()=>{
+  let seen=null, received=0;
+  const get=id=>document.getElementById(id);
+  const fmt=(v,d=1)=>Number.isFinite(v)?v.toFixed(d):'—';
+  const date=v=>v?new Date(v).toLocaleString('zh-CN',{hour12:false}):'无';
+  function paint(){
+    const next=typeof snapshot!=='undefined'?snapshot?.system_health:null;
+    if(next&&next!==seen){seen=next;received=performance.now();}
+    const h=seen, age=h?(h.age_ms??Infinity)+performance.now()-received:Infinity;
+    const stale=!h||h.stale||age>6000;
+    get('x5HealthPanel').dataset.level=stale||h.state==='unknown'?'unknown':h.state==='no_limit_observed'?'ok':'warning';
+    get('x5HealthStatus').textContent=stale?'监控数据未更新，当前状态未知':h.reason;
+    const zones=h?.zones||[], policies=h?.policies||[], cooling=h?.cooling||[];
+    const cpu=zones.filter(z=>z.type.toLowerCase().includes('cpu'));
+    get('x5HealthTemperature').textContent=stale?'—':cpu.map(z=>fmt(z.celsius)+' °C').join(' / ')||'—';
+    get('x5HealthFrequency').textContent=stale?'—':policies.map(p=>fmt(p.current_mhz,0)+' MHz').join(' / ')||'—';
+    get('x5HealthCap').textContent=stale?'—':policies.map(p=>fmt(p.max_mhz,0)+' / '+fmt(p.hardware_max_mhz,0)+' MHz').join('；')||'—';
+    get('x5HealthBusy').textContent=stale?'—':fmt(h.cpu_busy_percent)+' %';
+    get('x5HealthHistory').textContent=h?'本次监控最高 CPU 温度 '+fmt(h.peak_cpu_celsius)+' °C · 热限速采样 '+(h.thermal_limited_samples??0)+' 次 · 最近热限速 '+date(h.last_thermal_limited_utc)+' · 数据距今 '+fmt(age/1000)+' 秒':'后台每 2 秒采样，与浏览器是否打开无关。';
+    const lines=zones.map(z=>z.type+'：'+fmt(z.celsius)+' °C；内核阈值 '+z.trips.map(t=>t.type+' '+fmt(t.celsius)+' °C').join(' / '));
+    for(const c of cooling)lines.push(c.type+'：限速级别 '+fmt(c.state,0)+' / '+fmt(c.max_state,0)+'（0 表示未启用）');
+    for(const p of policies)lines.push(p.name+' / CPU '+p.cpus+'：'+p.governor+'；频率来源 '+p.current_source+(p.current_source==='scaling_cur_freq'?'（驱动请求值，未必等于实测）':''));
+    const c=h?.control;
+    if(c?.available)lines.push('同次采样的运控状态：'+(c.mode||c.phase)+'；模型推理 '+fmt(c.inference_ms)+' ms；近 1 秒控制循环最慢 '+fmt(c.cycle_max_ms)+' ms；反馈请求最慢 '+fmt(c.state_request_max_ms)+' ms；累计丢弃过期策略帧 '+(c.discarded_policy_frames??'—'));
+    else lines.push('同期运控耗时暂无新鲜数据');
+    if(h)lines.push('采集与日志耗时 '+fmt(h.sample_wall_ms)+' ms，CPU 用时 '+fmt(h.sample_cpu_ms)+' ms；本次监控从 '+date(h.monitor_started_at*1000)+' 开始。');
+    if(h?.recording_error)lines.push('诊断日志写入失败：'+h.recording_error);
+    get('x5HealthDetails').textContent=lines.join('\n');
+  }
+  const original=render;
+  render=function(){original();paint();};
+  setInterval(paint,2000);paint();
+});
+</script>
